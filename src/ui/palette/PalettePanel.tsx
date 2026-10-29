@@ -4,6 +4,7 @@ import type { NodeKind } from '@/core/registry';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { Panel } from '@/ui/layout/Panel';
+import { ArtifactPopover } from './ArtifactPopover';
 
 /** Orden en que se muestran las categorías en la paleta. */
 const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
@@ -14,11 +15,20 @@ const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
   { category: 'anotación', title: 'Anotación' },
 ];
 
-/** Paleta de artefactos del módulo activo, agrupada por categoría y lista para arrastrar. */
+/**
+ * Paleta de artefactos del módulo activo, agrupada por categoría y lista para arrastrar.
+ * Pasar el ratón muestra una pista corta; hacer clic abre el popup con la explicación.
+ */
 export function PalettePanel() {
   const module = useActiveModule();
   const hint = usePaletteHint();
+  const [opened, setOpened] = useState<HintState | null>(null);
   if (!module) return null;
+
+  function toggleExplanation(artifact: ArtifactDefinition, anchor: DOMRect) {
+    hint.hide();
+    setOpened(opened?.artifact.type === artifact.type ? null : { artifact, anchor });
+  }
 
   const draggable = module.artifacts.filter((artifact) => module.nodeKinds[artifact.type]);
   const connectors = module.artifacts.filter((artifact) => module.edgeKinds[artifact.type]);
@@ -43,8 +53,10 @@ export function PalettePanel() {
                     key={artifact.type}
                     artifact={artifact}
                     kind={kind}
-                    onHover={hint.show}
+                    isOpen={opened?.artifact.type === artifact.type}
+                    onHover={opened ? undefined : hint.show}
                     onLeave={hint.hide}
+                    onClick={toggleExplanation}
                   />
                 ) : null;
               })}
@@ -73,7 +85,8 @@ export function PalettePanel() {
         )}
       </div>
 
-      {hint.current && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
+      {hint.current && !opened && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
+      {opened && <ArtifactPopover artifact={opened.artifact} anchor={opened.anchor} onClose={() => setOpened(null)} />}
     </Panel>
   );
 }
@@ -116,7 +129,7 @@ function PaletteHint({ artifact, anchor }: HintState) {
       <p className="text-sm font-semibold text-ink-900">{artifact.name}</p>
       <p className="mb-1.5 font-mono text-[11px] text-ink-400">{artifact.umlName}</p>
       <p className="text-xs leading-relaxed text-ink-600">{artifact.whatIs}</p>
-      <p className="mt-2 text-[11px] text-ink-400">Arrástralo al lienzo para usarlo.</p>
+      <p className="mt-2 text-[11px] text-ink-400">Haz clic para ver por qué y cuándo usarlo.</p>
     </div>
   );
 }
@@ -126,11 +139,14 @@ const PREVIEW = { width: 40, height: 26 };
 interface PaletteItemProps {
   artifact: ArtifactDefinition;
   kind: NodeKind;
-  onHover: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
+  isOpen: boolean;
+  /** undefined mientras hay un popup abierto: no se mezclan pista y popup. */
+  onHover: ((artifact: ArtifactDefinition, anchor: DOMRect) => void) | undefined;
   onLeave: () => void;
+  onClick: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
 }
 
-function PaletteItem({ artifact, kind, onHover, onLeave }: PaletteItemProps) {
+function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onClick }: PaletteItemProps) {
   function handleDragStart(event: DragEvent) {
     onLeave();
     event.dataTransfer.setData(ARTIFACT_DRAG_MIME, artifact.type);
@@ -140,10 +156,22 @@ function PaletteItem({ artifact, kind, onHover, onLeave }: PaletteItemProps) {
   return (
     <div
       draggable
+      data-palette-item
+      role="button"
+      tabIndex={0}
+      aria-expanded={isOpen}
       onDragStart={handleDragStart}
-      onMouseEnter={(event) => onHover(artifact, event.currentTarget.getBoundingClientRect())}
+      onMouseEnter={(event) => onHover?.(artifact, event.currentTarget.getBoundingClientRect())}
       onMouseLeave={onLeave}
-      className="flex cursor-grab items-center gap-3 rounded-lg px-2 py-1.5 text-sm text-ink-900 select-none hover:bg-canvas active:cursor-grabbing"
+      onClick={(event) => onClick(artifact, event.currentTarget.getBoundingClientRect())}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onClick(artifact, event.currentTarget.getBoundingClientRect());
+      }}
+      className={`flex cursor-grab items-center gap-3 rounded-lg px-2 py-1.5 text-sm text-ink-900 select-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
+        isOpen ? 'bg-accent-soft' : 'hover:bg-canvas'
+      }`}
     >
       <ArtifactPreview kind={kind} artifactType={artifact.type} />
       <span className="truncate">{artifact.name}</span>
