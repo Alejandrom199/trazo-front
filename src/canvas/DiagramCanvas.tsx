@@ -212,7 +212,7 @@ function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
 
 /** En una flecha no hay rectángulo útil: se usa el punto exacto donde se hizo clic. */
 function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
-  const rect = { left: event.clientX, top: event.clientY, right: event.clientX };
+  const rect = { left: event.clientX, top: event.clientY, right: event.clientX, bottom: event.clientY };
   useElementClickStore.getState().setClicked({ kind: 'edge', id: edgeId, rect });
 }
 

@@ -42,9 +42,9 @@ describe('createDiagramFromTemplate', () => {
     diagram: {
       ...createEmptyDiagram({ diagramType: 'activity', name: 'Demo' }),
       nodes: [
-        { id: 'lane', artifactType: 'partition', label: 'Cliente', position: { x: 0, y: 0 }, size: { width: 200, height: 300 }, parentId: null, props: {}, notes: '' },
-        { id: 'a', artifactType: 'action', label: 'Pagar', position: { x: 10, y: 50 }, size: { width: 100, height: 50 }, parentId: 'lane', props: {}, notes: '' },
-        { id: 'b', artifactType: 'action', label: 'Salir', position: { x: 10, y: 150 }, size: { width: 100, height: 50 }, parentId: 'lane', props: {}, notes: '' },
+        { id: 'lane', artifactType: 'partition', label: 'Cliente', position: { x: 0, y: 0 }, size: { width: 200, height: 300 }, parentId: null, props: {}, notes: '', locked: false },
+        { id: 'a', artifactType: 'action', label: 'Pagar', position: { x: 10, y: 50 }, size: { width: 100, height: 50 }, parentId: 'lane', props: {}, notes: '', locked: false },
+        { id: 'b', artifactType: 'action', label: 'Salir', position: { x: 10, y: 150 }, size: { width: 100, height: 50 }, parentId: 'lane', props: {}, notes: '', locked: false },
       ],
       edges: [{ id: 'ab', artifactType: 'controlFlow', sourceId: 'a', targetId: 'b', guard: 'ok', label: '' }],
     },

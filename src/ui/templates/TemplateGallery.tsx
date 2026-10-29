@@ -1,3 +1,5 @@
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, type ReactNode } from 'react';
 import { createDiagramFromTemplate, type Difficulty, type Template } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
@@ -70,9 +72,7 @@ export function TemplateGallery() {
             aria-label="Cerrar"
             className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
           >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+            <FontAwesomeIcon icon={faXmark} className="text-sm" />
           </button>
         </header>
 

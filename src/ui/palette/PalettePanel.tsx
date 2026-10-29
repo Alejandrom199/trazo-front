@@ -203,6 +203,7 @@ function ArtifactPreview({ kind, artifactType }: { kind: NodeKind; artifactType:
     parentId: null,
     props: kind.defaultProps,
     notes: '',
+    locked: false,
   };
   const Shape = kind.component;
 

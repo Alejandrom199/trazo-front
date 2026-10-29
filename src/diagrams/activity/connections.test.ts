@@ -13,6 +13,7 @@ function node(id: string, artifactType: string): DiagramNode {
     parentId: null,
     props: {},
     notes: '',
+    locked: false,
   };
 }
 

@@ -14,6 +14,7 @@ import {
   type ElementIds,
   type NewDiagramInput,
   type NodeMove,
+  type NodePatch,
   type Size,
 } from '@/core/model';
 
@@ -53,6 +54,8 @@ interface DiagramState {
   addNode: (node: DiagramNode) => void;
   connect: (edge: DiagramEdge) => void;
   setNodeLabel: (nodeId: string, label: string) => void;
+  /** Cambia propiedades de un nodo desde el panel de propiedades (un paso de deshacer). */
+  updateNode: (nodeId: string, patch: NodePatch) => void;
   setEdgeGuard: (edgeId: string, guard: string | null) => void;
   removeElements: (ids: ElementIds) => void;
 
@@ -130,6 +133,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       apply((diagram) => {
         const node = diagram.nodes.find((candidate) => candidate.id === nodeId);
         return !node || node.label === label ? diagram : updateNode(diagram, nodeId, { label });
+      }, true),
+    updateNode: (nodeId, patch) =>
+      apply((diagram) => {
+        const node = diagram.nodes.find((candidate) => candidate.id === nodeId);
+        const changed = node && Object.entries(patch).some(([key, value]) => JSON.stringify(node[key as keyof typeof node]) !== JSON.stringify(value));
+        return changed ? updateNode(diagram, nodeId, patch) : diagram;
       }, true),
     setEdgeGuard: (edgeId, guard) =>
       apply((diagram) => {

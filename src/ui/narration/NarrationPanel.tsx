@@ -1,3 +1,5 @@
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState } from 'react';
 import type { NarrationLine } from '@/core/model';
 import { useHighlightStore } from '@/canvas/highlightStore';
@@ -66,9 +68,7 @@ export function NarrationPanel() {
             aria-label="Cerrar narración"
             className="flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
           >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+            <FontAwesomeIcon icon={faXmark} className="text-sm" />
           </button>
         </div>
       </header>

@@ -33,6 +33,30 @@ export interface ArtifactNodeProps {
  */
 export const CONTAINER_GRIP_CLASS = 'container-grip';
 
+/**
+ * Propiedad visual configurable de un artefacto (se guarda en DiagramNode.props).
+ * El módulo la declara y el panel de propiedades la muestra sin saber qué es:
+ * así cada tipo de diagrama agrega las suyas sin tocar la interfaz.
+ */
+export interface NumberPropertyDefinition {
+  kind: 'number';
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  defaultValue: number;
+  unit?: string;
+}
+
+export type PropertyDefinition = NumberPropertyDefinition;
+
+/** Lee una propiedad numérica de un nodo; si falta o es inválida (diagramas viejos), usa la de por defecto. */
+export function readNumberProperty(node: DiagramNode, definition: NumberPropertyDefinition): number {
+  const value = node.props[definition.key];
+  if (typeof value !== 'number' || !Number.isFinite(value)) return definition.defaultValue;
+  return Math.min(definition.max, Math.max(definition.min, value));
+}
+
 /** Cómo se comporta en el lienzo un artefacto que es nodo. */
 export interface NodeKind {
   component: ComponentType<ArtifactNodeProps>;
@@ -46,6 +70,8 @@ export interface NodeKind {
   isContainer: boolean;
   /** Si muestra puntos de conexión. */
   connectable: boolean;
+  /** Propiedades visuales que el usuario puede ajustar en el panel de propiedades. */
+  properties: PropertyDefinition[];
 }
 
 /** Cómo se dibuja un artefacto que es conexión. */

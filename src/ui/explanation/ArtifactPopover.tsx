@@ -1,5 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { faBookOpen, faSliders, faXmark, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { ArtifactDefinition } from '@/core/model';
+import { useUiStore, type PopoverTab } from '@/ui/uiStore';
 
 /** Rectángulo en pantalla junto al que se abre el popup (DOMRect lo cumple). */
 export interface PopoverAnchor {
@@ -16,6 +19,11 @@ interface ArtifactPopoverProps {
   /** Pie con la indicación de qué hacer a continuación. */
   footer: string;
   /**
+   * Formulario de propiedades del elemento concreto. Si se pasa, el popup muestra
+   * dos pestañas (Propiedades / Explicación); si no, solo la explicación.
+   */
+  properties?: ReactNode;
+  /**
    * Clics que NO deben cerrar el popup aunque caigan fuera de él: los gestiona
    * quien lo abrió (p. ej. un clic en otro artefacto de la paleta cambia de popup).
    */
@@ -24,7 +32,7 @@ interface ArtifactPopoverProps {
 }
 
 /** Separación con el elemento, ancho del popup y margen mínimo con el borde de la ventana. */
-const GAP = 12;
+const GAP = 24;
 const WIDTH = 320;
 const VIEWPORT_MARGIN = 12;
 
@@ -33,8 +41,11 @@ const VIEWPORT_MARGIN = 12;
  * derecha del elemento (o a la izquierda si no cabe) y nunca se sale de la ventana.
  * Se cierra con Escape, con la ✕ o al hacer clic fuera.
  */
-export function ArtifactPopover({ artifact, anchor, subtitle, footer, keepOpenOn, onClose }: ArtifactPopoverProps) {
+export function ArtifactPopover({ artifact, anchor, subtitle, footer, properties, keepOpenOn, onClose }: ArtifactPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const storedTab = useUiStore((state) => state.popoverTab);
+  const setTab = useUiStore((state) => state.setPopoverTab);
+  const tab: PopoverTab = properties ? storedTab : 'explanation';
   const [position, setPosition] = useState({ left: anchor.right + GAP, top: anchor.top - 4 });
 
   useLayoutEffect(() => {
@@ -43,7 +54,7 @@ export function ArtifactPopover({ artifact, anchor, subtitle, footer, keepOpenOn
     const left = fitsRight ? anchor.right + GAP : Math.max(VIEWPORT_MARGIN, anchor.left - GAP - WIDTH);
     const maxTop = window.innerHeight - height - VIEWPORT_MARGIN;
     setPosition({ left, top: Math.max(VIEWPORT_MARGIN, Math.min(anchor.top - 4, maxTop)) });
-  }, [anchor, artifact]);
+  }, [anchor, artifact, tab]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
@@ -86,40 +97,66 @@ export function ArtifactPopover({ artifact, anchor, subtitle, footer, keepOpenOn
           aria-label="Cerrar"
           className="-mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
         >
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
+          <FontAwesomeIcon icon={faXmark} className="text-sm" />
         </button>
       </header>
 
-      <div className="space-y-4 overflow-y-auto px-4 py-4 text-sm leading-relaxed text-ink-600">
-        <section>
-          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué es</h4>
-          <p className="text-ink-900">{artifact.whatIs}</p>
-        </section>
+      {properties && (
+        <div role="tablist" className="flex gap-1 border-b border-line px-3 pt-2">
+          <TabButton active={tab === 'properties'} icon={faSliders} label="Propiedades" onClick={() => setTab('properties')} />
+          <TabButton active={tab === 'explanation'} icon={faBookOpen} label="Explicación" onClick={() => setTab('explanation')} />
+        </div>
+      )}
 
-        <section>
-          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Por qué se usa</h4>
-          <p>{artifact.whatFor}</p>
-          <p className="mt-1.5">{artifact.whyExists}</p>
-        </section>
+      {tab === 'properties' && properties ? (
+        <div className="overflow-y-auto px-4 py-4">{properties}</div>
+      ) : (
+        <div className="space-y-4 overflow-y-auto px-4 py-4 text-sm leading-relaxed text-ink-600">
+          <section>
+            <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué es</h4>
+            <p className="text-ink-900">{artifact.whatIs}</p>
+          </section>
 
-        <section>
-          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Cuándo usarlo</h4>
-          <ul className="space-y-1.5">
-            {artifact.whenToUse.map((item) => (
-              <li key={item} className="flex gap-2.5">
-                <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
+          <section>
+            <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Por qué se usa</h4>
+            <p>{artifact.whatFor}</p>
+            <p className="mt-1.5">{artifact.whyExists}</p>
+          </section>
+
+          <section>
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Cuándo usarlo</h4>
+            <ul className="space-y-1.5">
+              {artifact.whenToUse.map((item) => (
+                <li key={item} className="flex gap-2.5">
+                  <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      )}
 
       <footer className="border-t border-line bg-canvas px-4 py-2.5 text-[11px] text-ink-400">
-        {footer}
+        {tab === 'properties' && properties ? 'Los cambios se pueden deshacer con Ctrl+Z.' : footer}
       </footer>
     </div>
+  );
+}
+
+function TabButton({ active, icon, label, onClick }: { active: boolean; icon: IconDefinition; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`-mb-px flex items-center gap-1.5 border-b-2 px-2.5 pb-2 text-xs font-medium transition-colors ${
+        active ? 'border-accent text-accent' : 'border-transparent text-ink-400 hover:text-ink-900'
+      }`}
+    >
+      <FontAwesomeIcon icon={icon} className="text-[11px]" />
+      {label}
+    </button>
   );
 }

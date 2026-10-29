@@ -2,7 +2,7 @@ import type { EdgeKind, NodeKind } from '@/core/registry';
 import { ActivityArtifact as A } from './artifactTypes';
 import { BarShape, DiamondShape, FlowFinalShape, ActivityFinalShape, InitialNodeShape } from './nodes/ControlNodes';
 import { AcceptEventShape, ActionShape, ObjectNodeShape, SendSignalShape } from './nodes/ExecutableNodes';
-import { NoteShape, PartitionShape } from './nodes/GroupingNodes';
+import { containerCornerRadius, NoteShape, PartitionShape } from './nodes/GroupingNodes';
 
 /** Valores comunes; cada artefacto declara solo lo que cambia. */
 const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
@@ -12,6 +12,7 @@ const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
   resizable: false,
   isContainer: false,
   connectable: true,
+  properties: [],
 };
 
 export const activityNodeKinds: Record<string, NodeKind> = {
@@ -59,6 +60,8 @@ export const activityNodeKinds: Record<string, NodeKind> = {
     component: PartitionShape,
     defaultSize: { width: 280, height: 520 },
     defaultLabel: 'Responsable',
+    defaultProps: { [containerCornerRadius.key]: containerCornerRadius.defaultValue },
+    properties: [containerCornerRadius],
     hasLabel: true,
     resizable: true,
     isContainer: true,

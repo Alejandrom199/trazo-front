@@ -6,8 +6,12 @@
 /** Tipos de diagrama conocidos. Hoy solo se implementa "activity". */
 export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class';
 
-/** Versión actual del formato guardado. Súbela cuando cambie la forma de Diagram. */
-export const CURRENT_SCHEMA_VERSION = 1;
+/**
+ * Versión actual del formato guardado. Súbela cuando cambie la forma de Diagram
+ * y agrega la migración correspondiente en core/persistence/diagramFormat.ts.
+ * v2: los nodos tienen `locked`.
+ */
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export interface Position {
   x: number;
@@ -36,6 +40,8 @@ export interface DiagramNode {
   props: Record<string, unknown>;
   /** Comentario libre del usuario. */
   notes: string;
+  /** Bloqueado: no se puede mover, redimensionar ni borrar desde el lienzo. */
+  locked: boolean;
 }
 
 export interface DiagramEdge {

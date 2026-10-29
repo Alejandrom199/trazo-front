@@ -1,3 +1,5 @@
+import { faCheck, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useMemo, useState } from 'react';
 import { issueKey, validateDiagram, type Severity, type ValidationIssue, type ValidationRule } from '@/core/model';
 import { useActiveModule } from '@/canvas/useActiveModule';
@@ -82,9 +84,7 @@ export function ValidationPanel() {
         <span className="text-xs font-semibold uppercase tracking-wider text-ink-400">Problemas</span>
         {issues.length === 0 ? (
           <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-            <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
+            <FontAwesomeIcon icon={faCheck} className="text-[11px]" />
             {diagram.nodes.length === 0 ? 'Nada que revisar' : 'Todo en orden'}
           </span>
         ) : (
@@ -98,17 +98,10 @@ export function ValidationPanel() {
               </span>
             ))
         )}
-        <svg
-          viewBox="0 0 24 24"
-          className={`ml-auto size-4 text-ink-400 transition-transform ${expanded ? '' : 'rotate-180'}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <FontAwesomeIcon
+          icon={faChevronDown}
+          className={`ml-auto text-[11px] text-ink-400 transition-transform ${expanded ? '' : 'rotate-180'}`}
+        />
       </button>
     </div>
   );

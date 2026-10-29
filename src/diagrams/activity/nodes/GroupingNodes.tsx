@@ -1,16 +1,27 @@
-import { CONTAINER_GRIP_CLASS, type ArtifactNodeProps } from '@/core/registry';
+import { CONTAINER_GRIP_CLASS, readNumberProperty, type ArtifactNodeProps, type NumberPropertyDefinition } from '@/core/registry';
 import { STROKE_WIDTH, strokeFor } from './shapeStyles';
+
+/** Radio de las esquinas del carril, configurable en sus propiedades. */
+export const containerCornerRadius: NumberPropertyDefinition = {
+  kind: 'number',
+  key: 'cornerRadius',
+  label: 'Radio de las esquinas',
+  min: 0,
+  max: 48,
+  defaultValue: 12,
+  unit: 'px',
+};
 
 /**
  * Carril vertical: encabezado con el responsable y cuerpo donde caen los nodos.
  * El cuerpo es transparente para que las flechas que lo cruzan se sigan viendo.
  */
-export function PartitionShape({ selected, label }: ArtifactNodeProps) {
+export function PartitionShape({ node, selected, label }: ArtifactNodeProps) {
   const color = selected ? strokeFor(true) : '#a1a1aa';
   return (
     <div
-      className="flex size-full flex-col overflow-hidden rounded-xl"
-      style={{ border: `${STROKE_WIDTH}px solid ${color}` }}
+      className="flex size-full flex-col overflow-hidden"
+      style={{ border: `${STROKE_WIDTH}px solid ${color}`, borderRadius: readNumberProperty(node, containerCornerRadius) }}
     >
       <div
         className={`${CONTAINER_GRIP_CLASS} flex h-10 shrink-0 items-center justify-center bg-surface px-3 text-center text-[13px] font-medium text-ink-900`}

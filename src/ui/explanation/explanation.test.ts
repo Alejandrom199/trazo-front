@@ -12,6 +12,7 @@ const node: DiagramNode = {
   parentId: null,
   props: {},
   notes: '',
+  locked: false,
 };
 const edge: DiagramEdge = { id: 'e', artifactType: 'controlFlow', sourceId: 'a', targetId: 'a', guard: null, label: '' };
 const diagram = { ...createEmptyDiagram({ diagramType: 'activity', name: 't' }), nodes: [node], edges: [edge] };

@@ -1,3 +1,5 @@
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useDiagramImageExport, type ImageFormat } from '@/canvas/exportImage';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -75,9 +77,7 @@ export function FileMenu() {
         className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-600 hover:bg-canvas hover:text-ink-900 disabled:opacity-50"
       >
         {busy ? 'Exportando…' : 'Archivo'}
-        <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <FontAwesomeIcon icon={faChevronDown} className="text-[10px]" />
       </button>
 
       {open && (

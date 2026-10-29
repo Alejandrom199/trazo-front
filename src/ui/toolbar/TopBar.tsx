@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { faBookOpen, faPlus, faRotateLeft, faRotateRight, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { usePersistenceStore, type SaveStatus } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -45,14 +46,8 @@ export function TopBar() {
             <FileMenu />
             <LearningModeSwitch />
             <span className="mx-1 h-5 w-px bg-line" aria-hidden />
-            <IconButton label="Deshacer (Ctrl+Z)" disabled={!canUndo} onClick={undo}>
-              <path d="M9 14 4 9l5-5" />
-              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-            </IconButton>
-            <IconButton label="Rehacer (Ctrl+Y)" disabled={!canRedo} onClick={redo}>
-              <path d="m15 14 5-5-5-5" />
-              <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
-            </IconButton>
+            <IconButton label="Deshacer (Ctrl+Z)" icon={faRotateLeft} disabled={!canUndo} onClick={undo} />
+            <IconButton label="Rehacer (Ctrl+Y)" icon={faRotateRight} disabled={!canRedo} onClick={redo} />
           </div>
         </>
       )}
@@ -87,9 +82,7 @@ function NewDiagramButton() {
       onClick={() => setGalleryOpen(true)}
       className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-600 hover:bg-canvas hover:text-ink-900"
     >
-      <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-        <path d="M12 5v14M5 12h14" />
-      </svg>
+      <FontAwesomeIcon icon={faPlus} className="text-[11px]" />
       Abrir / Nuevo
     </button>
   );
@@ -107,9 +100,7 @@ function NarrateButton() {
         narrationOpen ? 'bg-accent text-white' : 'bg-accent-soft text-accent hover:bg-accent/15'
       }`}
     >
-      <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-      </svg>
+      <FontAwesomeIcon icon={faBookOpen} className="text-[11px]" />
       Explicar diagrama
     </button>
   );
@@ -130,12 +121,13 @@ function LearningModeSwitch() {
       className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-600 hover:bg-canvas"
     >
       Modo aprendizaje
+      {/* Riel de 28px; perilla de 12px a 2px del borde: recorre 12px (2 + 12 + 12 + 2 = 28). */}
       <span
-        className={`relative h-4 w-7 rounded-full transition-colors ${learningMode ? 'bg-accent' : 'bg-ink-400/40'}`}
+        className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${learningMode ? 'bg-accent' : 'bg-ink-400/40'}`}
         aria-hidden
       >
         <span
-          className={`absolute top-0.5 size-3 rounded-full bg-surface shadow-sm transition-transform ${learningMode ? 'translate-x-3.5' : 'translate-x-0.5'}`}
+          className={`absolute top-0.5 left-0.5 size-3 rounded-full bg-surface shadow-sm transition-transform ${learningMode ? 'translate-x-3' : 'translate-x-0'}`}
         />
       </span>
     </button>
@@ -146,11 +138,10 @@ interface IconButtonProps {
   label: string;
   disabled: boolean;
   onClick: () => void;
-  /** Trazos SVG del icono (24×24). */
-  children: ReactNode;
+  icon: IconDefinition;
 }
 
-function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
+function IconButton({ label, icon, disabled, onClick }: IconButtonProps) {
   return (
     <button
       type="button"
@@ -160,9 +151,7 @@ function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
       onClick={onClick}
       className="flex size-8 items-center justify-center rounded-lg text-ink-600 hover:bg-canvas disabled:pointer-events-none disabled:opacity-35"
     >
-      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        {children}
-      </svg>
+      <FontAwesomeIcon icon={icon} className="text-[13px]" />
     </button>
   );
 }

@@ -17,10 +17,15 @@ interface UiState {
   /** Panel "Explicar diagrama": ocupa el lugar del panel de explicación mientras está abierto. */
   narrationOpen: boolean;
   setNarrationOpen: (open: boolean) => void;
+  /** Pestaña del popup del lienzo; se recuerda para el siguiente elemento que se clique. */
+  popoverTab: PopoverTab;
+  setPopoverTab: (tab: PopoverTab) => void;
   /** Aviso breve para el usuario (p. ej. un archivo que no se pudo importar). */
   notice: string | null;
   showNotice: (message: string) => void;
 }
+
+export type PopoverTab = 'properties' | 'explanation';
 
 const NOTICE_DURATION_MS = 4000;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -47,6 +52,8 @@ export const useUiStore = create<UiState>()((set) => ({
   setGalleryOpen: (open) => set({ galleryOpen: open }),
   narrationOpen: false,
   setNarrationOpen: (open) => set({ narrationOpen: open }),
+  popoverTab: 'properties',
+  setPopoverTab: (tab) => set({ popoverTab: tab }),
   notice: null,
   showNotice: (message) => {
     clearTimeout(noticeTimer);

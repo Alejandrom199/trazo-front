@@ -1,3 +1,5 @@
+import { faTrashCan } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState } from 'react';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
@@ -79,9 +81,7 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
                   aria-label={`Eliminar «${summary.name}»`}
                   className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-lg bg-surface/90 text-ink-400 opacity-0 shadow-sm group-hover:opacity-100 hover:text-rose-600 focus-visible:opacity-100"
                 >
-                  <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-                  </svg>
+                  <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
                 </button>
               )}
             </div>

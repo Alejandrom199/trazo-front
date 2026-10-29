@@ -13,6 +13,7 @@ function node(id: string, overrides: Partial<DiagramNode> = {}): DiagramNode {
     parentId: null,
     props: {},
     notes: '',
+    locked: false,
     ...overrides,
   };
 }
@@ -44,6 +45,23 @@ describe('removeElements', () => {
     const result = removeElements(diagram, { nodeIds: ['lane'], edgeIds: [] });
 
     expect(result.nodes.map((n) => n.id)).toEqual(['outside']);
+  });
+
+  it('Dado un nodo bloqueado, Entonces no se borra ni pierde sus conexiones', () => {
+    const diagram = diagramWith([node('a', { locked: true }), node('b')], [edge('ab', 'a', 'b')]);
+
+    const result = removeElements(diagram, { nodeIds: ['a'], edgeIds: [] });
+
+    expect(result.nodes.map((n) => n.id)).toEqual(['a', 'b']);
+    expect(result.edges.map((e) => e.id)).toEqual(['ab']);
+  });
+
+  it('Dado un carril con un nodo bloqueado dentro, Entonces el carril tampoco se borra', () => {
+    const diagram = diagramWith([lane, node('fijo', { parentId: 'lane', locked: true }), node('suelto', { parentId: 'lane' })]);
+
+    const result = removeElements(diagram, { nodeIds: ['lane', 'suelto'], edgeIds: [] });
+
+    expect(result.nodes.map((n) => n.id)).toEqual(['lane', 'fijo']);
   });
 
   it('No muta el diagrama original', () => {

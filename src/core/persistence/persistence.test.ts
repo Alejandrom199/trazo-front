@@ -18,8 +18,8 @@ function sampleDiagram(name = 'Login', updatedAt = '2026-10-28T12:00:00.000Z'): 
     ...createEmptyDiagram({ diagramType: 'activity', name }),
     updatedAt,
     nodes: [
-      { id: 'a', artifactType: 'action', label: 'Pagar', position: { x: 0, y: 0 }, size: { width: 140, height: 60 }, parentId: null, props: {}, notes: '' },
-      { id: 'b', artifactType: 'activityFinal', label: '', position: { x: 0, y: 100 }, size: { width: 30, height: 30 }, parentId: null, props: {}, notes: '' },
+      { id: 'a', artifactType: 'action', label: 'Pagar', position: { x: 0, y: 0 }, size: { width: 140, height: 60 }, parentId: null, props: {}, notes: '', locked: false },
+      { id: 'b', artifactType: 'activityFinal', label: '', position: { x: 0, y: 100 }, size: { width: 30, height: 30 }, parentId: null, props: {}, notes: '', locked: false },
     ],
     edges: [{ id: 'ab', artifactType: 'controlFlow', sourceId: 'a', targetId: 'b', guard: null, label: '' }],
   };
@@ -43,6 +43,16 @@ describe('parseDiagram', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it('Dado un diagrama guardado en la versión 1 (sin bloqueo), Entonces lo migra con los nodos desbloqueados', () => {
+    const current = sampleDiagram();
+    const v1 = { ...current, schemaVersion: 1, nodes: current.nodes.map(({ locked: _locked, ...node }) => node) };
+
+    const result = parseDiagram(JSON.parse(JSON.stringify(v1)));
+
+    expect(result).toMatchObject({ ok: true, diagram: { schemaVersion: CURRENT_SCHEMA_VERSION } });
+    if (result.ok) expect(result.diagram.nodes.every((node) => node.locked === false)).toBe(true);
   });
 
   it('Dado un diagrama de una versión futura, Entonces pide actualizar la app', () => {

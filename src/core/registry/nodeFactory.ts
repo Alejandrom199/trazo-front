@@ -21,5 +21,6 @@ export function createNode(input: NewNodeInput): DiagramNode {
     parentId: input.parentId,
     props: { ...input.kind.defaultProps },
     notes: '',
+    locked: false,
   };
 }

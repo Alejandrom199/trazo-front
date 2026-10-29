@@ -11,10 +11,18 @@ export type ParseResult = { ok: true; diagram: Diagram } | { ok: false; error: s
 
 /**
  * Migraciones por versión: la función de la clave N convierte un diagrama de la
- * versión N a la N+1. Hoy solo existe la versión 1; cuando cambie la forma de
- * Diagram se sube CURRENT_SCHEMA_VERSION y se agrega aquí el paso correspondiente.
+ * versión N a la N+1. Cuando cambie la forma de Diagram se sube
+ * CURRENT_SCHEMA_VERSION y se agrega aquí el paso correspondiente.
  */
-const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {};
+const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
+  // v1 → v2: aparece el bloqueo de nodos; todo lo guardado antes queda desbloqueado.
+  1: (raw) => ({
+    ...raw,
+    nodes: Array.isArray(raw.nodes)
+      ? raw.nodes.map((node: unknown) => (isRecord(node) ? { ...node, locked: false } : node))
+      : raw.nodes,
+  }),
+};
 
 export function parseDiagram(raw: unknown): ParseResult {
   if (!isRecord(raw)) return fail('El archivo no contiene un diagrama.');
@@ -84,7 +92,7 @@ function validateShape(raw: Record<string, unknown>): ParseResult {
 
 function toNode(raw: unknown): DiagramNode | null {
   if (!isRecord(raw) || !isRecord(raw.position) || !isRecord(raw.size)) return null;
-  const { id, artifactType, label, notes, parentId, props } = raw;
+  const { id, artifactType, label, notes, parentId, props, locked } = raw;
   const { x, y } = raw.position;
   const { width, height } = raw.size;
   if (typeof id !== 'string' || typeof artifactType !== 'string' || typeof label !== 'string') return null;
@@ -99,6 +107,7 @@ function toNode(raw: unknown): DiagramNode | null {
     parentId,
     props: isRecord(props) ? props : {},
     notes: typeof notes === 'string' ? notes : '',
+    locked: locked === true,
   };
 }
 

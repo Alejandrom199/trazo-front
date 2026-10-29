@@ -1,5 +1,5 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
-import type { Diagram, DiagramEdge, DiagramNode, ElementIds } from '@/core/model';
+import { protectedNodeIds, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 
 /**
@@ -37,6 +37,7 @@ export function toFlowNodes(
   highlight: CanvasHighlight = NO_HIGHLIGHT,
 ): ArtifactFlowNode[] {
   const selected = new Set(selection.nodeIds);
+  const undeletable = protectedNodeIds(diagram);
   return [...diagram.nodes]
     .sort((a, b) => drawOrder(a, module) - drawOrder(b, module))
     .map((node) => ({
@@ -52,6 +53,9 @@ export function toFlowNodes(
       parentId: node.parentId ?? undefined,
       selected: selected.has(node.id),
       connectable: module.nodeKinds[node.artifactType]?.connectable ?? false,
+      // Bloqueado: React Flow no lo deja arrastrar; ni a él ni a su carril, borrar con Supr.
+      draggable: !node.locked,
+      deletable: !undeletable.has(node.id),
       data: { node },
     }));
 }

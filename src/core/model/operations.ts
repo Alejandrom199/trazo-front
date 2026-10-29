@@ -16,7 +16,7 @@ export interface NodeMove {
   position: Position;
 }
 
-export type NodePatch = Partial<Pick<DiagramNode, 'label' | 'position' | 'size' | 'notes' | 'props'>>;
+export type NodePatch = Partial<Pick<DiagramNode, 'label' | 'position' | 'size' | 'notes' | 'props' | 'locked'>>;
 export type EdgePatch = Partial<Pick<DiagramEdge, 'guard' | 'label'>>;
 
 export function addNode(diagram: Diagram, node: DiagramNode): Diagram {
@@ -53,12 +53,35 @@ export function moveNodes(diagram: Diagram, moves: NodeMove[]): Diagram {
 }
 
 /**
+ * Nodos que no se pueden borrar: los bloqueados y los contenedores que tienen
+ * algo bloqueado dentro (borrarlos se llevaría ese contenido).
+ */
+export function protectedNodeIds(diagram: Diagram): Set<string> {
+  const protectedIds = new Set<string>();
+  for (const node of diagram.nodes) {
+    if (!node.locked) continue;
+    let current: DiagramNode | undefined = node;
+    while (current && !protectedIds.has(current.id)) {
+      protectedIds.add(current.id);
+      const parentId: string | null = current.parentId;
+      current = parentId ? diagram.nodes.find((candidate) => candidate.id === parentId) : undefined;
+    }
+  }
+  return protectedIds;
+}
+
+/**
  * Borra nodos y conexiones. Al borrar un contenedor se borra su contenido,
  * y al borrar un nodo se borran las conexiones que lo tocan: nunca quedan
- * hijos huérfanos ni flechas que apunten a la nada.
+ * hijos huérfanos ni flechas que apunten a la nada. Los nodos protegidos
+ * (ver protectedNodeIds) se ignoran aunque se pidan.
  */
 export function removeElements(diagram: Diagram, ids: ElementIds): Diagram {
-  const removedNodeIds = collectWithDescendants(diagram, ids.nodeIds);
+  const protectedIds = protectedNodeIds(diagram);
+  const removedNodeIds = collectWithDescendants(
+    diagram,
+    ids.nodeIds.filter((id) => !protectedIds.has(id)),
+  );
   const removedEdgeIds = new Set(ids.edgeIds);
 
   return {

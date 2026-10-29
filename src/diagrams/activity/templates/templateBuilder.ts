@@ -45,6 +45,7 @@ export function createTemplateBuilder() {
         parentId: null,
         props: {},
         notes: '',
+        locked: false,
       });
       return id;
     },
@@ -68,6 +69,7 @@ export function createTemplateBuilder() {
         parentId: lane?.id ?? null,
         props: { ...kind.defaultProps },
         notes: '',
+        locked: false,
       });
       return id;
     },

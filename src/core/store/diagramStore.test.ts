@@ -12,6 +12,7 @@ function node(id: string): DiagramNode {
     parentId: null,
     props: {},
     notes: '',
+    locked: false,
   };
 }
 
@@ -56,6 +57,25 @@ describe('historial de deshacer/rehacer', () => {
     const steps = store().past.length;
 
     store().setNodeLabel('a', 'a');
+
+    expect(store().past).toHaveLength(steps);
+  });
+
+  it('Dado un nodo bloqueado desde propiedades, Entonces deshacer lo desbloquea', () => {
+    store().addNode(node('a'));
+    store().updateNode('a', { locked: true });
+    expect(store().diagram?.nodes[0]?.locked).toBe(true);
+
+    store().undo();
+
+    expect(store().diagram?.nodes[0]?.locked).toBe(false);
+  });
+
+  it('Dado un cambio de propiedades sin diferencias, Entonces no crea un paso de deshacer', () => {
+    store().addNode(node('a'));
+    const steps = store().past.length;
+
+    store().updateNode('a', { locked: false, size: { width: 100, height: 50 } });
 
     expect(store().past).toHaveLength(steps);
   });
