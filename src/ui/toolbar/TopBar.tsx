@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
+import { useUiStore } from '@/ui/uiStore';
 
 export function TopBar() {
   const diagram = useDiagramStore((state) => state.diagram);
@@ -35,6 +36,8 @@ export function TopBar() {
           </span>
 
           <div className="ml-auto flex items-center gap-1">
+            <LearningModeSwitch />
+            <span className="mx-1 h-5 w-px bg-line" aria-hidden />
             <IconButton label="Deshacer (Ctrl+Z)" disabled={!canUndo} onClick={undo}>
               <path d="M9 14 4 9l5-5" />
               <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
@@ -47,6 +50,33 @@ export function TopBar() {
         </>
       )}
     </Panel>
+  );
+}
+
+/** Interruptor del modo aprendizaje: explicaciones automáticas al seleccionar. */
+function LearningModeSwitch() {
+  const learningMode = useUiStore((state) => state.learningMode);
+  const setLearningMode = useUiStore((state) => state.setLearningMode);
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={learningMode}
+      onClick={() => setLearningMode(!learningMode)}
+      title="Muestra la explicación de cada elemento automáticamente al seleccionarlo"
+      className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-600 hover:bg-canvas"
+    >
+      Modo aprendizaje
+      <span
+        className={`relative h-4 w-7 rounded-full transition-colors ${learningMode ? 'bg-accent' : 'bg-ink-400/40'}`}
+        aria-hidden
+      >
+        <span
+          className={`absolute top-0.5 size-3 rounded-full bg-surface shadow-sm transition-transform ${learningMode ? 'translate-x-3.5' : 'translate-x-0.5'}`}
+        />
+      </span>
+    </button>
   );
 }
 

@@ -23,7 +23,7 @@ export function AppShell() {
         <PalettePanel />
       </div>
 
-      <div className="pointer-events-none absolute top-[4.5rem] right-3 bottom-3 flex flex-col *:pointer-events-auto">
+      <div className="pointer-events-none absolute top-[4.5rem] right-3 bottom-3 flex flex-col items-end *:pointer-events-auto">
         <ExplanationPanel />
       </div>
     </div>

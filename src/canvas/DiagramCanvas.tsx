@@ -257,7 +257,7 @@ function dropArtifact(module: DiagramModule, artifactType: string, point: { x: n
   });
   store().addNode(node);
   store().setSelection({ nodeIds: [node.id], edgeIds: [] } satisfies ElementIds);
-  if (kind.hasLabel) store().startEditing(node.id);
+  store().startEditing(kind.hasLabel ? node.id : null);
 }
 
 function useNotice() {

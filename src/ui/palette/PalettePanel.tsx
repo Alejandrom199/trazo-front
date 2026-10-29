@@ -1,4 +1,4 @@
-import type { DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import type { ArtifactCategory, ArtifactDefinition, DiagramNode } from '@/core/model';
 import type { NodeKind } from '@/core/registry';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
@@ -17,6 +17,7 @@ const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
 /** Paleta de artefactos del módulo activo, agrupada por categoría y lista para arrastrar. */
 export function PalettePanel() {
   const module = useActiveModule();
+  const hint = usePaletteHint();
   if (!module) return null;
 
   const draggable = module.artifacts.filter((artifact) => module.nodeKinds[artifact.type]);
@@ -37,7 +38,15 @@ export function PalettePanel() {
               <h3 className="px-2 pt-2 pb-1 text-[11px] font-medium text-ink-400">{title}</h3>
               {items.map((artifact) => {
                 const kind = module.nodeKinds[artifact.type];
-                return kind ? <PaletteItem key={artifact.type} artifact={artifact} kind={kind} /> : null;
+                return kind ? (
+                  <PaletteItem
+                    key={artifact.type}
+                    artifact={artifact}
+                    kind={kind}
+                    onHover={hint.show}
+                    onLeave={hint.hide}
+                  />
+                ) : null;
               })}
             </section>
           );
@@ -63,14 +72,67 @@ export function PalettePanel() {
           </section>
         )}
       </div>
+
+      {hint.current && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
     </Panel>
+  );
+}
+
+/** Espera antes de mostrar la pista, para que no parpadee al recorrer la lista. */
+const HINT_DELAY_MS = 350;
+
+interface HintState {
+  artifact: ArtifactDefinition;
+  anchor: DOMRect;
+}
+
+function usePaletteHint() {
+  const [current, setCurrent] = useState<HintState | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  return {
+    current,
+    show: (artifact: ArtifactDefinition, anchor: DOMRect) => {
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCurrent({ artifact, anchor }), HINT_DELAY_MS);
+    },
+    hide: () => {
+      window.clearTimeout(timer.current);
+      setCurrent(null);
+    },
+  };
+}
+
+/** Explicación corta junto a la paleta: qué es y cómo se reconoce. */
+function PaletteHint({ artifact, anchor }: HintState) {
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none fixed z-50 w-64 rounded-xl border border-line bg-surface px-3.5 py-3 shadow-panel"
+      style={{ left: anchor.right + 12, top: anchor.top - 4 }}
+    >
+      <p className="text-sm font-semibold text-ink-900">{artifact.name}</p>
+      <p className="mb-1.5 font-mono text-[11px] text-ink-400">{artifact.umlName}</p>
+      <p className="text-xs leading-relaxed text-ink-600">{artifact.whatIs}</p>
+      <p className="mt-2 text-[11px] text-ink-400">Arrástralo al lienzo para usarlo.</p>
+    </div>
   );
 }
 
 const PREVIEW = { width: 40, height: 26 };
 
-function PaletteItem({ artifact, kind }: { artifact: ArtifactDefinition; kind: NodeKind }) {
+interface PaletteItemProps {
+  artifact: ArtifactDefinition;
+  kind: NodeKind;
+  onHover: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
+  onLeave: () => void;
+}
+
+function PaletteItem({ artifact, kind, onHover, onLeave }: PaletteItemProps) {
   function handleDragStart(event: DragEvent) {
+    onLeave();
     event.dataTransfer.setData(ARTIFACT_DRAG_MIME, artifact.type);
     event.dataTransfer.effectAllowed = 'move';
   }
@@ -79,6 +141,8 @@ function PaletteItem({ artifact, kind }: { artifact: ArtifactDefinition; kind: N
     <div
       draggable
       onDragStart={handleDragStart}
+      onMouseEnter={(event) => onHover(artifact, event.currentTarget.getBoundingClientRect())}
+      onMouseLeave={onLeave}
       className="flex cursor-grab items-center gap-3 rounded-lg px-2 py-1.5 text-sm text-ink-900 select-none hover:bg-canvas active:cursor-grabbing"
     >
       <ArtifactPreview kind={kind} artifactType={artifact.type} />
