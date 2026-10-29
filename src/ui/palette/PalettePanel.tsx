@@ -138,7 +138,7 @@ function PaletteHint({ artifact, anchor }: HintState) {
       style={{ left: anchor.right + 12, top: anchor.top - 4 }}
     >
       <p className="text-sm font-semibold text-ink-900">{artifact.name}</p>
-      <p className="mb-1.5 font-mono text-[11px] text-ink-400">{artifact.umlName}</p>
+      <p className="mb-1.5 text-[11px] text-ink-400">Nombre UML: {artifact.umlName}</p>
       <p className="text-xs leading-relaxed text-ink-600">{artifact.whatIs}</p>
       <p className="mt-2 text-[11px] text-ink-400">Haz clic para ver por qué y cuándo usarlo.</p>
     </div>

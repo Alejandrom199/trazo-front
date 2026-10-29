@@ -168,7 +168,7 @@ function TemplateGoals({ template, definitionsByType, onOpenRelated }: TemplateG
   return (
     <div className="space-y-4 p-4 text-sm leading-relaxed text-ink-600">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Plantilla · {template.difficulty}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Plantilla de nivel {template.difficulty}</p>
         <h3 className="mt-1 text-base font-semibold text-ink-900">{template.name}</h3>
         <p className="mt-1">{template.description}</p>
       </div>
@@ -217,9 +217,8 @@ function NodeInstance({ node, diagram }: { node: DiagramNode; diagram: Diagram }
     <InstanceBox>
       {node.label && <p className="font-medium">«{node.label}»</p>}
       <p className="text-xs text-ink-600">
-        {plural(incoming, 'conexión de entrada', 'conexiones de entrada')} ·{' '}
-        {plural(outgoing, 'de salida', 'de salida')}
-        {parent && <> · en el carril «{parent.label}»</>}
+        {plural(incoming, 'conexión de entrada', 'conexiones de entrada')} y {plural(outgoing, 'de salida', 'de salida')}.
+        {parent && <span className="block">Está en el carril «{parent.label}».</span>}
       </p>
     </InstanceBox>
   );
@@ -235,7 +234,7 @@ function EdgeInstance({ edge, diagram }: { edge: DiagramEdge; diagram: Diagram }
       <p>
         De «{nameOf(edge.sourceId)}» a «{nameOf(edge.targetId)}»
       </p>
-      <p className="text-xs text-ink-600">{edge.guard ? `Guarda: [${edge.guard}]` : 'Sin guarda · doble clic para añadir una'}</p>
+      <p className="text-xs text-ink-600">{edge.guard ? `Guarda: [${edge.guard}]` : 'Sin guarda. Haz doble clic en la flecha para añadir una.'}</p>
     </InstanceBox>
   );
 }

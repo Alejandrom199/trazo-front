@@ -58,8 +58,8 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
                 </div>
                 <div className="px-3 py-2.5">
                   <p className="truncate text-sm font-medium text-ink-900 group-hover:text-accent">{summary.name || 'Sin título'}</p>
-                  <p className="text-[11px] text-ink-400">
-                    {isOpen ? 'Abierto ahora · ' : ''}
+                  <p className="flex items-center gap-1.5 text-[11px] text-ink-400">
+                    {isOpen && <span className="rounded-full bg-accent-soft px-1.5 py-px font-medium text-accent">Abierto</span>}
                     {dateFormat.format(new Date(summary.updatedAt))}
                   </p>
                 </div>

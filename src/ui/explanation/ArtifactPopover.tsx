@@ -1,4 +1,4 @@
-import { faBookOpen, faSliders, faXmark, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { faBookOpen, faChevronDown, faSliders, faXmark, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { ArtifactDefinition } from '@/core/model';
@@ -28,6 +28,12 @@ interface ArtifactPopoverProps {
    * quien lo abrió (p. ej. un clic en otro artefacto de la paleta cambia de popup).
    */
   keepOpenOn?: (target: HTMLElement) => boolean;
+  /**
+   * Modo plegable: si se pasa onToggleDetails, el encabezado lleva una flecha y
+   * el detalle (pestañas, contenido y pie) solo se muestra con `detailsOpen`.
+   */
+  detailsOpen?: boolean;
+  onToggleDetails?: () => void;
   onClose: () => void;
 }
 
@@ -41,7 +47,17 @@ const VIEWPORT_MARGIN = 12;
  * derecha del elemento (o a la izquierda si no cabe) y nunca se sale de la ventana.
  * Se cierra con Escape, con la ✕ o al hacer clic fuera.
  */
-export function ArtifactPopover({ artifact, anchor, subtitle, footer, properties, keepOpenOn, onClose }: ArtifactPopoverProps) {
+export function ArtifactPopover({
+  artifact,
+  anchor,
+  subtitle,
+  footer,
+  properties,
+  keepOpenOn,
+  detailsOpen = true,
+  onToggleDetails,
+  onClose,
+}: ArtifactPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const storedTab = useUiStore((state) => state.popoverTab);
   const setTab = useUiStore((state) => state.setPopoverTab);
@@ -54,7 +70,7 @@ export function ArtifactPopover({ artifact, anchor, subtitle, footer, properties
     const left = fitsRight ? anchor.right + GAP : Math.max(VIEWPORT_MARGIN, anchor.left - GAP - WIDTH);
     const maxTop = window.innerHeight - height - VIEWPORT_MARGIN;
     setPosition({ left, top: Math.max(VIEWPORT_MARGIN, Math.min(anchor.top - 4, maxTop)) });
-  }, [anchor, artifact, tab]);
+  }, [anchor, artifact, tab, detailsOpen]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
@@ -80,7 +96,7 @@ export function ArtifactPopover({ artifact, anchor, subtitle, footer, properties
       className="fixed z-50 flex max-h-[calc(100vh-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
       style={{ ...position, width: WIDTH }}
     >
-      <header className="flex items-start gap-2 border-b border-line px-4 py-3">
+      <header className={`flex items-start gap-2 px-4 py-3 ${detailsOpen ? 'border-b border-line' : ''}`}>
         <div className="min-w-0 flex-1">
           <span className="inline-block rounded-full bg-canvas px-2 py-0.5 text-[11px] font-medium text-ink-400">
             {artifact.category}
@@ -88,58 +104,80 @@ export function ArtifactPopover({ artifact, anchor, subtitle, footer, properties
           <h3 id="artifact-popover-title" className="mt-1 text-base font-semibold text-ink-900">
             {artifact.name}
           </h3>
-          <p className="font-mono text-xs text-ink-400">UML · {artifact.umlName}</p>
+          <p className="text-xs text-ink-400">
+            Nombre UML: <span className="text-ink-600">{artifact.umlName}</span>
+          </p>
           {subtitle && <p className="mt-1 truncate text-sm text-ink-600">{subtitle}</p>}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="-mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
-        >
-          <FontAwesomeIcon icon={faXmark} className="text-sm" />
-        </button>
+        <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">
+          {onToggleDetails && (
+            <button
+              type="button"
+              onClick={onToggleDetails}
+              aria-expanded={detailsOpen}
+              aria-label={detailsOpen ? 'Ocultar propiedades y explicación' : 'Ver propiedades y explicación'}
+              title={detailsOpen ? 'Ocultar detalle' : 'Ver propiedades y explicación'}
+              className={`flex size-7 items-center justify-center rounded-lg transition-colors ${
+                detailsOpen ? 'text-ink-400 hover:bg-canvas hover:text-ink-900' : 'bg-accent-soft text-accent hover:bg-accent hover:text-white'
+              }`}
+            >
+              <FontAwesomeIcon icon={faChevronDown} className={`text-xs transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="flex size-7 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
+          >
+            <FontAwesomeIcon icon={faXmark} className="text-sm" />
+          </button>
+        </div>
       </header>
 
-      {properties && (
-        <div role="tablist" className="flex gap-1 border-b border-line px-3 pt-2">
-          <TabButton active={tab === 'properties'} icon={faSliders} label="Propiedades" onClick={() => setTab('properties')} />
-          <TabButton active={tab === 'explanation'} icon={faBookOpen} label="Explicación" onClick={() => setTab('explanation')} />
-        </div>
+      {detailsOpen && (
+        <>
+          {properties && (
+            <div role="tablist" className="flex gap-1 border-b border-line px-3 pt-2">
+              <TabButton active={tab === 'properties'} icon={faSliders} label="Propiedades" onClick={() => setTab('properties')} />
+              <TabButton active={tab === 'explanation'} icon={faBookOpen} label="Explicación" onClick={() => setTab('explanation')} />
+            </div>
+          )}
+
+          {tab === 'properties' && properties ? (
+            <div className="overflow-y-auto px-4 py-4">{properties}</div>
+          ) : (
+            <div className="space-y-4 overflow-y-auto px-4 py-4 text-sm leading-relaxed text-ink-600">
+              <section>
+                <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué es</h4>
+                <p className="text-ink-900">{artifact.whatIs}</p>
+              </section>
+
+              <section>
+                <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Por qué se usa</h4>
+                <p>{artifact.whatFor}</p>
+                <p className="mt-1.5">{artifact.whyExists}</p>
+              </section>
+
+              <section>
+                <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Cuándo usarlo</h4>
+                <ul className="space-y-1.5">
+                  {artifact.whenToUse.map((item) => (
+                    <li key={item} className="flex gap-2.5">
+                      <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+          )}
+
+          <footer className="border-t border-line bg-canvas px-4 py-2.5 text-[11px] text-ink-400">
+            {tab === 'properties' && properties ? 'Los cambios se pueden deshacer con Ctrl+Z.' : footer}
+          </footer>
+        </>
       )}
-
-      {tab === 'properties' && properties ? (
-        <div className="overflow-y-auto px-4 py-4">{properties}</div>
-      ) : (
-        <div className="space-y-4 overflow-y-auto px-4 py-4 text-sm leading-relaxed text-ink-600">
-          <section>
-            <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué es</h4>
-            <p className="text-ink-900">{artifact.whatIs}</p>
-          </section>
-
-          <section>
-            <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Por qué se usa</h4>
-            <p>{artifact.whatFor}</p>
-            <p className="mt-1.5">{artifact.whyExists}</p>
-          </section>
-
-          <section>
-            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Cuándo usarlo</h4>
-            <ul className="space-y-1.5">
-              {artifact.whenToUse.map((item) => (
-                <li key={item} className="flex gap-2.5">
-                  <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-      )}
-
-      <footer className="border-t border-line bg-canvas px-4 py-2.5 text-[11px] text-ink-400">
-        {tab === 'properties' && properties ? 'Los cambios se pueden deshacer con Ctrl+Z.' : footer}
-      </footer>
     </div>
   );
 }

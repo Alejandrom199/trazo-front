@@ -22,7 +22,9 @@ export function ArtifactExplanation({ definition, definitionsByType, onOpenRelat
           {definition.category}
         </span>
         <h3 className="text-base font-semibold text-ink-900">{definition.name}</h3>
-        <p className="font-mono text-xs text-ink-400">UML · {definition.umlName}</p>
+        <p className="text-xs text-ink-400">
+          Nombre UML: <span className="text-ink-600">{definition.umlName}</span>
+        </p>
         <p className="text-[15px] leading-relaxed text-ink-900">{definition.whatIs}</p>
       </header>
 

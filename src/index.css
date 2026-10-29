@@ -4,7 +4,9 @@
 /* Tokens de diseño: Tailwind v4 genera utilidades a partir de estas variables
    (p. ej. --color-ink-900 → text-ink-900, bg-ink-900). */
 @theme {
+  /* Una sola familia tipográfica para toda la app (texto, campos, código, lienzo). */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-sans);
 
   --color-canvas: #f7f7f8;
   --color-surface: #ffffff;
@@ -26,6 +28,15 @@ body,
 
 body {
   @apply bg-canvas font-sans text-ink-900 antialiased;
+}
+
+/* React Flow y los controles de formulario no siempre heredan la fuente: se fuerza la misma. */
+.react-flow,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
 }
 
 /* Controles de zoom de React Flow con el mismo lenguaje visual que los paneles. */
