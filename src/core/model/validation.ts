@@ -25,3 +25,20 @@ export interface ValidationRule {
   explanation: string;
   check: (diagram: Diagram) => ValidationIssue[];
 }
+
+const SEVERITY_ORDER: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
+
+/**
+ * Ejecuta todas las reglas y devuelve los problemas ordenados por gravedad
+ * (errores primero). Conserva el orden de las reglas dentro de cada gravedad.
+ */
+export function validateDiagram(diagram: Diagram, rules: ValidationRule[]): ValidationIssue[] {
+  return rules
+    .flatMap((rule) => rule.check(diagram))
+    .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+}
+
+/** Identificador estable de un problema, para saber si sigue existiendo tras un cambio. */
+export function issueKey(issue: ValidationIssue): string {
+  return [issue.ruleId, ...issue.nodeIds, ...issue.edgeIds].join('|');
+}

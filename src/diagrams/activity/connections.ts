@@ -1,11 +1,9 @@
 import type { ArtifactDefinition, ConnectionResult, Diagram, DiagramEdge, DiagramNode } from '@/core/model';
 import { activityArtifacts } from './artifacts';
-import { ActivityArtifact as A } from './artifactTypes';
+import { ActivityArtifact as A, FLOW_EDGE_TYPES } from './artifactTypes';
 
 const definitionByType = new Map(activityArtifacts.map((artifact) => [artifact.type, artifact]));
 
-/** Conexiones que son flujos (transportan tokens) y por tanto cuentan en connectionRules. */
-const FLOW_TYPES: ReadonlySet<string> = new Set([A.controlFlow, A.objectFlow]);
 
 function reject(reason: string): ConnectionResult {
   return { allowed: false, reason };
@@ -32,7 +30,7 @@ export function resolveActivityConnection(diagram: Diagram, sourceId: string, ta
 
   const edgeType = chooseEdgeType(source, target);
   if (!edgeType.allowed) return edgeType;
-  if (!FLOW_TYPES.has(edgeType.edgeType)) return edgeType;
+  if (!FLOW_EDGE_TYPES.has(edgeType.edgeType)) return edgeType;
 
   return checkCapacity(diagram.edges, source, target) ?? edgeType;
 }
@@ -68,7 +66,7 @@ function checkCapacity(edges: DiagramEdge[], source: DiagramNode, target: Diagra
   const targetDefinition = definitionByType.get(target.artifactType);
   if (!sourceDefinition || !targetDefinition) return reject('Artefacto desconocido.');
 
-  const flows = edges.filter((edge) => FLOW_TYPES.has(edge.artifactType));
+  const flows = edges.filter((edge) => FLOW_EDGE_TYPES.has(edge.artifactType));
   const outgoing = flows.filter((edge) => edge.sourceId === source.id).length;
   const incoming = flows.filter((edge) => edge.targetId === target.id).length;
 

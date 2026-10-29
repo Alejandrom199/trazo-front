@@ -68,3 +68,22 @@ body {
 .react-flow__handle.trazo-handle.connectingfrom {
   @apply opacity-100;
 }
+
+/* Elementos resaltados desde el panel de problemas: un halo que late, del color de la gravedad.
+   drop-shadow sigue la silueta real de la figura (círculo, rombo, barra…). */
+.trazo-highlight-error { --highlight: 225 29 72; }
+.trazo-highlight-warning { --highlight: 217 119 6; }
+.trazo-highlight-info { --highlight: 2 132 199; }
+
+.react-flow__node.trazo-highlight {
+  animation: trazo-pulse 1.4s ease-in-out infinite;
+}
+.react-flow__edge.trazo-highlight .react-flow__edge-path {
+  stroke: rgb(var(--highlight)) !important;
+  stroke-width: 2.5 !important;
+}
+
+@keyframes trazo-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px rgb(var(--highlight) / 0.9)); }
+  50% { filter: drop-shadow(0 0 9px rgb(var(--highlight) / 0.9)); }
+}

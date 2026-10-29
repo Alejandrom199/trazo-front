@@ -3,6 +3,7 @@ import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
 import { TemplateGallery } from '@/ui/templates/TemplateGallery';
 import { TopBar } from '@/ui/toolbar/TopBar';
+import { ValidationPanel } from '@/ui/validation/ValidationPanel';
 
 /**
  * Lienzo a pantalla completa con los paneles flotando encima.
@@ -26,6 +27,10 @@ export function AppShell() {
 
       <div className="pointer-events-none absolute top-[4.5rem] right-3 bottom-3 flex flex-col items-end *:pointer-events-auto">
         <ExplanationPanel />
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center *:pointer-events-auto">
+        <ValidationPanel />
       </div>
 
       <TemplateGallery />

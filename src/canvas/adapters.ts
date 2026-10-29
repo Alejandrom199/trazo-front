@@ -14,17 +14,38 @@ export type ArtifactFlowNode = Node<ArtifactNodeData, 'artifact'>;
 export type FlowEdgeData = { edge: DiagramEdge };
 export type FlowEdge = Edge<FlowEdgeData, 'flow'>;
 
+/** Elementos a resaltar y con qué clase CSS (según la gravedad del problema). */
+export interface CanvasHighlight {
+  ids: ReadonlySet<string>;
+  className: string;
+}
+
+const NO_HIGHLIGHT: CanvasHighlight = { ids: new Set(), className: '' };
+
+function classNames(...names: (string | false | undefined)[]): string | undefined {
+  const joined = names.filter(Boolean).join(' ');
+  return joined || undefined;
+}
+
 const EDGE_COLOR = '#3f3f46';
 const EDGE_COLOR_SELECTED = '#4f46e5';
 
-export function toFlowNodes(diagram: Diagram, module: DiagramModule, selection: ElementIds): ArtifactFlowNode[] {
+export function toFlowNodes(
+  diagram: Diagram,
+  module: DiagramModule,
+  selection: ElementIds,
+  highlight: CanvasHighlight = NO_HIGHLIGHT,
+): ArtifactFlowNode[] {
   const selected = new Set(selection.nodeIds);
   return [...diagram.nodes]
     .sort((a, b) => drawOrder(a, module) - drawOrder(b, module))
     .map((node) => ({
       id: node.id,
       type: 'artifact',
-      className: module.nodeKinds[node.artifactType]?.isContainer ? 'trazo-container' : undefined,
+      className: classNames(
+        module.nodeKinds[node.artifactType]?.isContainer && 'trazo-container',
+        highlight.ids.has(node.id) && highlight.className,
+      ),
       position: node.position,
       width: node.size.width,
       height: node.size.height,
@@ -44,7 +65,12 @@ function drawOrder(node: DiagramNode, module: DiagramModule): number {
   return module.nodeKinds[node.artifactType]?.isContainer ? 0 : 1;
 }
 
-export function toFlowEdges(diagram: Diagram, module: DiagramModule, selection: ElementIds): FlowEdge[] {
+export function toFlowEdges(
+  diagram: Diagram,
+  module: DiagramModule,
+  selection: ElementIds,
+  highlight: CanvasHighlight = NO_HIGHLIGHT,
+): FlowEdge[] {
   const selected = new Set(selection.edgeIds);
   return diagram.edges.map((edge) => {
     const kind = module.edgeKinds[edge.artifactType];
@@ -56,6 +82,7 @@ export function toFlowEdges(diagram: Diagram, module: DiagramModule, selection: 
       source: edge.sourceId,
       target: edge.targetId,
       selected: isSelected,
+      className: classNames(highlight.ids.has(edge.id) && highlight.className),
       data: { edge },
       markerEnd: kind?.arrow ? { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } : undefined,
       style: { stroke: color, strokeWidth: 1.5, strokeDasharray: kind?.dashed ? '5 4' : undefined },

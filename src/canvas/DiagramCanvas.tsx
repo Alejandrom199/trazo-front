@@ -25,6 +25,7 @@ import { ArtifactNodeView } from './ArtifactNodeView';
 import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
 import { useActiveModule } from './useActiveModule';
+import { useHighlightStore, type Highlight } from './highlightStore';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
@@ -34,6 +35,9 @@ const NOTICE_DURATION_MS = 3500;
 
 /** Margen al encuadrar: deja libre el espacio de la barra superior y los paneles flotantes. */
 const FIT_PADDING = { top: '84px', left: '270px', right: '350px', bottom: '24px' } as const;
+
+/** Al encuadrar un problema, el panel de problemas está desplegado abajo: se reserva su alto. */
+const HIGHLIGHT_FIT_PADDING = { ...FIT_PADDING, bottom: '45%' } as const;
 
 /** Lienzo basado en React Flow, conectado al store mediante los adaptadores. */
 export function DiagramCanvas() {
@@ -52,14 +56,23 @@ function CanvasContent() {
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
   useFitViewOnOpen(diagram?.id);
+  const highlight = useHighlightStore((state) => state.highlight);
+  useFitViewOnHighlight(highlight);
 
+  const canvasHighlight = useMemo(
+    () => ({
+      ids: new Set([...(highlight?.nodeIds ?? []), ...(highlight?.edgeIds ?? [])]),
+      className: highlight ? `trazo-highlight trazo-highlight-${highlight.severity}` : '',
+    }),
+    [highlight],
+  );
   const nodes = useMemo(
-    () => (diagram && module ? toFlowNodes(diagram, module, selection) : []),
-    [diagram, module, selection],
+    () => (diagram && module ? toFlowNodes(diagram, module, selection, canvasHighlight) : []),
+    [diagram, module, selection, canvasHighlight],
   );
   const edges = useMemo(
-    () => (diagram && module ? toFlowEdges(diagram, module, selection) : []),
-    [diagram, module, selection],
+    () => (diagram && module ? toFlowEdges(diagram, module, selection, canvasHighlight) : []),
+    [diagram, module, selection, canvasHighlight],
   );
 
   const onNodesChange = useCallback((changes: NodeChange<ArtifactFlowNode>[]) => applyNodeChanges(changes), []);
@@ -152,6 +165,7 @@ function CanvasContent() {
         isValidConnection={isValidConnection}
         onDelete={onDelete}
         onEdgeDoubleClick={(_event, edge) => store().startEditingEdge(edge.id)}
+        onPaneClick={() => useHighlightStore.getState().setHighlight(null)}
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
@@ -287,6 +301,24 @@ function useFitViewOnOpen(diagramId: string | undefined) {
     const frame = window.requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 }));
     return () => window.cancelAnimationFrame(frame);
   }, [diagramId, fitView]);
+}
+
+/**
+ * Al resaltar un problema, encuadra sus elementos (en una conexión, sus dos extremos).
+ * Sin elementos concretos (p. ej. "falta el nodo inicial") no mueve la vista.
+ */
+function useFitViewOnHighlight(highlight: Highlight | null) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    const diagram = store().diagram;
+    if (!highlight || !diagram) return;
+    const edgeEnds = diagram.edges
+      .filter((edge) => highlight.edgeIds.includes(edge.id))
+      .flatMap((edge) => [edge.sourceId, edge.targetId]);
+    const ids = [...new Set([...highlight.nodeIds, ...edgeEnds])];
+    if (ids.length === 0) return;
+    void fitView({ nodes: ids.map((id) => ({ id })), padding: HIGHLIGHT_FIT_PADDING, maxZoom: 1, duration: 350 });
+  }, [highlight, fitView]);
 }
 
 /** Ctrl+Z deshace; Ctrl+Y o Ctrl+Mayús+Z rehace. No interfiere al escribir texto. */

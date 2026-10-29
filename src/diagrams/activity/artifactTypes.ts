@@ -22,3 +22,6 @@ export const ActivityArtifact = {
 } as const;
 
 export type ActivityArtifactType = (typeof ActivityArtifact)[keyof typeof ActivityArtifact];
+
+/** Conexiones que son flujos: transportan tokens, cuentan en connectionRules y en el recorrido del grafo. */
+export const FLOW_EDGE_TYPES: ReadonlySet<string> = new Set([ActivityArtifact.controlFlow, ActivityArtifact.objectFlow]);
