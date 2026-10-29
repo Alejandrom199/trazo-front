@@ -1,5 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { DiagramCanvas } from '@/canvas/DiagramCanvas';
+import { CanvasArtifactPopover } from '@/ui/explanation/CanvasArtifactPopover';
 import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
 import { NarrationPanel } from '@/ui/narration/NarrationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
@@ -49,6 +50,7 @@ export function AppShell() {
         </div>
       )}
 
+      <CanvasArtifactPopover />
       <TemplateGallery />
     </div>
     </ReactFlowProvider>

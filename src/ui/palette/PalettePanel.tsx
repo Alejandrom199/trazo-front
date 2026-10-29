@@ -4,7 +4,7 @@ import type { NodeKind } from '@/core/registry';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { Panel } from '@/ui/layout/Panel';
-import { ArtifactPopover } from './ArtifactPopover';
+import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
 
 /** Orden en que se muestran las categorías en la paleta. */
 const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
@@ -86,10 +86,21 @@ export function PalettePanel() {
       </div>
 
       {hint.current && !opened && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
-      {opened && <ArtifactPopover artifact={opened.artifact} anchor={opened.anchor} onClose={() => setOpened(null)} />}
+      {opened && (
+        <ArtifactPopover
+          artifact={opened.artifact}
+          anchor={opened.anchor}
+          footer="Arrástralo al lienzo para usarlo."
+          keepOpenOn={isPaletteItem}
+          onClose={() => setOpened(null)}
+        />
+      )}
     </Panel>
   );
 }
+
+/** Un clic en otro artefacto de la paleta cambia de popup en vez de cerrarlo. */
+const isPaletteItem = (target: HTMLElement) => target.closest('[data-palette-item]') !== null;
 
 /** Espera antes de mostrar la pista, para que no parpadee al recorrer la lista. */
 const HINT_DELAY_MS = 350;

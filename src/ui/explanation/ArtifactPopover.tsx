@@ -1,38 +1,55 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ArtifactDefinition } from '@/core/model';
 
+/** Rectángulo en pantalla junto al que se abre el popup (DOMRect lo cumple). */
+export interface PopoverAnchor {
+  left: number;
+  top: number;
+  right: number;
+}
+
 interface ArtifactPopoverProps {
   artifact: ArtifactDefinition;
-  /** Fila de la paleta junto a la que se abre. */
-  anchor: DOMRect;
+  anchor: PopoverAnchor;
+  /** Texto del elemento concreto, ya formateado (p. ej. «Pagar» o Guarda: [ok]), si lo hay. */
+  subtitle?: string;
+  /** Pie con la indicación de qué hacer a continuación. */
+  footer: string;
+  /**
+   * Clics que NO deben cerrar el popup aunque caigan fuera de él: los gestiona
+   * quien lo abrió (p. ej. un clic en otro artefacto de la paleta cambia de popup).
+   */
+  keepOpenOn?: (target: HTMLElement) => boolean;
   onClose: () => void;
 }
 
-/** Separación entre la paleta y el popup, y margen mínimo con el borde de la ventana. */
+/** Separación con el elemento, ancho del popup y margen mínimo con el borde de la ventana. */
 const GAP = 12;
+const WIDTH = 320;
 const VIEWPORT_MARGIN = 12;
 
 /**
- * Popup que se abre al hacer clic en un artefacto de la paleta: qué es, por qué
- * se usa y cuándo usarlo. Se cierra con Escape, con la ✕ o al hacer clic fuera.
+ * Popup con qué es un artefacto, por qué se usa y cuándo usarlo. Se abre a la
+ * derecha del elemento (o a la izquierda si no cabe) y nunca se sale de la ventana.
+ * Se cierra con Escape, con la ✕ o al hacer clic fuera.
  */
-export function ArtifactPopover({ artifact, anchor, onClose }: ArtifactPopoverProps) {
+export function ArtifactPopover({ artifact, anchor, subtitle, footer, keepOpenOn, onClose }: ArtifactPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [top, setTop] = useState(anchor.top - 4);
+  const [position, setPosition] = useState({ left: anchor.right + GAP, top: anchor.top - 4 });
 
-  // Si no cabe hacia abajo, se sube lo necesario para no salirse de la ventana.
   useLayoutEffect(() => {
     const height = ref.current?.offsetHeight ?? 0;
+    const fitsRight = anchor.right + GAP + WIDTH <= window.innerWidth - VIEWPORT_MARGIN;
+    const left = fitsRight ? anchor.right + GAP : Math.max(VIEWPORT_MARGIN, anchor.left - GAP - WIDTH);
     const maxTop = window.innerHeight - height - VIEWPORT_MARGIN;
-    setTop(Math.max(VIEWPORT_MARGIN, Math.min(anchor.top - 4, maxTop)));
+    setPosition({ left, top: Math.max(VIEWPORT_MARGIN, Math.min(anchor.top - 4, maxTop)) });
   }, [anchor, artifact]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
     const closeOnOutsideClick = (event: PointerEvent) => {
       const target = event.target as HTMLElement;
-      // Un clic en otro artefacto de la paleta lo gestiona la paleta (cambia de popup).
-      if (!ref.current?.contains(target) && !target.closest('[data-palette-item]')) onClose();
+      if (!ref.current?.contains(target) && !keepOpenOn?.(target)) onClose();
     };
     // Fase de captura: el lienzo de React Flow detiene la propagación de sus clics,
     // así que escuchando en burbuja un clic en el lienzo no cerraría el popup.
@@ -42,15 +59,15 @@ export function ArtifactPopover({ artifact, anchor, onClose }: ArtifactPopoverPr
       window.removeEventListener('keydown', closeOnEscape);
       window.removeEventListener('pointerdown', closeOnOutsideClick, true);
     };
-  }, [onClose]);
+  }, [onClose, keepOpenOn]);
 
   return (
     <div
       ref={ref}
       role="dialog"
       aria-labelledby="artifact-popover-title"
-      className="fixed z-50 flex max-h-[calc(100vh-24px)] w-80 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
-      style={{ left: anchor.right + GAP, top }}
+      className="fixed z-50 flex max-h-[calc(100vh-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
+      style={{ ...position, width: WIDTH }}
     >
       <header className="flex items-start gap-2 border-b border-line px-4 py-3">
         <div className="min-w-0 flex-1">
@@ -61,6 +78,7 @@ export function ArtifactPopover({ artifact, anchor, onClose }: ArtifactPopoverPr
             {artifact.name}
           </h3>
           <p className="font-mono text-xs text-ink-400">UML · {artifact.umlName}</p>
+          {subtitle && <p className="mt-1 truncate text-sm text-ink-600">{subtitle}</p>}
         </div>
         <button
           type="button"
@@ -100,7 +118,7 @@ export function ArtifactPopover({ artifact, anchor, onClose }: ArtifactPopoverPr
       </div>
 
       <footer className="border-t border-line bg-canvas px-4 py-2.5 text-[11px] text-ink-400">
-        Arrástralo al lienzo para usarlo. Al seleccionarlo allí verás su ficha completa.
+        {footer}
       </footer>
     </div>
   );

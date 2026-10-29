@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -24,6 +24,7 @@ import { ArtifactNodeView } from './ArtifactNodeView';
 import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
 import { useActiveModule } from './useActiveModule';
+import { useElementClickStore } from './elementClickStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
@@ -73,7 +74,10 @@ export function DiagramCanvas() {
   const onNodesChange = useCallback((changes: NodeChange<ArtifactFlowNode>[]) => applyNodeChanges(changes), []);
   const onEdgesChange = useCallback((changes: EdgeChange<FlowEdge>[]) => applyEdgeSelection(changes), []);
 
-  const onNodeDragStart = useCallback<OnNodeDrag<ArtifactFlowNode>>(() => store().checkpoint(), []);
+  const onNodeDragStart = useCallback<OnNodeDrag<ArtifactFlowNode>>(() => {
+    store().checkpoint();
+    clearElementClick();
+  }, []);
 
   const onNodeDragStop = useCallback<OnNodeDrag<ArtifactFlowNode>>(
     (_event, _node, draggedNodes) => {
@@ -160,7 +164,13 @@ export function DiagramCanvas() {
         isValidConnection={isValidConnection}
         onDelete={onDelete}
         onEdgeDoubleClick={(_event, edge) => store().startEditingEdge(edge.id)}
-        onPaneClick={() => useHighlightStore.getState().setHighlight(null)}
+        onNodeClick={(event, node) => publishNodeClick(event, node.id)}
+        onEdgeClick={(event, edge) => publishEdgeClick(event, edge.id)}
+        onMoveStart={(event) => event && clearElementClick()}
+        onPaneClick={() => {
+          useHighlightStore.getState().setHighlight(null);
+          clearElementClick();
+        }}
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
@@ -190,6 +200,21 @@ export function DiagramCanvas() {
 }
 
 const store = () => useDiagramStore.getState();
+
+const clearElementClick = () => useElementClickStore.getState().setClicked(null);
+
+/** Publica el clic en un nodo con el rectángulo del nodo en pantalla (para ubicar el popup a su lado). */
+function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
+  const element = (event.target as Element).closest('.react-flow__node');
+  const rect = (element ?? (event.currentTarget as Element)).getBoundingClientRect();
+  useElementClickStore.getState().setClicked({ kind: 'node', id: nodeId, rect });
+}
+
+/** En una flecha no hay rectángulo útil: se usa el punto exacto donde se hizo clic. */
+function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
+  const rect = { left: event.clientX, top: event.clientY, right: event.clientX };
+  useElementClickStore.getState().setClicked({ kind: 'edge', id: edgeId, rect });
+}
 
 /**
  * Traduce los avisos de React Flow a acciones del store. Las posiciones y tamaños
