@@ -32,6 +32,9 @@ const edgeTypes = { flow: FlowEdgeView };
 
 const NOTICE_DURATION_MS = 3500;
 
+/** Margen al encuadrar: deja libre el espacio de la barra superior y los paneles flotantes. */
+const FIT_PADDING = { top: '84px', left: '270px', right: '350px', bottom: '24px' } as const;
+
 /** Lienzo basado en React Flow, conectado al store mediante los adaptadores. */
 export function DiagramCanvas() {
   return (
@@ -48,6 +51,7 @@ function CanvasContent() {
   const { screenToFlowPosition } = useReactFlow();
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
+  useFitViewOnOpen(diagram?.id);
 
   const nodes = useMemo(
     () => (diagram && module ? toFlowNodes(diagram, module, selection) : []),
@@ -272,6 +276,17 @@ function useNotice() {
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
   return { notice, showNotice };
+}
+
+/** Al abrir otro diagrama (p. ej. desde una plantilla), lo encuadra completo en pantalla. */
+function useFitViewOnOpen(diagramId: string | undefined) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (!diagramId) return;
+    // Se espera un fotograma para que React Flow ya tenga los nodos nuevos.
+    const frame = window.requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [diagramId, fitView]);
 }
 
 /** Ctrl+Z deshace; Ctrl+Y o Ctrl+Mayús+Z rehace. No interfiere al escribir texto. */

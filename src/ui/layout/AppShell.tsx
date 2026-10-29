@@ -1,6 +1,7 @@
 import { DiagramCanvas } from '@/canvas/DiagramCanvas';
 import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
+import { TemplateGallery } from '@/ui/templates/TemplateGallery';
 import { TopBar } from '@/ui/toolbar/TopBar';
 
 /**
@@ -26,6 +27,8 @@ export function AppShell() {
       <div className="pointer-events-none absolute top-[4.5rem] right-3 bottom-3 flex flex-col items-end *:pointer-events-auto">
         <ExplanationPanel />
       </div>
+
+      <TemplateGallery />
     </div>
   );
 }

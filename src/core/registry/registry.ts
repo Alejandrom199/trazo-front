@@ -69,6 +69,21 @@ function assertModuleIsConsistent(module: DiagramModule): void {
       }
     }
   }
+
+  for (const template of module.templates) {
+    const usedTypes = [
+      ...template.learningGoals,
+      ...template.diagram.nodes.map((node) => node.artifactType),
+      ...template.diagram.edges.map((edge) => edge.artifactType),
+    ];
+    const unknown = usedTypes.find((type) => !seenTypes.has(type));
+    if (template.diagramType !== module.diagramType || unknown) {
+      throw new Error(
+        `La plantilla "${template.id}" no es coherente con el módulo "${module.diagramType}"` +
+          (unknown ? `: usa el artefacto inexistente "${unknown}".` : '.'),
+      );
+    }
+  }
 }
 
 /** Registro único que usa la aplicación. */

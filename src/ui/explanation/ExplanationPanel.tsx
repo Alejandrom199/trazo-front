@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode } from '@/core/model';
+import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, Template } from '@/core/model';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
@@ -99,6 +99,7 @@ export function ExplanationPanel() {
           <TargetExplanation
             target={target}
             diagram={diagram}
+            template={module.templates.find((candidate) => candidate.id === diagram.templateId)}
             definitionsByType={definitionsByType}
             onOpenRelated={openRelated}
           />
@@ -111,11 +112,16 @@ export function ExplanationPanel() {
 interface TargetExplanationProps {
   target: ExplanationTarget;
   diagram: Diagram;
+  /** Plantilla de la que salió el diagrama, si la hay. */
+  template: Template | undefined;
   definitionsByType: Map<string, ArtifactDefinition>;
   onOpenRelated: (artifactType: string) => void;
 }
 
-function TargetExplanation({ target, diagram, definitionsByType, onOpenRelated }: TargetExplanationProps) {
+function TargetExplanation({ target, diagram, template, definitionsByType, onOpenRelated }: TargetExplanationProps) {
+  if (target.kind === 'none' && template) {
+    return <TemplateGoals template={template} definitionsByType={definitionsByType} onOpenRelated={onOpenRelated} />;
+  }
   if (target.kind === 'none') {
     return (
       <p className="p-4 text-sm leading-relaxed text-ink-600">
@@ -150,6 +156,47 @@ function TargetExplanation({ target, diagram, definitionsByType, onOpenRelated }
         )
       }
     />
+  );
+}
+
+interface TemplateGoalsProps {
+  template: Template;
+  definitionsByType: Map<string, ArtifactDefinition>;
+  onOpenRelated: (artifactType: string) => void;
+}
+
+/** Sin selección en un diagrama de plantilla: qué enseña y por dónde empezar a explorar. */
+function TemplateGoals({ template, definitionsByType, onOpenRelated }: TemplateGoalsProps) {
+  return (
+    <div className="space-y-4 p-4 text-sm leading-relaxed text-ink-600">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Plantilla · {template.difficulty}</p>
+        <h3 className="mt-1 text-base font-semibold text-ink-900">{template.name}</h3>
+        <p className="mt-1">{template.description}</p>
+      </div>
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué te enseña</p>
+        <ul className="space-y-1">
+          {template.learningGoals.map((type) => {
+            const definition = definitionsByType.get(type);
+            if (!definition) return null;
+            return (
+              <li key={type}>
+                <button
+                  type="button"
+                  onClick={() => onOpenRelated(type)}
+                  className="w-full rounded-lg px-2.5 py-2 text-left hover:bg-accent-soft"
+                >
+                  <span className="block text-sm font-medium text-ink-900">{definition.name}</span>
+                  <span className="line-clamp-2 block text-xs text-ink-600">{definition.whatIs}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <p className="text-xs text-ink-400">Selecciona cualquier elemento del lienzo para ver su explicación completa.</p>
+    </div>
   );
 }
 

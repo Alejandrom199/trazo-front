@@ -11,6 +11,9 @@ interface UiState {
   /** Activado: el panel de explicación se abre solo al seleccionar algo. */
   learningMode: boolean;
   setLearningMode: (enabled: boolean) => void;
+  /** Galería de plantillas: se muestra al abrir la app y con "Nuevo". */
+  galleryOpen: boolean;
+  setGalleryOpen: (open: boolean) => void;
 }
 
 function readLearningMode(): boolean {
@@ -31,4 +34,6 @@ export const useUiStore = create<UiState>()((set) => ({
     }
     set({ learningMode: enabled });
   },
+  galleryOpen: true,
+  setGalleryOpen: (open) => set({ galleryOpen: open }),
 }));

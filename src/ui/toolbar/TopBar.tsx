@@ -21,6 +21,8 @@ export function TopBar() {
         <span className="text-sm font-semibold tracking-tight">Trazo</span>
       </div>
 
+      <NewDiagramButton />
+
       <span className="h-5 w-px bg-line" aria-hidden />
 
       {diagram && (
@@ -50,6 +52,22 @@ export function TopBar() {
         </>
       )}
     </Panel>
+  );
+}
+
+function NewDiagramButton() {
+  const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
+  return (
+    <button
+      type="button"
+      onClick={() => setGalleryOpen(true)}
+      className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-600 hover:bg-canvas hover:text-ink-900"
+    >
+      <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      Nuevo
+    </button>
   );
 }
 

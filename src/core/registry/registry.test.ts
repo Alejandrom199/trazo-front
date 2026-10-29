@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ArtifactDefinition } from '@/core/model';
+import { createEmptyDiagram, type ArtifactDefinition } from '@/core/model';
 import type { DiagramModule } from './diagramModule';
 import { createRegistry } from './registry';
 
@@ -83,6 +83,22 @@ describe('registro de módulos', () => {
   it('Dado un componente visual sin artefacto en el catálogo, Entonces el registro lo rechaza', () => {
     const registry = createRegistry();
     const module = buildModule({ edgeKinds: { ghost: { dashed: false, arrow: true, hasGuard: false } } });
+
+    expect(() => registry.register(module)).toThrow(/ghost/);
+  });
+
+  it('Dada una plantilla que enseña un artefacto inexistente, Entonces el registro lo rechaza', () => {
+    const registry = createRegistry();
+    const template = {
+      id: 'demo',
+      diagramType: 'activity' as const,
+      name: 'Demo',
+      description: '',
+      difficulty: 'básico' as const,
+      learningGoals: ['ghost'],
+      diagram: createEmptyDiagram({ diagramType: 'activity', name: 'Demo' }),
+    };
+    const module = buildModule({ artifacts: [buildArtifact()], templates: [template] });
 
     expect(() => registry.register(module)).toThrow(/ghost/);
   });

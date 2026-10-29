@@ -9,7 +9,8 @@ import './index.css';
 // 1. Los módulos se registran antes de renderizar: la UI puede asumir que existen.
 registerDiagramModules(diagramRegistry);
 
-// 2. Mientras no haya galería de plantillas (Fase 3), se abre un diagrama vacío.
+// 2. Se abre un diagrama vacío detrás de la galería de plantillas (que arranca abierta):
+//    si el usuario la cierra, queda listo para dibujar.
 useDiagramStore.getState().newDiagram({ diagramType: 'activity', name: 'Diagrama sin título' });
 
 const rootElement = document.getElementById('root');
