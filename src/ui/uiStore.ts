@@ -14,7 +14,16 @@ interface UiState {
   /** Galería de plantillas: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
+  /** Panel "Explicar diagrama": ocupa el lugar del panel de explicación mientras está abierto. */
+  narrationOpen: boolean;
+  setNarrationOpen: (open: boolean) => void;
+  /** Aviso breve para el usuario (p. ej. un archivo que no se pudo importar). */
+  notice: string | null;
+  showNotice: (message: string) => void;
 }
+
+const NOTICE_DURATION_MS = 4000;
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
 function readLearningMode(): boolean {
   try {
@@ -36,4 +45,12 @@ export const useUiStore = create<UiState>()((set) => ({
   },
   galleryOpen: true,
   setGalleryOpen: (open) => set({ galleryOpen: open }),
+  narrationOpen: false,
+  setNarrationOpen: (open) => set({ narrationOpen: open }),
+  notice: null,
+  showNotice: (message) => {
+    clearTimeout(noticeTimer);
+    set({ notice: message });
+    noticeTimer = setTimeout(() => set({ notice: null }), NOTICE_DURATION_MS);
+  },
 }));

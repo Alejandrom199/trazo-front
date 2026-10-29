@@ -10,6 +10,7 @@ const SEVERITY_STYLE: Record<Severity, { singular: string; plural: string; dot: 
   info: { singular: 'sugerencia', plural: 'sugerencias', dot: 'bg-sky-500', text: 'text-sky-600' },
 };
 const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
+const ISSUE_PREFIX = 'issue:';
 
 /**
  * Panel de problemas, abajo al centro. Valida en vivo con las reglas del módulo
@@ -30,8 +31,10 @@ export function ValidationPanel() {
   const ruleById = useMemo(() => new Map((module?.rules ?? []).map((rule) => [rule.id, rule])), [module]);
 
   // Si el problema resaltado se corrigió, el resaltado ya no tiene sentido.
+  // Solo se tocan los resaltados que puso este panel (los de la narración son de otro).
   useEffect(() => {
-    if (highlight && !issues.some((issue) => issueKey(issue) === highlight.sourceKey)) setHighlight(null);
+    if (!highlight?.sourceKey.startsWith(ISSUE_PREFIX)) return;
+    if (!issues.some((issue) => ISSUE_PREFIX + issueKey(issue) === highlight.sourceKey)) setHighlight(null);
   }, [issues, highlight, setHighlight]);
 
   if (!diagram || !module) return null;
@@ -42,7 +45,7 @@ export function ValidationPanel() {
   }));
 
   function focusIssue(issue: ValidationIssue) {
-    setHighlight({ sourceKey: issueKey(issue), severity: issue.severity, nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
+    setHighlight({ sourceKey: ISSUE_PREFIX + issueKey(issue), tone: issue.severity, nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
     useDiagramStore.getState().setSelection({ nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
   }
 
@@ -62,7 +65,7 @@ export function ValidationPanel() {
                 key={issueKey(issue)}
                 issue={issue}
                 rule={ruleById.get(issue.ruleId)}
-                active={highlight?.sourceKey === issueKey(issue)}
+                active={highlight?.sourceKey === ISSUE_PREFIX + issueKey(issue)}
                 onFocus={() => focusIssue(issue)}
               />
             ))

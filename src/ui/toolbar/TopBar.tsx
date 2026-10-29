@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { usePersistenceStore, type SaveStatus } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
 import { useUiStore } from '@/ui/uiStore';
+import { FileMenu } from './FileMenu';
 
 export function TopBar() {
   const diagram = useDiagramStore((state) => state.diagram);
@@ -36,8 +38,11 @@ export function TopBar() {
           <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
             {moduleName}
           </span>
+          <SaveIndicator />
 
           <div className="ml-auto flex items-center gap-1">
+            <NarrateButton />
+            <FileMenu />
             <LearningModeSwitch />
             <span className="mx-1 h-5 w-px bg-line" aria-hidden />
             <IconButton label="Deshacer (Ctrl+Z)" disabled={!canUndo} onClick={undo}>
@@ -55,6 +60,25 @@ export function TopBar() {
   );
 }
 
+const SAVE_TEXT: Record<SaveStatus, { text: string; className: string; title: string }> = {
+  idle: { text: '', className: '', title: '' },
+  saving: { text: 'Guardando…', className: 'text-ink-400', title: 'Guardando en este navegador' },
+  saved: { text: 'Guardado', className: 'text-ink-400', title: 'Guardado en este navegador' },
+  error: { text: 'No se pudo guardar', className: 'text-rose-600', title: 'El almacenamiento del navegador está lleno o bloqueado. Exporta como JSON.' },
+  unavailable: { text: 'Sin guardado', className: 'text-amber-600', title: 'Este navegador no permite guardar. Exporta como JSON.' },
+};
+
+function SaveIndicator() {
+  const status = usePersistenceStore((state) => state.status);
+  const { text, className, title } = SAVE_TEXT[status];
+  if (!text) return null;
+  return (
+    <span className={`text-xs ${className}`} title={title} role="status">
+      {text}
+    </span>
+  );
+}
+
 function NewDiagramButton() {
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
   return (
@@ -66,7 +90,27 @@ function NewDiagramButton() {
       <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
         <path d="M12 5v14M5 12h14" />
       </svg>
-      Nuevo
+      Abrir / Nuevo
+    </button>
+  );
+}
+
+function NarrateButton() {
+  const narrationOpen = useUiStore((state) => state.narrationOpen);
+  const setNarrationOpen = useUiStore((state) => state.setNarrationOpen);
+  return (
+    <button
+      type="button"
+      onClick={() => setNarrationOpen(!narrationOpen)}
+      aria-pressed={narrationOpen}
+      className={`mr-1 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        narrationOpen ? 'bg-accent text-white' : 'bg-accent-soft text-accent hover:bg-accent/15'
+      }`}
+    >
+      <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+      </svg>
+      Explicar diagrama
     </button>
   );
 }

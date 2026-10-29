@@ -6,7 +6,6 @@ import {
   ConnectionMode,
   Controls,
   ReactFlow,
-  ReactFlowProvider,
   useReactFlow,
   type Connection,
   type EdgeChange,
@@ -34,21 +33,17 @@ const edgeTypes = { flow: FlowEdgeView };
 const NOTICE_DURATION_MS = 3500;
 
 /** Margen al encuadrar: deja libre el espacio de la barra superior y los paneles flotantes. */
-const FIT_PADDING = { top: '84px', left: '270px', right: '350px', bottom: '24px' } as const;
+const FIT_PADDING = { top: '84px', left: '270px', right: '410px', bottom: '24px' } as const;
 
 /** Al encuadrar un problema, el panel de problemas está desplegado abajo: se reserva su alto. */
 const HIGHLIGHT_FIT_PADDING = { ...FIT_PADDING, bottom: '45%' } as const;
 
-/** Lienzo basado en React Flow, conectado al store mediante los adaptadores. */
+/**
+ * Lienzo basado en React Flow, conectado al store mediante los adaptadores.
+ * Debe estar dentro de un <ReactFlowProvider> (lo pone AppShell, para que la
+ * barra superior también pueda usar el lienzo, p. ej. al exportar una imagen).
+ */
 export function DiagramCanvas() {
-  return (
-    <ReactFlowProvider>
-      <CanvasContent />
-    </ReactFlowProvider>
-  );
-}
-
-function CanvasContent() {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
@@ -62,7 +57,7 @@ function CanvasContent() {
   const canvasHighlight = useMemo(
     () => ({
       ids: new Set([...(highlight?.nodeIds ?? []), ...(highlight?.edgeIds ?? [])]),
-      className: highlight ? `trazo-highlight trazo-highlight-${highlight.severity}` : '',
+      className: highlight ? `trazo-highlight trazo-highlight-${highlight.tone}` : '',
     }),
     [highlight],
   );

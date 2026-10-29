@@ -74,6 +74,7 @@ body {
 .trazo-highlight-error { --highlight: 225 29 72; }
 .trazo-highlight-warning { --highlight: 217 119 6; }
 .trazo-highlight-info { --highlight: 2 132 199; }
+.trazo-highlight-focus { --highlight: 79 70 229; }
 
 .react-flow__node.trazo-highlight {
   animation: trazo-pulse 1.4s ease-in-out infinite;

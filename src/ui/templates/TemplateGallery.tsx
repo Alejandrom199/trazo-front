@@ -1,8 +1,10 @@
 import { useEffect, type ReactNode } from 'react';
 import { createDiagramFromTemplate, type Difficulty, type Template } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
+import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useUiStore } from '@/ui/uiStore';
+import { SavedDiagrams } from './SavedDiagrams';
 import { TemplatePreview } from './TemplatePreview';
 
 const PREVIEW = { width: 300, height: 150 };
@@ -14,14 +16,14 @@ const DIFFICULTY_STYLE: Record<Difficulty, string> = {
 };
 
 /**
- * Galería que aparece al crear un diagrama: uno en blanco o una plantilla.
+ * Galería para abrir o crear: tus diagramas guardados, uno en blanco o una plantilla.
  * Recorre todos los módulos registrados, así un tipo de diagrama nuevo
  * aparece aquí sin tocar este archivo.
  */
 export function TemplateGallery() {
   const isOpen = useUiStore((state) => state.galleryOpen);
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
-  const hasContent = useDiagramStore((state) => (state.diagram?.nodes.length ?? 0) > 0);
+  const persistenceAvailable = usePersistenceStore((state) => state.repository !== null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,10 +58,10 @@ export function TemplateGallery() {
         <header className="flex items-start justify-between gap-4 border-b border-line px-7 py-5">
           <div>
             <h2 id="gallery-title" className="text-lg font-semibold tracking-tight text-ink-900">
-              Nuevo diagrama
+              Abrir o crear un diagrama
             </h2>
             <p className="mt-0.5 text-sm text-ink-600">
-              Empieza en blanco o abre una plantilla: cada una indica qué artefactos te enseña.
+              Retoma uno de tus diagramas, empieza en blanco o parte de una plantilla que te enseña artefactos concretos.
             </p>
           </div>
           <button
@@ -75,6 +77,7 @@ export function TemplateGallery() {
         </header>
 
         <div className="overflow-y-auto px-7 py-6">
+          <SavedDiagrams onOpened={() => setGalleryOpen(false)} />
           {diagramRegistry.list().map((module) => (
             <section key={module.diagramType}>
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">{module.displayName}</h3>
@@ -111,11 +114,11 @@ export function TemplateGallery() {
           ))}
         </div>
 
-        {hasContent && (
-          <footer className="border-t border-line bg-canvas px-7 py-3 text-xs text-ink-600">
-            Abrir otro diagrama reemplaza el actual. El guardado automático llega en la Fase 5.
-          </footer>
-        )}
+        <footer className="border-t border-line bg-canvas px-7 py-3 text-xs text-ink-600">
+          {persistenceAvailable
+            ? 'Tus diagramas se guardan solos en este navegador. Para llevarlos a otro equipo, expórtalos como JSON.'
+            : 'Este navegador no permite guardar (¿modo privado?): exporta como JSON para no perder tu trabajo.'}
+        </footer>
       </div>
     </div>
   );
