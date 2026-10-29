@@ -1,0 +1,66 @@
+/**
+ * Modelo genérico de un diagrama. No sabe nada de React ni de React Flow:
+ * es la "entidad" que se guarda, se valida y se narra.
+ */
+
+/** Tipos de diagrama conocidos. Hoy solo se implementa "activity". */
+export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class';
+
+/** Versión actual del formato guardado. Súbela cuando cambie la forma de Diagram. */
+export const CURRENT_SCHEMA_VERSION = 1;
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
+export interface DiagramNode {
+  id: string;
+  /** Clave del catálogo del módulo, p. ej. "action" o "decision". */
+  artifactType: string;
+  label: string;
+  position: Position;
+  size: Size;
+  /** Partición (carril) que lo contiene, o null si está suelto en el lienzo. */
+  parentId: string | null;
+  /** Propiedades específicas del artefacto (p. ej. orientación de un carril). */
+  props: Record<string, unknown>;
+  /** Comentario libre del usuario. */
+  notes: string;
+}
+
+export interface DiagramEdge {
+  id: string;
+  /**
+   * Clave del catálogo del módulo (p. ej. "controlFlow", "objectFlow").
+   * Es string y no una unión cerrada para que cada tipo de diagrama
+   * defina sus propias conexiones sin modificar el núcleo.
+   */
+  artifactType: string;
+  sourceId: string;
+  targetId: string;
+  /** Texto de la guarda SIN corchetes ("usuario válido"); la UI dibuja los [ ]. */
+  guard: string | null;
+  label: string;
+}
+
+export interface Diagram {
+  id: string;
+  name: string;
+  diagramType: DiagramType;
+  description: string;
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
+  /** Plantilla de origen, si el diagrama se creó desde una. */
+  templateId: string | null;
+  schemaVersion: number;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
