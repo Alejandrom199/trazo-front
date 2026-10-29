@@ -36,3 +36,35 @@ body {
 .react-flow__controls-button {
   @apply size-8 border-line bg-surface text-ink-600 hover:bg-canvas;
 }
+
+/* Los nodos no llevan el marco por defecto de React Flow: cada figura se dibuja sola. */
+.react-flow__node-artifact {
+  @apply rounded-none border-0 bg-transparent p-0;
+}
+
+/* Un contenedor (carril) solo se agarra por su encabezado y sus tiradores de tamaño;
+   el cuerpo deja pasar el ratón a las flechas y al lienzo. */
+.react-flow__node.trazo-container {
+  pointer-events: none;
+}
+.react-flow__node.trazo-container .container-grip,
+.react-flow__node.trazo-container .react-flow__resize-control {
+  pointer-events: auto;
+}
+
+/* Puntos de conexión: invisibles hasta pasar el ratón por el nodo o durante una conexión. */
+.react-flow__handle.trazo-handle {
+  @apply size-2.5 rounded-full border-[1.5px] border-accent bg-surface opacity-0 transition-opacity;
+  min-width: 0;
+  min-height: 0;
+}
+.react-flow__node:hover .trazo-handle,
+.react-flow__handle.trazo-handle.connectingto {
+  @apply opacity-100;
+}
+.react-flow__handle.trazo-handle.connectingto {
+  @apply bg-accent;
+}
+.react-flow__handle.trazo-handle.connectingfrom {
+  @apply opacity-100;
+}

@@ -8,7 +8,9 @@ function buildModule(overrides: Partial<DiagramModule> = {}): DiagramModule {
     diagramType: 'activity',
     displayName: 'Prueba',
     artifacts: [],
-    nodeComponents: {},
+    nodeKinds: {},
+    edgeKinds: {},
+    resolveConnection: () => ({ allowed: false, reason: '' }),
     rules: [],
     narrate: () => [],
     templates: [],
@@ -80,7 +82,14 @@ describe('registro de módulos', () => {
 
   it('Dado un componente visual sin artefacto en el catálogo, Entonces el registro lo rechaza', () => {
     const registry = createRegistry();
-    const module = buildModule({ nodeComponents: { ghost: () => null } });
+    const module = buildModule({ edgeKinds: { ghost: { dashed: false, arrow: true, hasGuard: false } } });
+
+    expect(() => registry.register(module)).toThrow(/ghost/);
+  });
+
+  it('Dado un artefacto relacionado con uno inexistente, Entonces el registro lo rechaza', () => {
+    const registry = createRegistry();
+    const module = buildModule({ artifacts: [buildArtifact({ relatedArtifacts: ['ghost'] })] });
 
     expect(() => registry.register(module)).toThrow(/ghost/);
   });

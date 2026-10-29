@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
@@ -5,6 +6,10 @@ import { Panel } from '@/ui/layout/Panel';
 export function TopBar() {
   const diagram = useDiagramStore((state) => state.diagram);
   const renameDiagram = useDiagramStore((state) => state.renameDiagram);
+  const canUndo = useDiagramStore((state) => state.past.length > 0);
+  const canRedo = useDiagramStore((state) => state.future.length > 0);
+  const undo = useDiagramStore((state) => state.undo);
+  const redo = useDiagramStore((state) => state.redo);
 
   const moduleName = diagram ? diagramRegistry.get(diagram.diagramType).displayName : null;
 
@@ -28,8 +33,44 @@ export function TopBar() {
           <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
             {moduleName}
           </span>
+
+          <div className="ml-auto flex items-center gap-1">
+            <IconButton label="Deshacer (Ctrl+Z)" disabled={!canUndo} onClick={undo}>
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </IconButton>
+            <IconButton label="Rehacer (Ctrl+Y)" disabled={!canRedo} onClick={redo}>
+              <path d="m15 14 5-5-5-5" />
+              <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+            </IconButton>
+          </div>
         </>
       )}
     </Panel>
+  );
+}
+
+interface IconButtonProps {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  /** Trazos SVG del icono (24×24). */
+  children: ReactNode;
+}
+
+function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex size-8 items-center justify-center rounded-lg text-ink-600 hover:bg-canvas disabled:pointer-events-none disabled:opacity-35"
+    >
+      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </button>
   );
 }

@@ -53,11 +53,20 @@ function assertModuleIsConsistent(module: DiagramModule): void {
     seenTypes.add(artifact.type);
   }
 
-  for (const artifactType of Object.keys(module.nodeComponents)) {
+  const visualTypes = [...Object.keys(module.nodeKinds), ...Object.keys(module.edgeKinds)];
+  for (const artifactType of visualTypes) {
     if (!seenTypes.has(artifactType)) {
       throw new Error(
         `Hay un componente visual para "${artifactType}" pero no existe en el catálogo de "${module.diagramType}".`,
       );
+    }
+  }
+
+  for (const artifact of module.artifacts) {
+    for (const related of artifact.relatedArtifacts) {
+      if (!seenTypes.has(related)) {
+        throw new Error(`El artefacto "${artifact.type}" se relaciona con "${related}", que no existe.`);
+      }
     }
   }
 }

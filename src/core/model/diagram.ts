@@ -24,6 +24,10 @@ export interface DiagramNode {
   /** Clave del catálogo del módulo, p. ej. "action" o "decision". */
   artifactType: string;
   label: string;
+  /**
+   * Esquina superior izquierda. Si el nodo está dentro de un contenedor (parentId),
+   * es relativa a ese contenedor; si no, es absoluta en el lienzo.
+   */
   position: Position;
   size: Size;
   /** Partición (carril) que lo contiene, o null si está suelto en el lienzo. */

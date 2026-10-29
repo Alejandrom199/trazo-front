@@ -4,3 +4,5 @@ export * from './validation';
 export * from './template';
 export * from './narration';
 export * from './factories';
+export * from './connection';
+export * from './operations';
