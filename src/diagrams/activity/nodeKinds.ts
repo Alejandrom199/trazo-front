@@ -2,7 +2,8 @@ import type { EdgeKind, NodeKind } from '@/core/registry';
 import { ActivityArtifact as A } from './artifactTypes';
 import { BarShape, DiamondShape, FlowFinalShape, ActivityFinalShape, InitialNodeShape } from './nodes/ControlNodes';
 import { AcceptEventShape, ActionShape, ObjectNodeShape, SendSignalShape } from './nodes/ExecutableNodes';
-import { containerCornerRadius, NoteShape, PartitionShape } from './nodes/GroupingNodes';
+import { NoteShape } from '@/diagrams/shared/NoteShape';
+import { containerCornerRadius, PartitionShape } from './nodes/GroupingNodes';
 
 /** Valores comunes; cada artefacto declara solo lo que cambia. */
 const base: Omit<NodeKind, 'component' | 'defaultSize'> = {

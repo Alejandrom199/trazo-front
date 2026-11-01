@@ -1,5 +1,5 @@
 import type { ArtifactNodeProps } from '@/core/registry';
-import { SHAPE_FILL, STROKE_WIDTH, centeredLabelClass, strokeFor } from './shapeStyles';
+import { SHAPE_FILL, STROKE_WIDTH, centeredLabelClass, strokeFor } from '@/diagrams/shared/shapeStyles';
 
 /** Acción: rectángulo de esquinas redondeadas. */
 export function ActionShape({ selected, label }: ArtifactNodeProps) {

@@ -1,5 +1,5 @@
 import type { ArtifactNodeProps } from '@/core/registry';
-import { SHAPE_FILL, STROKE_WIDTH, strokeFor } from './shapeStyles';
+import { SHAPE_FILL, STROKE_WIDTH, strokeFor } from '@/diagrams/shared/shapeStyles';
 
 /** Círculo negro relleno. */
 export function InitialNodeShape({ selected }: ArtifactNodeProps) {
