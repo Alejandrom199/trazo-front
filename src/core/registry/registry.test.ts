@@ -14,6 +14,7 @@ function buildModule(overrides: Partial<DiagramModule> = {}): DiagramModule {
     rules: [],
     narrate: () => [],
     templates: [],
+    guide: { summary: '', purposes: [], whenToUse: [], whenNotToUse: [], keyIdea: { title: '', text: '' }, howToRead: [] },
     ...overrides,
   };
 }

@@ -43,7 +43,7 @@ export function CanvasArtifactPopover() {
   const label = isNode && 'label' in element ? element.label.trim() : '';
   const subtitle = label ? `«${label}»` : guard ? `Guarda: [${guard}]` : undefined;
   const footer = isNode
-    ? 'Doble clic para editar su texto. Con el modo aprendizaje, el panel derecho muestra la ficha completa.'
+    ? 'Doble clic para editar su texto. En Aprender está la guía completa del diagrama.'
     : 'Doble clic sobre la flecha para escribir su guarda.';
   const properties =
     'sourceId' in element ? (

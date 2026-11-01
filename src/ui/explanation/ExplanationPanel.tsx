@@ -1,12 +1,10 @@
 import { faChevronLeft, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState, type ReactNode } from 'react';
-import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, Template } from '@/core/model';
+import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode } from '@/core/model';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
-import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
-import { useUiStore } from '@/ui/uiStore';
 import { ArtifactExplanation } from './ArtifactExplanation';
 import { resolveExplanationTarget, targetKey, type ExplanationTarget } from './explanationTarget';
 
@@ -14,15 +12,13 @@ import { resolveExplanationTarget, targetKey, type ExplanationTarget } from './e
  * Panel derecho. Muestra la ficha del elemento seleccionado y permite navegar
  * a los artefactos relacionados (con "volver").
  *
- * Con el modo aprendizaje activado se abre solo; desactivado, se reduce a un
- * botón "Ver explicación" que aparece al seleccionar algo.
+ * No se abre solo: al seleccionar algo aparece el botón "Ver explicación".
+ * (Para aprender un diagrama completo está la página Aprender.)
  */
 export function ExplanationPanel() {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
-  const learningMode = useUiStore((state) => state.learningMode);
-  const isNarrow = useMediaQuery(NARROW_QUERY);
 
   const target = useMemo(() => resolveExplanationTarget(diagram, selection), [diagram, selection]);
   const key = targetKey(target);
@@ -40,8 +36,7 @@ export function ExplanationPanel() {
   if (!module || !diagram) return null;
 
   const browsed = trail.key === key ? trail.types : [];
-  // En móvil el panel taparía el lienzo: se abre solo si el usuario lo pide.
-  const isOpen = (learningMode && !isNarrow) || openedFor === key;
+  const isOpen = openedFor === key;
 
   if (!isOpen) {
     if (target.kind === 'none') return null;
@@ -75,16 +70,14 @@ export function ExplanationPanel() {
           </button>
         )}
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Explicación</h2>
-        {!learningMode && (
-          <button
-            type="button"
-            onClick={() => setOpenedFor(null)}
-            aria-label="Cerrar explicación"
-            className="ml-auto flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
-          >
-            <FontAwesomeIcon icon={faXmark} className="text-sm" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setOpenedFor(null)}
+          aria-label="Cerrar explicación"
+          className="ml-auto flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
+        >
+          <FontAwesomeIcon icon={faXmark} className="text-sm" />
+        </button>
       </header>
 
       {/* La key reinicia el scroll al cambiar de ficha: cada explicación empieza por arriba. */}
@@ -100,7 +93,6 @@ export function ExplanationPanel() {
           <TargetExplanation
             target={target}
             diagram={diagram}
-            template={module.templates.find((candidate) => candidate.id === diagram.templateId)}
             definitionsByType={definitionsByType}
             onOpenRelated={openRelated}
           />
@@ -113,16 +105,11 @@ export function ExplanationPanel() {
 interface TargetExplanationProps {
   target: ExplanationTarget;
   diagram: Diagram;
-  /** Plantilla de la que salió el diagrama, si la hay. */
-  template: Template | undefined;
   definitionsByType: Map<string, ArtifactDefinition>;
   onOpenRelated: (artifactType: string) => void;
 }
 
-function TargetExplanation({ target, diagram, template, definitionsByType, onOpenRelated }: TargetExplanationProps) {
-  if (target.kind === 'none' && template) {
-    return <TemplateGoals template={template} definitionsByType={definitionsByType} onOpenRelated={onOpenRelated} />;
-  }
+function TargetExplanation({ target, diagram, definitionsByType, onOpenRelated }: TargetExplanationProps) {
   if (target.kind === 'none') {
     return (
       <p className="p-4 text-sm leading-relaxed text-ink-600">
@@ -157,47 +144,6 @@ function TargetExplanation({ target, diagram, template, definitionsByType, onOpe
         )
       }
     />
-  );
-}
-
-interface TemplateGoalsProps {
-  template: Template;
-  definitionsByType: Map<string, ArtifactDefinition>;
-  onOpenRelated: (artifactType: string) => void;
-}
-
-/** Sin selección en un diagrama de plantilla: qué enseña y por dónde empezar a explorar. */
-function TemplateGoals({ template, definitionsByType, onOpenRelated }: TemplateGoalsProps) {
-  return (
-    <div className="space-y-4 p-4 text-sm leading-relaxed text-ink-600">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Plantilla de nivel {template.difficulty}</p>
-        <h3 className="mt-1 text-base font-semibold text-ink-900">{template.name}</h3>
-        <p className="mt-1">{template.description}</p>
-      </div>
-      <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué te enseña</p>
-        <ul className="space-y-1">
-          {template.learningGoals.map((type) => {
-            const definition = definitionsByType.get(type);
-            if (!definition) return null;
-            return (
-              <li key={type}>
-                <button
-                  type="button"
-                  onClick={() => onOpenRelated(type)}
-                  className="w-full rounded-lg px-2.5 py-2 text-left hover:bg-accent-soft"
-                >
-                  <span className="block text-sm font-medium text-ink-900">{definition.name}</span>
-                  <span className="line-clamp-2 block text-xs text-ink-600">{definition.whatIs}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-      <p className="text-xs text-ink-400">Selecciona cualquier elemento del lienzo para ver su explicación completa.</p>
-    </div>
   );
 }
 

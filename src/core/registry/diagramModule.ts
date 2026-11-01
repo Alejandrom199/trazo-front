@@ -2,10 +2,10 @@ import type { ComponentType, ReactNode } from 'react';
 import type {
   ArtifactDefinition,
   ConnectionResult,
+  ContainerJoints,
   Diagram,
   DiagramNode,
   DiagramType,
-  JoinedSides,
   Narration,
   Size,
   Template,
@@ -26,10 +26,10 @@ export interface ArtifactNodeProps {
    */
   label: ReactNode;
   /**
-   * Lados que tocan a otro contenedor (solo contenedores en el lienzo). Permite,
+   * Cómo toca a otros contenedores (solo contenedores en el lienzo). Permite,
    * p. ej., dibujar rectas las esquinas donde dos carriles se unen.
    */
-  joinedSides?: JoinedSides;
+  joints?: ContainerJoints;
 }
 
 /**
@@ -88,6 +88,25 @@ export interface EdgeKind {
   hasGuard: boolean;
 }
 
+/** Un paso de "cómo leer este diagrama", con los artefactos que intervienen. */
+export interface GuideStep {
+  title: string;
+  text: string;
+  artifactTypes: string[];
+}
+
+/** Contenido introductorio de la página Aprender de un tipo de diagrama. */
+export interface DiagramGuide {
+  /** Una o dos frases: qué es este diagrama. */
+  summary: string;
+  purposes: string[];
+  whenToUse: string[];
+  whenNotToUse: string[];
+  /** La idea que, una vez entendida, hace que todo lo demás encaje. */
+  keyIdea: { title: string; text: string };
+  howToRead: GuideStep[];
+}
+
 /**
  * Contrato que cumple cada tipo de diagrama. Para soportar un tipo nuevo
  * se crea su carpeta en diagrams/ y se registra; el núcleo no cambia.
@@ -106,4 +125,6 @@ export interface DiagramModule {
   rules: ValidationRule[];
   narrate: (diagram: Diagram) => Narration;
   templates: Template[];
+  /** Guía para la página Aprender. */
+  guide: DiagramGuide;
 }

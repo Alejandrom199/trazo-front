@@ -1,11 +1,12 @@
 import { faAnglesLeft, faAnglesRight, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
-import type { ArtifactCategory, ArtifactDefinition, DiagramNode } from '@/core/model';
+import type { ArtifactCategory, ArtifactDefinition } from '@/core/model';
 import type { NodeKind } from '@/core/registry';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
+import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
 import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
 import { useUiStore } from '@/ui/uiStore';
@@ -85,7 +86,7 @@ export function PalettePanel() {
   return (
     <aside
       aria-label="Artefactos"
-      className="flex h-full w-64 shrink-0 flex-col border-r border-line bg-surface max-md:absolute max-md:inset-y-0 max-md:left-14 max-md:z-30 max-md:shadow-panel"
+      className="flex h-full w-64 shrink-0 flex-col border-r border-line bg-surface max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-30 max-md:shadow-panel"
     >
       <header className="flex items-start gap-2 px-5 pt-5 pb-2">
         <div className="min-w-0 flex-1">
@@ -219,9 +220,8 @@ function PaletteHint({ artifact, anchor }: HintState) {
   );
 }
 
+/** Caja de la miniatura en cada fila de la paleta. */
 const PREVIEW = { width: 40, height: 26 };
-/** Lado mínimo de una miniatura, para que las figuras muy altas o angostas se distingan. */
-const MIN_PREVIEW_SIDE = 16;
 
 interface PaletteItemProps {
   artifact: ArtifactDefinition;
@@ -266,7 +266,7 @@ function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave
       } ${isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'}`}
     >
       {isOpen && <span className="bg-brand absolute top-1 bottom-1 -left-3 w-[3px] rounded-r-full" aria-hidden />}
-      <ArtifactPreview kind={kind} artifactType={artifact.type} />
+      <ArtifactFigure kind={kind} artifactType={artifact.type} box={PREVIEW} />
       {!compact && <span className="min-w-0 flex-1 truncate">{artifact.name}</span>}
       {!compact && (
         <button
@@ -291,37 +291,6 @@ function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave
           <FontAwesomeIcon icon={faCircleInfo} />
         </button>
       )}
-    </div>
-  );
-}
-
-/**
- * Miniatura: el mismo componente del lienzo dibujado directamente al tamaño de la
- * fila. No se escala con CSS: así el trazo mantiene su grosor real y se ve igual de
- * nítido en tema claro y oscuro (un carril escalado al 5 % perdía el borde).
- */
-function ArtifactPreview({ kind, artifactType }: { kind: NodeKind; artifactType: string }) {
-  const scale = Math.min(PREVIEW.width / kind.defaultSize.width, PREVIEW.height / kind.defaultSize.height, 1);
-  const width = Math.max(kind.defaultSize.width * scale, MIN_PREVIEW_SIDE);
-  const height = Math.max(kind.defaultSize.height * scale, Math.min(MIN_PREVIEW_SIDE, kind.defaultSize.height));
-  const previewNode: DiagramNode = {
-    id: `preview-${artifactType}`,
-    artifactType,
-    label: '',
-    position: { x: 0, y: 0 },
-    size: { width, height },
-    parentId: null,
-    props: kind.defaultProps,
-    notes: '',
-    locked: false,
-  };
-  const Shape = kind.component;
-
-  return (
-    <div className="pointer-events-none flex shrink-0 items-center justify-center" style={PREVIEW} aria-hidden>
-      <div style={{ width, height, flexShrink: 0 }}>
-        <Shape node={previewNode} selected={false} label={null} />
-      </div>
     </div>
   );
 }

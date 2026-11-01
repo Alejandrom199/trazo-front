@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 
-const LEARNING_MODE_KEY = 'trazo.learningMode';
 const THEME_KEY = 'trazo.theme';
 const PALETTE_COLLAPSED_KEY = 'trazo.paletteCollapsed';
 /** Por debajo de este ancho la paleta arranca plegada (si el usuario no eligió antes). */
@@ -10,16 +9,13 @@ export type Theme = 'light' | 'dark';
 
 /**
  * Preferencias de la interfaz (no forman parte del diagrama ni del historial).
- * El modo aprendizaje se recuerda en el navegador; si el almacenamiento no está
- * disponible (modo privado, bloqueado), simplemente arranca activado.
+ * Las que se recuerdan usan el almacenamiento del navegador; si no está
+ * disponible (modo privado, bloqueado), se usan valores por defecto.
  */
 interface UiState {
   /** Tema visual; se aplica como data-theme en <html> y lo leen las variables de index.css. */
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  /** Activado: el panel de explicación se abre solo al seleccionar algo. */
-  learningMode: boolean;
-  setLearningMode: (enabled: boolean) => void;
   /** Galería de plantillas: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
@@ -67,14 +63,6 @@ function readPaletteCollapsed(): boolean {
   return typeof window !== 'undefined' && window.innerWidth < NARROW_SCREEN;
 }
 
-function readLearningMode(): boolean {
-  try {
-    return localStorage.getItem(LEARNING_MODE_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
 const initialTheme = readTheme();
 applyTheme(initialTheme);
 
@@ -88,15 +76,6 @@ export const useUiStore = create<UiState>()((set) => ({
       // Sin almacenamiento el tema dura solo esta sesión.
     }
     set({ theme });
-  },
-  learningMode: readLearningMode(),
-  setLearningMode: (enabled) => {
-    try {
-      localStorage.setItem(LEARNING_MODE_KEY, String(enabled));
-    } catch {
-      // Sin almacenamiento la preferencia dura solo esta sesión.
-    }
-    set({ learningMode: enabled });
   },
   galleryOpen: true,
   setGalleryOpen: (open) => set({ galleryOpen: open }),

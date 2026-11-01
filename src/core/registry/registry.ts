@@ -70,6 +70,13 @@ function assertModuleIsConsistent(module: DiagramModule): void {
     }
   }
 
+  for (const step of module.guide.howToRead) {
+    const unknown = step.artifactTypes.find((type) => !seenTypes.has(type));
+    if (unknown) {
+      throw new Error(`El paso de la guía "${step.title}" menciona el artefacto inexistente "${unknown}".`);
+    }
+  }
+
   for (const template of module.templates) {
     const usedTypes = [
       ...template.learningGoals,

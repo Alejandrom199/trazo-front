@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { joinedSides, snapContainerPosition } from './containerLayout';
+import { containerJoints, NO_JOINTS, snapContainerPosition } from './containerLayout';
 import type { Diagram, DiagramNode } from './diagram';
 import { createEmptyDiagram } from './factories';
 
@@ -48,25 +48,43 @@ describe('snapContainerPosition', () => {
   });
 });
 
-describe('joinedSides', () => {
-  it('Dados dos carriles pegados, Entonces cada uno sabe de qué lado está unido', () => {
+describe('containerJoints', () => {
+  it('Dados dos carriles alineados y pegados, Entonces se enderezan las esquinas del lado común y el de la derecha no repite el borde', () => {
     const left = lane('a', 0);
     const right = lane('b', 200);
     const diagram = diagramWith([left, right]);
 
-    expect(joinedSides(diagram, left, isLane)).toEqual({ top: false, right: true, bottom: false, left: false });
-    expect(joinedSides(diagram, right, isLane)).toEqual({ top: false, right: false, bottom: false, left: true });
+    expect(containerJoints(diagram, left, isLane)).toEqual({
+      coveredSides: { top: false, right: true, bottom: false, left: false },
+      squareCorners: { topLeft: false, topRight: true, bottomRight: true, bottomLeft: false },
+    });
+    expect(containerJoints(diagram, right, isLane).coveredSides.left).toBe(true);
   });
 
-  it('Dados dos carriles separados, Entonces ningún lado está unido', () => {
+  it('Dados carriles pegados pero desalineados en altura, Entonces solo se endereza la esquina a la que llega el vecino y ambos conservan su borde', () => {
+    // a: y 0..400; b: y 160..560, pegado a la derecha (como en la foto del problema).
+    const a = lane('a', 0);
+    const b = lane('b', 200, 160);
+    const diagram = diagramWith([a, b]);
+
+    const jointsA = containerJoints(diagram, a, isLane);
+    const jointsB = containerJoints(diagram, b, isLane);
+
+    expect(jointsA.squareCorners).toEqual({ topLeft: false, topRight: false, bottomRight: true, bottomLeft: false });
+    expect(jointsA.coveredSides.right).toBe(false);
+    expect(jointsB.squareCorners).toEqual({ topLeft: true, topRight: false, bottomRight: false, bottomLeft: false });
+    expect(jointsB.coveredSides.left).toBe(false);
+  });
+
+  it('Dados dos carriles separados, Entonces no hay uniones', () => {
     const diagram = diagramWith([lane('a', 0), lane('b', 240)]);
 
-    expect(joinedSides(diagram, diagram.nodes[0]!, isLane)).toEqual({ top: false, right: false, bottom: false, left: false });
+    expect(containerJoints(diagram, diagram.nodes[0]!, isLane)).toEqual(NO_JOINTS);
   });
 
   it('Dados carriles alineados en x pero sin tramo vertical en común, Entonces no están unidos', () => {
     const diagram = diagramWith([lane('a', 0), lane('b', 200, 500)]);
 
-    expect(joinedSides(diagram, diagram.nodes[0]!, isLane).right).toBe(false);
+    expect(containerJoints(diagram, diagram.nodes[0]!, isLane).squareCorners.topRight).toBe(false);
   });
 });

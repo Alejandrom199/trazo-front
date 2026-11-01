@@ -1,4 +1,4 @@
-import { NO_JOINED_SIDES } from '@/core/model';
+import { NO_JOINTS } from '@/core/model';
 import { CONTAINER_GRIP_CLASS, readNumberProperty, type ArtifactNodeProps, type NumberPropertyDefinition } from '@/core/registry';
 import { MUTED_STROKE, NOTE_FILL, STROKE_WIDTH, strokeFor } from './shapeStyles';
 
@@ -20,24 +20,26 @@ export const containerCornerRadius: NumberPropertyDefinition = {
  * Carril vertical: encabezado con el responsable y cuerpo donde caen los nodos.
  * El cuerpo es transparente para que las flechas que lo cruzan se sigan viendo.
  */
-export function PartitionShape({ node, selected, label, joinedSides = NO_JOINED_SIDES }: ArtifactNodeProps) {
+export function PartitionShape({ node, selected, label, joints = NO_JOINTS }: ArtifactNodeProps) {
   const color = selected ? strokeFor(true) : MUTED_STROKE;
   // Proporcionales al tamaño para que un carril pequeño (o su miniatura) siga pareciendo un carril.
   const headerHeight = Math.min(HEADER_HEIGHT, node.size.height * 0.25);
   const radius = Math.min(readNumberProperty(node, containerCornerRadius), node.size.width / 4);
-  // Donde dos carriles se tocan, esas esquinas quedan rectas y el borde compartido se dibuja una sola vez.
-  const { top, right, bottom, left } = joinedSides;
-  const corner = (sideA: boolean, sideB: boolean) => (sideA || sideB ? 0 : radius);
+  // Donde llega un carril vecino, esa esquina queda recta. Un lado cubierto de punta a
+  // punta por vecinos no dibuja borde (ya lo dibuja el vecino); si solo se tocan en un
+  // tramo, cada carril conserva el suyo.
+  const { coveredSides, squareCorners } = joints;
+  const corner = (square: boolean) => (square ? 0 : radius);
   const border = `${STROKE_WIDTH}px solid ${color}`;
   return (
     <div
       className="flex size-full flex-col overflow-hidden"
       style={{
-        borderTop: top ? 'none' : border,
-        borderLeft: left ? 'none' : border,
+        borderTop: coveredSides.top ? 'none' : border,
+        borderLeft: coveredSides.left ? 'none' : border,
         borderRight: border,
         borderBottom: border,
-        borderRadius: `${corner(top, left)}px ${corner(top, right)}px ${corner(bottom, right)}px ${corner(bottom, left)}px`,
+        borderRadius: `${corner(squareCorners.topLeft)}px ${corner(squareCorners.topRight)}px ${corner(squareCorners.bottomRight)}px ${corner(squareCorners.bottomLeft)}px`,
       }}
     >
       <div

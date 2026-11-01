@@ -1,6 +1,7 @@
 import type { DiagramModule } from '@/core/registry';
 import { activityArtifacts } from './artifacts';
 import { resolveActivityConnection } from './connections';
+import { activityGuide } from './guide';
 import { narrateActivity } from './narrator';
 import { activityEdgeKinds, activityNodeKinds } from './nodeKinds';
 import { activityRules } from './rules';
@@ -17,4 +18,5 @@ export const activityModule: DiagramModule = {
   rules: activityRules,
   narrate: narrateActivity,
   templates: activityTemplates,
+  guide: activityGuide,
 };
