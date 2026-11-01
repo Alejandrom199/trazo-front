@@ -35,7 +35,8 @@ export function useDiagramImageExport() {
       const width = Math.ceil(bounds.width + MARGIN * 2);
       const height = Math.ceil(bounds.height + MARGIN * 2);
       const options = {
-        backgroundColor: '#ffffff',
+        // El fondo de la imagen es el del tema activo, para que las figuras contrasten igual que en pantalla.
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-canvas').trim() || 'white',
         width,
         height,
         pixelRatio: 2,

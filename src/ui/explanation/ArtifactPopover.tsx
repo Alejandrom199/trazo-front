@@ -93,7 +93,7 @@ export function ArtifactPopover({
       ref={ref}
       role="dialog"
       aria-labelledby="artifact-popover-title"
-      className="fixed z-50 flex max-h-[calc(100vh-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
+      className="fixed z-50 flex max-h-[calc(100vh-24px)] flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-panel"
       style={{ ...position, width: WIDTH }}
     >
       <header className={`flex items-start gap-2 px-4 py-3 ${detailsOpen ? 'border-b border-line' : ''}`}>
@@ -118,7 +118,7 @@ export function ArtifactPopover({
               aria-label={detailsOpen ? 'Ocultar propiedades y explicación' : 'Ver propiedades y explicación'}
               title={detailsOpen ? 'Ocultar detalle' : 'Ver propiedades y explicación'}
               className={`flex size-7 items-center justify-center rounded-lg transition-colors ${
-                detailsOpen ? 'text-ink-400 hover:bg-canvas hover:text-ink-900' : 'bg-accent-soft text-accent hover:bg-accent hover:text-white'
+                detailsOpen ? 'text-ink-400 hover:bg-canvas hover:text-ink-900' : 'bg-accent-soft text-accent hover:bg-brand hover:text-white'
               }`}
             >
               <FontAwesomeIcon icon={faChevronDown} className={`text-xs transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
@@ -164,7 +164,7 @@ export function ArtifactPopover({
                 <ul className="space-y-1.5">
                   {artifact.whenToUse.map((item) => (
                     <li key={item} className="flex gap-2.5">
-                      <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                      <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-success" aria-hidden />
                       <span>{item}</span>
                     </li>
                   ))}

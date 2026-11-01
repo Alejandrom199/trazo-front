@@ -40,7 +40,7 @@ export function ArtifactExplanation({ definition, definitionsByType, onOpenRelat
         <p>{definition.notation}</p>
       </Section>
       <Section title="Cuándo usarlo">
-        <BulletList items={definition.whenToUse} marker="bg-emerald-500" />
+        <BulletList items={definition.whenToUse} marker="bg-success" />
       </Section>
       <Section title="Cuándo no usarlo">
         <BulletList items={definition.whenNotToUse} marker="bg-ink-400" />
@@ -55,8 +55,8 @@ export function ArtifactExplanation({ definition, definitionsByType, onOpenRelat
         )}
       </Section>
       <Section title="Errores comunes">
-        <div className="rounded-xl bg-amber-50 px-3 py-2.5 text-amber-900">
-          <BulletList items={definition.commonMistakes} marker="bg-amber-500" />
+        <div className="rounded-xl bg-warning-soft px-3 py-2.5 text-ink-900">
+          <BulletList items={definition.commonMistakes} marker="bg-warning" />
         </div>
       </Section>
       <Section title="Ejemplo">

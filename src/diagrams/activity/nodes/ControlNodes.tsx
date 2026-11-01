@@ -1,12 +1,15 @@
 import type { ArtifactNodeProps } from '@/core/registry';
-import { STROKE_WIDTH, strokeFor } from './shapeStyles';
+import { SHAPE_FILL, STROKE_WIDTH, strokeFor } from './shapeStyles';
 
 /** Círculo negro relleno. */
 export function InitialNodeShape({ selected }: ArtifactNodeProps) {
   return (
     <div
-      className="size-full rounded-full bg-ink-900"
-      style={{ boxShadow: selected ? `0 0 0 3px ${strokeFor(true)}33` : undefined }}
+      className="size-full rounded-full"
+      style={{
+        background: 'var(--color-shape-stroke)',
+        boxShadow: selected ? '0 0 0 3px var(--color-accent-soft), 0 0 0 1.5px var(--color-accent)' : undefined,
+      }}
     />
   );
 }
@@ -15,7 +18,7 @@ export function InitialNodeShape({ selected }: ArtifactNodeProps) {
 export function ActivityFinalShape({ selected }: ArtifactNodeProps) {
   const color = strokeFor(selected);
   return (
-    <div className="flex size-full items-center justify-center rounded-full bg-surface" style={{ border: `2px solid ${color}` }}>
+    <div className="flex size-full items-center justify-center rounded-full" style={{ border: `2px solid ${color}`, background: SHAPE_FILL }}>
       <div className="size-[62%] rounded-full" style={{ background: color }} />
     </div>
   );
@@ -28,10 +31,10 @@ export function FlowFinalShape({ selected, node }: ArtifactNodeProps) {
   const inset = width * 0.15;
   return (
     <svg width={width} height={height} className="overflow-visible">
-      <circle cx={width / 2} cy={height / 2} r={width / 2 - 1} fill="white" stroke={color} strokeWidth={STROKE_WIDTH} />
+      <circle cx={width / 2} cy={height / 2} r={width / 2 - 1} style={{ fill: SHAPE_FILL, stroke: color }} strokeWidth={STROKE_WIDTH} />
       <path
         d={`M${inset} ${inset} L${width - inset} ${height - inset} M${width - inset} ${inset} L${inset} ${height - inset}`}
-        stroke={color}
+        style={{ stroke: color }}
         strokeWidth={STROKE_WIDTH}
         strokeLinecap="round"
       />
@@ -47,8 +50,7 @@ export function DiamondShape({ selected, node }: ArtifactNodeProps) {
     <svg width={width} height={height} className="overflow-visible">
       <polygon
         points={`${half.x},1 ${width - 1},${half.y} ${half.x},${height - 1} 1,${half.y}`}
-        fill="white"
-        stroke={strokeFor(selected)}
+        style={{ fill: SHAPE_FILL, stroke: strokeFor(selected) }}
         strokeWidth={STROKE_WIDTH}
         strokeLinejoin="round"
       />

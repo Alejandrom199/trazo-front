@@ -7,9 +7,9 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { useHighlightStore } from '@/canvas/highlightStore';
 
 const SEVERITY_STYLE: Record<Severity, { singular: string; plural: string; dot: string; text: string }> = {
-  error: { singular: 'error', plural: 'errores', dot: 'bg-rose-500', text: 'text-rose-600' },
-  warning: { singular: 'advertencia', plural: 'advertencias', dot: 'bg-amber-500', text: 'text-amber-600' },
-  info: { singular: 'sugerencia', plural: 'sugerencias', dot: 'bg-sky-500', text: 'text-sky-600' },
+  error: { singular: 'error', plural: 'errores', dot: 'bg-danger', text: 'text-danger' },
+  warning: { singular: 'advertencia', plural: 'advertencias', dot: 'bg-warning', text: 'text-warning' },
+  info: { singular: 'sugerencia', plural: 'sugerencias', dot: 'bg-info', text: 'text-info' },
 };
 const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
 const ISSUE_PREFIX = 'issue:';
@@ -52,7 +52,7 @@ export function ValidationPanel() {
   }
 
   return (
-    <div className="w-[min(560px,calc(100vw-40rem))] min-w-80 overflow-hidden rounded-2xl border border-line bg-surface shadow-panel">
+    <div className="w-full max-w-[560px] min-w-72 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
       {expanded && (
         <ul className="max-h-[38vh] divide-y divide-line overflow-y-auto border-b border-line">
           {issues.length === 0 ? (
@@ -83,7 +83,7 @@ export function ValidationPanel() {
       >
         <span className="text-xs font-semibold uppercase tracking-wider text-ink-400">Problemas</span>
         {issues.length === 0 ? (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-success">
             <FontAwesomeIcon icon={faCheck} className="text-[11px]" />
             {diagram.nodes.length === 0 ? 'Nada que revisar' : 'Todo en orden'}
           </span>

@@ -60,7 +60,7 @@ export function TemplatePreview({ diagram, module, width, height }: TemplatePrev
             if (!source || !target) return null;
             const [path] = getSmoothStepPath({ ...floatingEndpoints(source, target), borderRadius: 10, offset: 18 });
             const dashed = module.edgeKinds[edge.artifactType]?.dashed;
-            return <path key={edge.id} d={path} fill="none" stroke="#52525b" strokeWidth={1.5} strokeDasharray={dashed ? '5 4' : undefined} />;
+            return <path key={edge.id} d={path} style={{ fill: 'none', stroke: 'var(--color-edge)' }} strokeWidth={1.5} strokeDasharray={dashed ? '5 4' : undefined} />;
           })}
         </svg>
       </div>

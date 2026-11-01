@@ -34,7 +34,7 @@ const edgeTypes = { flow: FlowEdgeView };
 const NOTICE_DURATION_MS = 3500;
 
 /** Margen al encuadrar: deja libre el espacio de la barra superior y los paneles flotantes. */
-const FIT_PADDING = { top: '84px', left: '270px', right: '410px', bottom: '24px' } as const;
+const FIT_PADDING = { top: '76px', left: '32px', right: '400px', bottom: '32px' } as const;
 
 /** Al encuadrar un problema, el panel de problemas está desplegado abajo: se reserva su alto. */
 const HIGHLIGHT_FIT_PADDING = { ...FIT_PADDING, bottom: '45%' } as const;
@@ -174,7 +174,7 @@ export function DiagramCanvas() {
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
-        connectionLineStyle={{ stroke: '#4f46e5', strokeWidth: 1.5 }}
+        connectionLineStyle={{ stroke: 'var(--color-accent)', strokeWidth: 1.5 }}
         connectionRadius={28}
         elevateNodesOnSelect={false}
         snapToGrid
@@ -183,7 +183,7 @@ export function DiagramCanvas() {
         maxZoom={2}
         zoomOnDoubleClick={false}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="#d4d4d8" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
         <Controls position="bottom-left" showInteractive={false} />
       </ReactFlow>
 

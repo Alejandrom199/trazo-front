@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 
 const LEARNING_MODE_KEY = 'trazo.learningMode';
+const THEME_KEY = 'trazo.theme';
+
+export type Theme = 'light' | 'dark';
 
 /**
  * Preferencias de la interfaz (no forman parte del diagrama ni del historial).
@@ -8,6 +11,9 @@ const LEARNING_MODE_KEY = 'trazo.learningMode';
  * disponible (modo privado, bloqueado), simplemente arranca activado.
  */
 interface UiState {
+  /** Tema visual; se aplica como data-theme en <html> y lo leen las variables de index.css. */
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
   /** Activado: el panel de explicación se abre solo al seleccionar algo. */
   learningMode: boolean;
   setLearningMode: (enabled: boolean) => void;
@@ -30,6 +36,21 @@ export type PopoverTab = 'properties' | 'explanation';
 const NOTICE_DURATION_MS = 4000;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
+/** Tema guardado; si no hay, el del sistema operativo. */
+function readTheme(): Theme {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    // Sin almacenamiento: se usa la preferencia del sistema.
+  }
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme: Theme): void {
+  if (typeof document !== 'undefined') document.documentElement.dataset.theme = theme;
+}
+
 function readLearningMode(): boolean {
   try {
     return localStorage.getItem(LEARNING_MODE_KEY) !== 'false';
@@ -38,7 +59,20 @@ function readLearningMode(): boolean {
   }
 }
 
+const initialTheme = readTheme();
+applyTheme(initialTheme);
+
 export const useUiStore = create<UiState>()((set) => ({
+  theme: initialTheme,
+  setTheme: (theme) => {
+    applyTheme(theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // Sin almacenamiento el tema dura solo esta sesión.
+    }
+    set({ theme });
+  },
   learningMode: readLearningMode(),
   setLearningMode: (enabled) => {
     try {

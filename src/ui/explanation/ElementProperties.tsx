@@ -113,7 +113,7 @@ function LockToggle({ locked, onChange }: { locked: boolean; onChange: (locked: 
     >
       <span
         className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm ${
-          locked ? 'bg-accent text-white' : 'bg-canvas text-ink-600'
+          locked ? 'bg-brand text-white' : 'bg-canvas text-ink-600'
         }`}
       >
         <FontAwesomeIcon icon={locked ? faLock : faLockOpen} />

@@ -44,7 +44,7 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
           const module = diagramRegistry.get(diagram!.diagramType);
           const isOpen = summary.id === openId;
           return (
-            <div key={summary.id} className="group relative overflow-hidden rounded-2xl border border-line bg-surface hover:border-accent/40">
+            <div key={summary.id} className="group relative overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/40">
               <button
                 type="button"
                 onClick={() => {
@@ -67,7 +67,7 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
 
               {confirmingId === summary.id ? (
                 <div className="absolute top-2 right-2 flex items-center gap-1 rounded-lg border border-line bg-surface p-1 shadow-panel">
-                  <button type="button" onClick={() => remove(summary.id)} className="rounded-md bg-rose-600 px-2 py-1 text-[11px] font-medium text-white">
+                  <button type="button" onClick={() => remove(summary.id)} className="rounded-md bg-danger px-2 py-1 text-[11px] font-medium text-white">
                     Eliminar
                   </button>
                   <button type="button" onClick={() => setConfirmingId(null)} className="rounded-md px-2 py-1 text-[11px] text-ink-600 hover:bg-canvas">
@@ -79,7 +79,7 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
                   type="button"
                   onClick={() => setConfirmingId(summary.id)}
                   aria-label={`Eliminar «${summary.name}»`}
-                  className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-lg bg-surface/90 text-ink-400 opacity-0 shadow-sm group-hover:opacity-100 hover:text-rose-600 focus-visible:opacity-100"
+                  className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-lg bg-surface/90 text-ink-400 opacity-0 shadow-sm group-hover:opacity-100 hover:text-danger focus-visible:opacity-100"
                 >
                   <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
                 </button>

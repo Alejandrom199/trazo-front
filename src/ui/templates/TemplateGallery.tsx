@@ -12,9 +12,9 @@ import { TemplatePreview } from './TemplatePreview';
 const PREVIEW = { width: 300, height: 150 };
 
 const DIFFICULTY_STYLE: Record<Difficulty, string> = {
-  básico: 'bg-emerald-50 text-emerald-700',
-  intermedio: 'bg-amber-50 text-amber-700',
-  avanzado: 'bg-rose-50 text-rose-700',
+  básico: 'bg-success-soft text-success',
+  intermedio: 'bg-warning-soft text-warning',
+  avanzado: 'bg-danger-soft text-danger',
 };
 
 /**
@@ -48,21 +48,22 @@ export function TemplateGallery() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/25 p-6 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6 backdrop-blur-[2px]"
       onMouseDown={(event) => event.target === event.currentTarget && setGalleryOpen(false)}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="gallery-title"
-        className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-panel"
+        className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-line px-7 py-5">
+        {/* Portada en el color de marca, plano. */}
+        <header className="bg-brand relative flex items-start justify-between gap-4 px-8 py-7 text-white">
           <div>
-            <h2 id="gallery-title" className="text-lg font-semibold tracking-tight text-ink-900">
+            <h2 id="gallery-title" className="text-2xl font-semibold tracking-tight">
               Abrir o crear un diagrama
             </h2>
-            <p className="mt-0.5 text-sm text-ink-600">
+            <p className="mt-1 max-w-xl text-sm text-white/85">
               Retoma uno de tus diagramas, empieza en blanco o parte de una plantilla que te enseña artefactos concretos.
             </p>
           </div>
@@ -70,7 +71,7 @@ export function TemplateGallery() {
             type="button"
             onClick={() => setGalleryOpen(false)}
             aria-label="Cerrar"
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white"
           >
             <FontAwesomeIcon icon={faXmark} className="text-sm" />
           </button>
@@ -138,7 +139,7 @@ function GalleryCard({ onClick, preview, title, badge, description, goals }: Gal
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface text-left transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-panel focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
+      className="group flex flex-col overflow-hidden rounded-xl border border-line bg-surface text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-panel focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
     >
       <div className="flex h-[150px] items-center justify-center border-b border-line bg-canvas">{preview}</div>
       <div className="flex flex-1 flex-col gap-2 p-4">

@@ -3,7 +3,6 @@ import type { ArtifactCategory, ArtifactDefinition, DiagramNode } from '@/core/m
 import type { NodeKind } from '@/core/registry';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useActiveModule } from '@/canvas/useActiveModule';
-import { Panel } from '@/ui/layout/Panel';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
 
 /** Orden en que se muestran las categorías en la paleta. */
@@ -34,18 +33,19 @@ export function PalettePanel() {
   const connectors = module.artifacts.filter((artifact) => module.edgeKinds[artifact.type]);
 
   return (
-    <Panel className="flex max-h-full w-60 flex-col overflow-hidden">
-      <header className="border-b border-line px-4 py-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Artefactos</h2>
+    <aside aria-label="Artefactos" className="flex h-full w-60 shrink-0 flex-col border-r border-line bg-surface">
+      <header className="px-5 pt-5 pb-2">
+        <h2 className="text-[15px] font-semibold text-ink-900">Artefactos</h2>
+        <p className="mt-0.5 text-xs text-ink-400">Arrástralos al lienzo o haz clic para aprender</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-2 py-2">
+      <div className="flex-1 overflow-y-auto px-3 pb-4">
         {CATEGORY_ORDER.map(({ category, title }) => {
           const items = draggable.filter((artifact) => artifact.category === category);
           if (items.length === 0) return null;
           return (
-            <section key={category} className="mb-2">
-              <h3 className="px-2 pt-2 pb-1 text-[11px] font-medium text-ink-400">{title}</h3>
+            <section key={category} className="mt-3">
+              <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{title}</h3>
               {items.map((artifact) => {
                 const kind = module.nodeKinds[artifact.type];
                 return kind ? (
@@ -65,8 +65,8 @@ export function PalettePanel() {
         })}
 
         {connectors.length > 0 && (
-          <section className="mb-1">
-            <h3 className="px-2 pt-2 pb-1 text-[11px] font-medium text-ink-400">Conexiones</h3>
+          <section className="mt-3">
+            <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Conexiones</h3>
             <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
               Pasa el ratón por un nodo y arrastra desde uno de sus puntos hasta otro nodo. El tipo se elige solo:
             </p>
@@ -74,7 +74,7 @@ export function PalettePanel() {
               {connectors.map((artifact) => (
                 <li key={artifact.type} className="flex items-center gap-2">
                   <span
-                    className="h-0 w-5 border-t-[1.5px] border-ink-600"
+                    className="h-0 w-5 border-t-[1.5px] border-edge"
                     style={{ borderStyle: module.edgeKinds[artifact.type]?.dashed ? 'dashed' : 'solid' }}
                   />
                   {artifact.name}
@@ -95,7 +95,7 @@ export function PalettePanel() {
           onClose={() => setOpened(null)}
         />
       )}
-    </Panel>
+    </aside>
   );
 }
 
@@ -134,7 +134,7 @@ function PaletteHint({ artifact, anchor }: HintState) {
   return (
     <div
       role="tooltip"
-      className="pointer-events-none fixed z-50 w-64 rounded-xl border border-line bg-surface px-3.5 py-3 shadow-panel"
+      className="pointer-events-none fixed z-50 w-64 rounded-lg border border-line bg-surface px-3.5 py-3 shadow-panel"
       style={{ left: anchor.right + 12, top: anchor.top - 4 }}
     >
       <p className="text-sm font-semibold text-ink-900">{artifact.name}</p>
@@ -146,6 +146,8 @@ function PaletteHint({ artifact, anchor }: HintState) {
 }
 
 const PREVIEW = { width: 40, height: 26 };
+/** Lado mínimo de una miniatura, para que las figuras muy altas o angostas se distingan. */
+const MIN_PREVIEW_SIDE = 16;
 
 interface PaletteItemProps {
   artifact: ArtifactDefinition;
@@ -180,26 +182,32 @@ function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onClick }: Pale
         event.preventDefault();
         onClick(artifact, event.currentTarget.getBoundingClientRect());
       }}
-      className={`flex cursor-grab items-center gap-3 rounded-lg px-2 py-1.5 text-sm text-ink-900 select-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
-        isOpen ? 'bg-accent-soft' : 'hover:bg-canvas'
+      className={`relative flex cursor-grab items-center gap-3 rounded-md px-2 py-1.5 text-[13px] select-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
+        isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
       }`}
     >
+      {isOpen && <span className="bg-brand absolute top-1 bottom-1 -left-3 w-[3px] rounded-r-full" aria-hidden />}
       <ArtifactPreview kind={kind} artifactType={artifact.type} />
       <span className="truncate">{artifact.name}</span>
     </div>
   );
 }
 
-/** Miniatura: el mismo componente del lienzo, escalado para caber en la fila. */
+/**
+ * Miniatura: el mismo componente del lienzo dibujado directamente al tamaño de la
+ * fila. No se escala con CSS: así el trazo mantiene su grosor real y se ve igual de
+ * nítido en tema claro y oscuro (un carril escalado al 5 % perdía el borde).
+ */
 function ArtifactPreview({ kind, artifactType }: { kind: NodeKind; artifactType: string }) {
-  const { width, height } = kind.defaultSize;
-  const scale = Math.min(PREVIEW.width / width, PREVIEW.height / height, 1);
+  const scale = Math.min(PREVIEW.width / kind.defaultSize.width, PREVIEW.height / kind.defaultSize.height, 1);
+  const width = Math.max(kind.defaultSize.width * scale, MIN_PREVIEW_SIDE);
+  const height = Math.max(kind.defaultSize.height * scale, Math.min(MIN_PREVIEW_SIDE, kind.defaultSize.height));
   const previewNode: DiagramNode = {
     id: `preview-${artifactType}`,
     artifactType,
     label: '',
     position: { x: 0, y: 0 },
-    size: kind.defaultSize,
+    size: { width, height },
     parentId: null,
     props: kind.defaultProps,
     notes: '',
@@ -209,7 +217,7 @@ function ArtifactPreview({ kind, artifactType }: { kind: NodeKind; artifactType:
 
   return (
     <div className="pointer-events-none flex shrink-0 items-center justify-center" style={PREVIEW} aria-hidden>
-      <div style={{ width, height, transform: `scale(${scale})`, flexShrink: 0 }}>
+      <div style={{ width, height, flexShrink: 0 }}>
         <Shape node={previewNode} selected={false} label={null} />
       </div>
     </div>

@@ -1,5 +1,8 @@
 import { CONTAINER_GRIP_CLASS, readNumberProperty, type ArtifactNodeProps, type NumberPropertyDefinition } from '@/core/registry';
-import { STROKE_WIDTH, strokeFor } from './shapeStyles';
+import { MUTED_STROKE, NOTE_FILL, STROKE_WIDTH, strokeFor } from './shapeStyles';
+
+/** Alto del encabezado de un carril de tamaño normal. */
+const HEADER_HEIGHT = 40;
 
 /** Radio de las esquinas del carril, configurable en sus propiedades. */
 export const containerCornerRadius: NumberPropertyDefinition = {
@@ -17,15 +20,18 @@ export const containerCornerRadius: NumberPropertyDefinition = {
  * El cuerpo es transparente para que las flechas que lo cruzan se sigan viendo.
  */
 export function PartitionShape({ node, selected, label }: ArtifactNodeProps) {
-  const color = selected ? strokeFor(true) : '#a1a1aa';
+  const color = selected ? strokeFor(true) : MUTED_STROKE;
+  // Proporcionales al tamaño para que un carril pequeño (o su miniatura) siga pareciendo un carril.
+  const headerHeight = Math.min(HEADER_HEIGHT, node.size.height * 0.25);
+  const radius = Math.min(readNumberProperty(node, containerCornerRadius), node.size.width / 4);
   return (
     <div
       className="flex size-full flex-col overflow-hidden"
-      style={{ border: `${STROKE_WIDTH}px solid ${color}`, borderRadius: readNumberProperty(node, containerCornerRadius) }}
+      style={{ border: `${STROKE_WIDTH}px solid ${color}`, borderRadius: radius }}
     >
       <div
-        className={`${CONTAINER_GRIP_CLASS} flex h-10 shrink-0 items-center justify-center bg-surface px-3 text-center text-[13px] font-medium text-ink-900`}
-        style={{ borderBottom: `${STROKE_WIDTH}px solid ${color}` }}
+        className={`${CONTAINER_GRIP_CLASS} flex shrink-0 items-center justify-center bg-surface px-3 text-center text-[13px] font-medium text-ink-900`}
+        style={{ height: headerHeight, borderBottom: `${STROKE_WIDTH}px solid ${color}` }}
       >
         {label}
       </div>
@@ -39,21 +45,20 @@ const FOLD = 14;
 /** Nota: rectángulo con la esquina superior derecha doblada. */
 export function NoteShape({ selected, node, label }: ArtifactNodeProps) {
   const { width: w, height: h } = node.size;
-  const stroke = selected ? strokeFor(true) : '#a1a1aa';
+  const stroke = selected ? strokeFor(true) : MUTED_STROKE;
+  const fold = Math.min(FOLD, w * 0.25, h * 0.35);
   return (
     <div className="relative size-full">
       <svg width={w} height={h} className="absolute inset-0 overflow-visible">
         <path
-          d={`M1 1 H${w - FOLD} L${w - 1} ${FOLD} V${h - 1} H1 Z`}
-          fill="#fefce8"
-          stroke={stroke}
+          d={`M1 1 H${w - fold} L${w - 1} ${fold} V${h - 1} H1 Z`}
+          style={{ fill: NOTE_FILL, stroke }}
           strokeWidth={STROKE_WIDTH}
           strokeLinejoin="round"
         />
         <path
-          d={`M${w - FOLD} 1 V${FOLD} H${w - 1}`}
-          fill="none"
-          stroke={stroke}
+          d={`M${w - fold} 1 V${fold} H${w - 1}`}
+          style={{ fill: 'none', stroke }}
           strokeWidth={STROKE_WIDTH}
           strokeLinejoin="round"
         />

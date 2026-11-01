@@ -27,8 +27,9 @@ function classNames(...names: (string | false | undefined)[]): string | undefine
   return joined || undefined;
 }
 
-const EDGE_COLOR = '#3f3f46';
-const EDGE_COLOR_SELECTED = '#4f46e5';
+/** Variables CSS del tema: las flechas cambian solas entre claro y oscuro. */
+const EDGE_COLOR = 'var(--color-edge)';
+const EDGE_COLOR_SELECTED = 'var(--color-accent)';
 
 export function toFlowNodes(
   diagram: Diagram,
