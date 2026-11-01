@@ -52,7 +52,7 @@ export function ValidationPanel() {
   }
 
   return (
-    <div className="w-full max-w-[560px] min-w-72 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
+    <div className="w-full max-w-[560px] min-w-0 overflow-hidden md:min-w-72 rounded-xl border border-line bg-surface shadow-panel">
       {expanded && (
         <ul className="max-h-[38vh] divide-y divide-line overflow-y-auto border-b border-line">
           {issues.length === 0 ? (
@@ -79,7 +79,7 @@ export function ValidationPanel() {
         type="button"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        className="flex h-11 w-full items-center gap-4 px-4 text-left hover:bg-canvas"
+        className="flex h-11 w-full items-center gap-3 px-4 text-left hover:bg-raised sm:gap-4"
       >
         <span className="text-xs font-semibold uppercase tracking-wider text-ink-400">Problemas</span>
         {issues.length === 0 ? (
@@ -93,8 +93,11 @@ export function ValidationPanel() {
             .map(({ severity, count }) => (
               <span key={severity} className="flex items-center gap-1.5 text-xs text-ink-600">
                 <span className={`size-2 rounded-full ${SEVERITY_STYLE[severity].dot}`} />
-                <span className="font-medium text-ink-900">{count}</span>{' '}
-                {count === 1 ? SEVERITY_STYLE[severity].singular : SEVERITY_STYLE[severity].plural}
+                <span className="font-medium text-ink-900">{count}</span>
+                {/* En pantallas angostas basta el punto de color y el número. */}
+                <span className="hidden sm:inline">
+                  {count === 1 ? SEVERITY_STYLE[severity].singular : SEVERITY_STYLE[severity].plural}
+                </span>
               </span>
             ))
         )}

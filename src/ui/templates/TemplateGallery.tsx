@@ -48,7 +48,7 @@ export function TemplateGallery() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-[2px] md:p-6"
       onMouseDown={(event) => event.target === event.currentTarget && setGalleryOpen(false)}
     >
       <div
@@ -58,7 +58,7 @@ export function TemplateGallery() {
         className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
       >
         {/* Portada en el color de marca, plano. */}
-        <header className="bg-brand relative flex items-start justify-between gap-4 px-8 py-7 text-white">
+        <header className="bg-brand relative flex items-start justify-between gap-4 px-5 py-5 text-white md:px-8 md:py-7">
           <div>
             <h2 id="gallery-title" className="text-2xl font-semibold tracking-tight">
               Abrir o crear un diagrama
@@ -77,7 +77,7 @@ export function TemplateGallery() {
           </button>
         </header>
 
-        <div className="overflow-y-auto px-7 py-6">
+        <div className="overflow-y-auto px-4 py-5 md:px-7 md:py-6">
           <SavedDiagrams onOpened={() => setGalleryOpen(false)} />
           {diagramRegistry.list().map((module) => (
             <section key={module.diagramType}>
@@ -115,7 +115,7 @@ export function TemplateGallery() {
           ))}
         </div>
 
-        <footer className="border-t border-line bg-canvas px-7 py-3 text-xs text-ink-600">
+        <footer className="border-t border-line bg-canvas px-4 py-3 md:px-7 text-xs text-ink-600">
           {persistenceAvailable
             ? 'Tus diagramas se guardan solos en este navegador. Para llevarlos a otro equipo, expórtalos como JSON.'
             : 'Este navegador no permite guardar (¿modo privado?): exporta como JSON para no perder tu trabajo.'}

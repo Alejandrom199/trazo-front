@@ -23,7 +23,7 @@ export function AppShell() {
   return (
     <ReactFlowProvider>
       <div className="flex h-full w-full flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           <NavRail />
           <PalettePanel />
 
@@ -36,11 +36,11 @@ export function AppShell() {
               <TopBar />
             </div>
 
-            <div className="pointer-events-none absolute top-[4.25rem] right-3 bottom-3 flex flex-col items-end *:pointer-events-auto">
+            <div className="pointer-events-none absolute top-[4.25rem] right-3 bottom-3 left-3 flex flex-col items-end *:pointer-events-auto md:left-auto">
               {narrationOpen ? <NarrationPanel /> : <ExplanationPanel />}
             </div>
 
-            <div className="pointer-events-none absolute right-[22rem] bottom-3 left-3 flex justify-center *:pointer-events-auto">
+            <div className="pointer-events-none absolute right-3 bottom-3 left-14 flex justify-center *:pointer-events-auto md:left-3 lg:right-[22rem]">
               <ValidationPanel />
             </div>
 

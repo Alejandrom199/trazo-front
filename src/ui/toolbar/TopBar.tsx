@@ -26,10 +26,12 @@ export function TopBar() {
         value={diagram.name}
         onChange={(event) => renameDiagram(event.target.value)}
         aria-label="Nombre del diagrama"
-        className="field-sizing-content min-w-24 max-w-md rounded-md px-2 py-1 text-sm font-semibold text-ink-900 outline-none hover:bg-raised focus:bg-raised focus:ring-2 focus:ring-accent/25"
+        className="field-sizing-content min-w-16 max-w-[45vw] rounded-md md:max-w-md px-2 py-1 text-sm font-semibold text-ink-900 outline-none hover:bg-raised focus:bg-raised focus:ring-2 focus:ring-accent/25"
       />
-      <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">{moduleName}</span>
-      <SaveIndicator />
+      <span className="hidden rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-accent lg:inline">{moduleName}</span>
+      <span className="hidden sm:inline">
+        <SaveIndicator />
+      </span>
 
       <div className="ml-auto flex items-center gap-0.5">
         <GridControl />

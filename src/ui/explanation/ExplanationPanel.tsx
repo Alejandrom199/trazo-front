@@ -5,6 +5,7 @@ import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, Template } 
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
+import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
 import { useUiStore } from '@/ui/uiStore';
 import { ArtifactExplanation } from './ArtifactExplanation';
 import { resolveExplanationTarget, targetKey, type ExplanationTarget } from './explanationTarget';
@@ -21,6 +22,7 @@ export function ExplanationPanel() {
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
   const learningMode = useUiStore((state) => state.learningMode);
+  const isNarrow = useMediaQuery(NARROW_QUERY);
 
   const target = useMemo(() => resolveExplanationTarget(diagram, selection), [diagram, selection]);
   const key = targetKey(target);
@@ -38,7 +40,8 @@ export function ExplanationPanel() {
   if (!module || !diagram) return null;
 
   const browsed = trail.key === key ? trail.types : [];
-  const isOpen = learningMode || openedFor === key;
+  // En móvil el panel taparía el lienzo: se abre solo si el usuario lo pide.
+  const isOpen = (learningMode && !isNarrow) || openedFor === key;
 
   if (!isOpen) {
     if (target.kind === 'none') return null;
@@ -59,7 +62,7 @@ export function ExplanationPanel() {
   const browsedDefinition = browsedType ? definitionsByType.get(browsedType) : undefined;
 
   return (
-    <Panel className="flex max-h-full w-80 flex-col overflow-hidden">
+    <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-80">
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
         {browsed.length > 0 && (
           <button

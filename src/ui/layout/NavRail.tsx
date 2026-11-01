@@ -19,9 +19,9 @@ export function NavRail() {
   const isDark = theme === 'dark';
 
   return (
-    <nav aria-label="Principal" className="flex w-[76px] shrink-0 flex-col items-center border-r border-line bg-surface py-3">
+    <nav aria-label="Principal" className="flex w-14 shrink-0 flex-col items-center border-r border-line bg-surface py-3 md:w-[76px]">
       <div
-        className="bg-brand mb-4 flex size-10 items-center justify-center rounded-xl text-lg text-white shadow-panel"
+        className="bg-brand mb-4 flex size-9 items-center justify-center rounded-xl text-base text-white shadow-panel md:size-10 md:text-lg"
         title="Trazo"
         aria-label="Trazo"
       >

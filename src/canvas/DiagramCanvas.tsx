@@ -27,6 +27,7 @@ import { useActiveModule } from './useActiveModule';
 import { useElementClickStore } from './elementClickStore';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
+import { LockBadges } from './LockBadges';
 import { placeArtifact } from './placeArtifact';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
@@ -38,11 +39,20 @@ const NOTICE_DURATION_MS = 3500;
 /** Paso de ajuste cuando no se muestra la cuadrícula: los nodos se alinean sin que se note. */
 const FREE_SNAP_STEP = 10;
 
-/** Margen al encuadrar: deja libre el espacio de la barra superior y los paneles flotantes. */
-const FIT_PADDING = { top: '76px', left: '32px', right: '400px', bottom: '32px' } as const;
+/**
+ * Margen al encuadrar: deja libre el espacio de la barra superior y del panel
+ * flotante de la derecha (que en pantallas angostas no se abre solo).
+ */
+function fitPadding(): { top: `${number}px`; left: `${number}px`; right: `${number}px`; bottom: `${number}px` } {
+  const wide = window.innerWidth >= WIDE_SCREEN;
+  return { top: '76px', left: '24px', right: wide ? '400px' : '24px', bottom: '32px' } as const;
+}
+
+/** Ancho a partir del cual el panel de la derecha convive con el lienzo. */
+const WIDE_SCREEN = 1024;
 
 /** Al encuadrar un problema, el panel de problemas está desplegado abajo: se reserva su alto. */
-const HIGHLIGHT_FIT_PADDING = { ...FIT_PADDING, bottom: '45%' } as const;
+const highlightFitPadding = () => ({ ...fitPadding(), bottom: '45%' }) as const;
 
 /**
  * Lienzo basado en React Flow, conectado al store mediante los adaptadores.
@@ -200,6 +210,7 @@ export function DiagramCanvas() {
           <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
         )}
         <Controls position="bottom-left" showInteractive={false} />
+        <LockBadges />
       </ReactFlow>
 
       {notice && (
@@ -321,7 +332,7 @@ function useFitViewOnOpen(diagramId: string | undefined) {
   useEffect(() => {
     if (!diagramId) return;
     // Se espera un fotograma para que React Flow ya tenga los nodos nuevos.
-    const frame = window.requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 }));
+    const frame = window.requestAnimationFrame(() => void fitView({ padding: fitPadding(), maxZoom: 1 }));
     return () => window.cancelAnimationFrame(frame);
   }, [diagramId, fitView]);
 }
@@ -340,7 +351,7 @@ function useFitViewOnHighlight(highlight: Highlight | null) {
       .flatMap((edge) => [edge.sourceId, edge.targetId]);
     const ids = [...new Set([...highlight.nodeIds, ...edgeEnds])];
     if (ids.length === 0) return;
-    void fitView({ nodes: ids.map((id) => ({ id })), padding: HIGHLIGHT_FIT_PADDING, maxZoom: 1, duration: 350 });
+    void fitView({ nodes: ids.map((id) => ({ id })), padding: highlightFitPadding(), maxZoom: 1, duration: 350 });
   }, [highlight, fitView]);
 }
 

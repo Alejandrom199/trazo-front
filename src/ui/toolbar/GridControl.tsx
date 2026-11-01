@@ -52,11 +52,11 @@ export function GridControl() {
         }`}
       >
         <FontAwesomeIcon icon={faTableCells} className="text-[13px]" />
-        {visible ? `${size} px` : 'Cuadrícula'}
+        <span className="hidden whitespace-nowrap sm:inline">{visible ? `${size} px` : 'Cuadrícula'}</span>
       </button>
 
       {open && (
-        <div role="dialog" aria-label="Cuadrícula" className="absolute top-full right-0 z-30 mt-2 w-64 rounded-lg border border-line bg-surface p-3 shadow-panel">
+        <div role="dialog" aria-label="Cuadrícula" className="absolute top-full right-0 z-30 mt-2 w-64 max-w-[calc(100vw-5rem)] rounded-lg border border-line bg-surface p-3 shadow-panel">
           <label className="flex items-center justify-between gap-3">
             <span className="text-sm text-ink-900">Mostrar cuadrícula</span>
             <button

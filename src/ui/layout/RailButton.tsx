@@ -18,6 +18,7 @@ export const RailButton = forwardRef<HTMLButtonElement, RailButtonProps>(functio
     <button
       ref={ref}
       type="button"
+      aria-label={label}
       className={`group relative flex w-full flex-col items-center gap-1 px-1 py-2.5 text-[11px] font-medium transition-colors disabled:opacity-40 ${
         active ? 'text-ink-900' : 'text-ink-400 hover:text-ink-900'
       } ${className}`}
@@ -31,7 +32,8 @@ export const RailButton = forwardRef<HTMLButtonElement, RailButtonProps>(functio
       >
         <FontAwesomeIcon icon={icon} />
       </span>
-      <span className="leading-tight">{label}</span>
+      {/* En móvil el riel muestra solo íconos; aria-label conserva el nombre para lectores de pantalla. */}
+      <span className="hidden leading-tight md:block">{label}</span>
     </button>
   );
 });

@@ -2,6 +2,9 @@ import { create } from 'zustand';
 
 const LEARNING_MODE_KEY = 'trazo.learningMode';
 const THEME_KEY = 'trazo.theme';
+const PALETTE_COLLAPSED_KEY = 'trazo.paletteCollapsed';
+/** Por debajo de este ancho la paleta arranca plegada (si el usuario no eligió antes). */
+const NARROW_SCREEN = 1024;
 
 export type Theme = 'light' | 'dark';
 
@@ -20,6 +23,9 @@ interface UiState {
   /** Galería de plantillas: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
+  /** Paleta de artefactos plegada a una columna de miniaturas. */
+  paletteCollapsed: boolean;
+  setPaletteCollapsed: (collapsed: boolean) => void;
   /** Panel "Explicar diagrama": ocupa el lugar del panel de explicación mientras está abierto. */
   narrationOpen: boolean;
   setNarrationOpen: (open: boolean) => void;
@@ -49,6 +55,16 @@ function readTheme(): Theme {
 
 function applyTheme(theme: Theme): void {
   if (typeof document !== 'undefined') document.documentElement.dataset.theme = theme;
+}
+
+function readPaletteCollapsed(): boolean {
+  try {
+    const saved = localStorage.getItem(PALETTE_COLLAPSED_KEY);
+    if (saved === 'true' || saved === 'false') return saved === 'true';
+  } catch {
+    // Sin almacenamiento: se decide por el ancho de la pantalla.
+  }
+  return typeof window !== 'undefined' && window.innerWidth < NARROW_SCREEN;
 }
 
 function readLearningMode(): boolean {
@@ -84,6 +100,15 @@ export const useUiStore = create<UiState>()((set) => ({
   },
   galleryOpen: true,
   setGalleryOpen: (open) => set({ galleryOpen: open }),
+  paletteCollapsed: readPaletteCollapsed(),
+  setPaletteCollapsed: (collapsed) => {
+    try {
+      localStorage.setItem(PALETTE_COLLAPSED_KEY, String(collapsed));
+    } catch {
+      // Sin almacenamiento la preferencia dura solo esta sesión.
+    }
+    set({ paletteCollapsed: collapsed });
+  },
   narrationOpen: false,
   setNarrationOpen: (open) => set({ narrationOpen: open }),
   popoverTab: 'properties',

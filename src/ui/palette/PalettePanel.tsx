@@ -1,4 +1,4 @@
-import { faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import { faAnglesLeft, faAnglesRight, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import type { ArtifactCategory, ArtifactDefinition, DiagramNode } from '@/core/model';
@@ -7,6 +7,8 @@ import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
+import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
+import { useUiStore } from '@/ui/uiStore';
 
 /** Orden en que se muestran las categorías en la paleta. */
 const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
@@ -20,13 +22,17 @@ const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
 /**
  * Paleta de artefactos del módulo activo, agrupada por categoría.
  * Clic (o arrastrar) agrega el artefacto al lienzo; el botón (i) abre su explicación.
- * Pasar el ratón muestra una pista corta.
+ * Pasar el ratón muestra una pista corta. Se puede plegar a una columna de
+ * miniaturas que siguen agregando con clic o arrastre.
  */
 export function PalettePanel() {
   const module = useActiveModule();
   const hint = usePaletteHint();
   const addAtCenter = useAddArtifactAtCenter();
   const [opened, setOpened] = useState<HintState | null>(null);
+  const collapsed = useUiStore((state) => state.paletteCollapsed);
+  const setCollapsed = useUiStore((state) => state.setPaletteCollapsed);
+  const isNarrow = useMediaQuery(NARROW_QUERY);
   if (!module) return null;
 
   function toggleExplanation(artifact: ArtifactDefinition, anchor: DOMRect) {
@@ -37,11 +43,68 @@ export function PalettePanel() {
   const draggable = module.artifacts.filter((artifact) => module.nodeKinds[artifact.type]);
   const connectors = module.artifacts.filter((artifact) => module.edgeKinds[artifact.type]);
 
+  if (collapsed) {
+    return (
+      <aside aria-label="Artefactos" className="flex h-full w-14 shrink-0 flex-col items-center border-r border-line bg-surface">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          title="Mostrar artefactos"
+          aria-label="Mostrar artefactos"
+          aria-expanded={false}
+          className="mt-3 mb-2 flex size-8 items-center justify-center rounded-md text-xs text-ink-400 hover:bg-raised hover:text-ink-900"
+        >
+          <FontAwesomeIcon icon={faAnglesRight} />
+        </button>
+        <div className="flex w-full flex-1 flex-col items-center gap-0.5 overflow-y-auto px-1.5 pb-3">
+          {draggable.map((artifact) => {
+            const kind = module.nodeKinds[artifact.type];
+            return kind ? (
+              <PaletteItem
+                key={artifact.type}
+                artifact={artifact}
+                kind={kind}
+                compact
+                isOpen={false}
+                onHover={hint.show}
+                onLeave={hint.hide}
+                onAdd={() => {
+                  hint.hide();
+                  addAtCenter(artifact.type);
+                }}
+                onInfo={toggleExplanation}
+              />
+            ) : null;
+          })}
+        </div>
+        {hint.current && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
+      </aside>
+    );
+  }
+
   return (
-    <aside aria-label="Artefactos" className="flex h-full w-64 shrink-0 flex-col border-r border-line bg-surface">
-      <header className="px-5 pt-5 pb-2">
-        <h2 className="text-[15px] font-semibold text-ink-900">Artefactos</h2>
-        <p className="mt-0.5 text-xs text-ink-400">Haz clic o arrastra para agregarlos. La (i) explica cada uno.</p>
+    <aside
+      aria-label="Artefactos"
+      className="flex h-full w-64 shrink-0 flex-col border-r border-line bg-surface max-md:absolute max-md:inset-y-0 max-md:left-14 max-md:z-30 max-md:shadow-panel"
+    >
+      <header className="flex items-start gap-2 px-5 pt-5 pb-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold text-ink-900">Artefactos</h2>
+          <p className="mt-0.5 text-xs text-ink-400">Haz clic o arrastra para agregarlos. La (i) explica cada uno.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setOpened(null);
+            setCollapsed(true);
+          }}
+          title="Plegar artefactos"
+          aria-label="Plegar artefactos"
+          aria-expanded
+          className="-mr-2 flex size-8 shrink-0 items-center justify-center rounded-md text-xs text-ink-400 hover:bg-raised hover:text-ink-900"
+        >
+          <FontAwesomeIcon icon={faAnglesLeft} />
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-3 pb-4">
@@ -64,6 +127,8 @@ export function PalettePanel() {
                     onAdd={() => {
                       hint.hide();
                       addAtCenter(artifact.type);
+                      // En móvil la paleta flota sobre el lienzo: se pliega para ver lo agregado.
+                      if (isNarrow) setCollapsed(true);
                     }}
                     onInfo={toggleExplanation}
                   />
@@ -162,6 +227,8 @@ interface PaletteItemProps {
   artifact: ArtifactDefinition;
   kind: NodeKind;
   isOpen: boolean;
+  /** Versión plegada: solo la miniatura, sin nombre ni (i). */
+  compact?: boolean;
   /** undefined mientras hay un popup abierto: no se mezclan pista y popup. */
   onHover: ((artifact: ArtifactDefinition, anchor: DOMRect) => void) | undefined;
   onLeave: () => void;
@@ -171,7 +238,7 @@ interface PaletteItemProps {
   onInfo: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
 }
 
-function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onAdd, onInfo }: PaletteItemProps) {
+function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave, onAdd, onInfo }: PaletteItemProps) {
   function handleDragStart(event: DragEvent) {
     onLeave();
     event.dataTransfer.setData(ARTIFACT_DRAG_MIME, artifact.type);
@@ -194,33 +261,36 @@ function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onAdd, onInfo }
         event.preventDefault();
         onAdd();
       }}
-      className={`relative flex cursor-grab items-center gap-3 rounded-md px-2 py-1.5 text-[13px] select-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
-        isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
-      }`}
+      className={`group/item relative flex cursor-grab items-center rounded-md text-[13px] select-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
+        compact ? 'w-full justify-center py-2' : 'gap-3 px-2 py-1.5'
+      } ${isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'}`}
     >
       {isOpen && <span className="bg-brand absolute top-1 bottom-1 -left-3 w-[3px] rounded-r-full" aria-hidden />}
       <ArtifactPreview kind={kind} artifactType={artifact.type} />
-      <span className="min-w-0 flex-1 truncate">{artifact.name}</span>
-      <button
-        type="button"
-        draggable={false}
-        data-palette-info
-        aria-label={`Qué es ${artifact.name}`}
-        aria-expanded={isOpen}
-        title="Qué es, por qué se usa y cuándo usarlo"
-        onClick={(event) => {
-          // Que el clic en la (i) no agregue el artefacto.
-          event.stopPropagation();
-          const row = event.currentTarget.closest('[data-palette-item]');
-          if (row) onInfo(artifact, row.getBoundingClientRect());
-        }}
-        onKeyDown={(event) => event.stopPropagation()}
-        className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
-          isOpen ? 'text-accent' : 'text-ink-400 hover:bg-surface hover:text-accent'
-        }`}
-      >
-        <FontAwesomeIcon icon={faCircleInfo} />
-      </button>
+      {!compact && <span className="min-w-0 flex-1 truncate">{artifact.name}</span>}
+      {!compact && (
+        <button
+          type="button"
+          draggable={false}
+          data-palette-info
+          aria-label={`Qué es ${artifact.name}`}
+          aria-expanded={isOpen}
+          title="Qué es, por qué se usa y cuándo usarlo"
+          onClick={(event) => {
+            // Que el clic en la (i) no agregue el artefacto.
+            event.stopPropagation();
+            const row = event.currentTarget.closest('[data-palette-item]');
+            if (row) onInfo(artifact, row.getBoundingClientRect());
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+          className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
+            // Semitransparente en reposo para no competir con el nombre; se aviva al pasar el ratón.
+            isOpen ? 'text-accent' : 'text-ink-400/50 hover:bg-surface hover:text-accent group-hover/item:text-ink-400'
+          }`}
+        >
+          <FontAwesomeIcon icon={faCircleInfo} />
+        </button>
+      )}
     </div>
   );
 }

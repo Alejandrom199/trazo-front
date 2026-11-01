@@ -122,6 +122,18 @@ select {
   color: inherit;
 }
 
+/* Capa de distintivos (candados) por encima de todos los nodos y flechas, que
+   tienen su propio z-index; sin esto, un carril vecino podía taparlos. */
+.react-flow__viewport-portal {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 2000;
+  pointer-events: none;
+}
+.react-flow__viewport-portal > * {
+  pointer-events: auto;
+}
+
 /* Los nodos no llevan el marco por defecto de React Flow: cada figura se dibuja sola. */
 .react-flow__node-artifact {
   @apply rounded-none border-0 bg-transparent p-0;

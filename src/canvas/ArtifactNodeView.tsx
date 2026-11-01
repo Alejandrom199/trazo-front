@@ -1,5 +1,3 @@
-import { faLock } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import type { ArtifactFlowNode } from './adapters';
@@ -59,14 +57,6 @@ export function ArtifactNodeView({ id, data, selected }: NodeProps<ArtifactFlowN
       <div className="size-full" onDoubleClick={kind.hasLabel ? () => startEditing(id) : undefined}>
         <Shape node={node} selected={selected} label={label} joinedSides={data.joinedSides} />
       </div>
-      {node.locked && (
-        <span
-          title="Bloqueado: no se puede mover ni borrar"
-          className="pointer-events-auto absolute -top-2 -right-2 flex size-[18px] items-center justify-center rounded-full border border-line bg-surface text-[9px] text-ink-600 shadow-sm"
-        >
-          <FontAwesomeIcon icon={faLock} />
-        </span>
-      )}
       {kind.connectable &&
         SIDES.map((side) => <Handle key={side} id={side} type="source" position={side} className="trazo-handle" />)}
     </>

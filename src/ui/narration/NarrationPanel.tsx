@@ -49,7 +49,7 @@ export function NarrationPanel() {
   }
 
   return (
-    <Panel className="flex max-h-full w-96 flex-col overflow-hidden">
+    <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-96">
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Narración</h2>
         <div className="ml-auto flex items-center gap-1">
