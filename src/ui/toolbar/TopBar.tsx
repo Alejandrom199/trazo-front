@@ -3,10 +3,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { usePersistenceStore, type SaveStatus } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { GridControl } from './GridControl';
 
 /**
  * Barra del documento, sobre el lienzo: nombre del diagrama, tipo, estado del
- * guardado y deshacer/rehacer. Las acciones globales viven en el riel lateral.
+ * guardado, cuadrícula y deshacer/rehacer. Las acciones globales viven en el riel lateral.
  */
 export function TopBar() {
   const diagram = useDiagramStore((state) => state.diagram);
@@ -31,6 +32,8 @@ export function TopBar() {
       <SaveIndicator />
 
       <div className="ml-auto flex items-center gap-0.5">
+        <GridControl />
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         <IconButton label="Deshacer (Ctrl+Z)" icon={faRotateLeft} disabled={!canUndo} onClick={undo} />
         <IconButton label="Rehacer (Ctrl+Y)" icon={faRotateRight} disabled={!canRedo} onClick={redo} />
       </div>

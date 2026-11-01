@@ -1,7 +1,10 @@
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import type { ArtifactCategory, ArtifactDefinition, DiagramNode } from '@/core/model';
 import type { NodeKind } from '@/core/registry';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
+import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
 
@@ -15,12 +18,14 @@ const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
 ];
 
 /**
- * Paleta de artefactos del módulo activo, agrupada por categoría y lista para arrastrar.
- * Pasar el ratón muestra una pista corta; hacer clic abre el popup con la explicación.
+ * Paleta de artefactos del módulo activo, agrupada por categoría.
+ * Clic (o arrastrar) agrega el artefacto al lienzo; el botón (i) abre su explicación.
+ * Pasar el ratón muestra una pista corta.
  */
 export function PalettePanel() {
   const module = useActiveModule();
   const hint = usePaletteHint();
+  const addAtCenter = useAddArtifactAtCenter();
   const [opened, setOpened] = useState<HintState | null>(null);
   if (!module) return null;
 
@@ -33,10 +38,10 @@ export function PalettePanel() {
   const connectors = module.artifacts.filter((artifact) => module.edgeKinds[artifact.type]);
 
   return (
-    <aside aria-label="Artefactos" className="flex h-full w-60 shrink-0 flex-col border-r border-line bg-surface">
+    <aside aria-label="Artefactos" className="flex h-full w-64 shrink-0 flex-col border-r border-line bg-surface">
       <header className="px-5 pt-5 pb-2">
         <h2 className="text-[15px] font-semibold text-ink-900">Artefactos</h2>
-        <p className="mt-0.5 text-xs text-ink-400">Arrástralos al lienzo o haz clic para aprender</p>
+        <p className="mt-0.5 text-xs text-ink-400">Haz clic o arrastra para agregarlos. La (i) explica cada uno.</p>
       </header>
 
       <div className="flex-1 overflow-y-auto px-3 pb-4">
@@ -56,7 +61,11 @@ export function PalettePanel() {
                     isOpen={opened?.artifact.type === artifact.type}
                     onHover={opened ? undefined : hint.show}
                     onLeave={hint.hide}
-                    onClick={toggleExplanation}
+                    onAdd={() => {
+                      hint.hide();
+                      addAtCenter(artifact.type);
+                    }}
+                    onInfo={toggleExplanation}
                   />
                 ) : null;
               })}
@@ -90,8 +99,8 @@ export function PalettePanel() {
         <ArtifactPopover
           artifact={opened.artifact}
           anchor={opened.anchor}
-          footer="Arrástralo al lienzo para usarlo."
-          keepOpenOn={isPaletteItem}
+          footer="Haz clic en el artefacto o arrástralo para agregarlo al lienzo."
+          keepOpenOn={isPaletteInfo}
           onClose={() => setOpened(null)}
         />
       )}
@@ -99,8 +108,8 @@ export function PalettePanel() {
   );
 }
 
-/** Un clic en otro artefacto de la paleta cambia de popup en vez de cerrarlo. */
-const isPaletteItem = (target: HTMLElement) => target.closest('[data-palette-item]') !== null;
+/** Un clic en otra (i) de la paleta cambia de explicación (o la cierra) en vez de cerrarla desde fuera. */
+const isPaletteInfo = (target: HTMLElement) => target.closest('[data-palette-info]') !== null;
 
 /** Espera antes de mostrar la pista, para que no parpadee al recorrer la lista. */
 const HINT_DELAY_MS = 350;
@@ -140,7 +149,7 @@ function PaletteHint({ artifact, anchor }: HintState) {
       <p className="text-sm font-semibold text-ink-900">{artifact.name}</p>
       <p className="mb-1.5 text-[11px] text-ink-400">Nombre UML: {artifact.umlName}</p>
       <p className="text-xs leading-relaxed text-ink-600">{artifact.whatIs}</p>
-      <p className="mt-2 text-[11px] text-ink-400">Haz clic para ver por qué y cuándo usarlo.</p>
+      <p className="mt-2 text-[11px] text-ink-400">Clic para agregarlo. La (i) explica por qué y cuándo usarlo.</p>
     </div>
   );
 }
@@ -156,10 +165,13 @@ interface PaletteItemProps {
   /** undefined mientras hay un popup abierto: no se mezclan pista y popup. */
   onHover: ((artifact: ArtifactDefinition, anchor: DOMRect) => void) | undefined;
   onLeave: () => void;
-  onClick: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
+  /** Agrega el artefacto al lienzo. */
+  onAdd: () => void;
+  /** Abre (o cierra) su explicación, junto a la fila. */
+  onInfo: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
 }
 
-function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onClick }: PaletteItemProps) {
+function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onAdd, onInfo }: PaletteItemProps) {
   function handleDragStart(event: DragEvent) {
     onLeave();
     event.dataTransfer.setData(ARTIFACT_DRAG_MIME, artifact.type);
@@ -172,15 +184,15 @@ function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onClick }: Pale
       data-palette-item
       role="button"
       tabIndex={0}
-      aria-expanded={isOpen}
+      aria-label={`Agregar ${artifact.name} al lienzo`}
       onDragStart={handleDragStart}
       onMouseEnter={(event) => onHover?.(artifact, event.currentTarget.getBoundingClientRect())}
       onMouseLeave={onLeave}
-      onClick={(event) => onClick(artifact, event.currentTarget.getBoundingClientRect())}
+      onClick={onAdd}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        onClick(artifact, event.currentTarget.getBoundingClientRect());
+        onAdd();
       }}
       className={`relative flex cursor-grab items-center gap-3 rounded-md px-2 py-1.5 text-[13px] select-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
         isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
@@ -188,7 +200,27 @@ function PaletteItem({ artifact, kind, isOpen, onHover, onLeave, onClick }: Pale
     >
       {isOpen && <span className="bg-brand absolute top-1 bottom-1 -left-3 w-[3px] rounded-r-full" aria-hidden />}
       <ArtifactPreview kind={kind} artifactType={artifact.type} />
-      <span className="truncate">{artifact.name}</span>
+      <span className="min-w-0 flex-1 truncate">{artifact.name}</span>
+      <button
+        type="button"
+        draggable={false}
+        data-palette-info
+        aria-label={`Qué es ${artifact.name}`}
+        aria-expanded={isOpen}
+        title="Qué es, por qué se usa y cuándo usarlo"
+        onClick={(event) => {
+          // Que el clic en la (i) no agregue el artefacto.
+          event.stopPropagation();
+          const row = event.currentTarget.closest('[data-palette-item]');
+          if (row) onInfo(artifact, row.getBoundingClientRect());
+        }}
+        onKeyDown={(event) => event.stopPropagation()}
+        className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
+          isOpen ? 'text-accent' : 'text-ink-400 hover:bg-surface hover:text-accent'
+        }`}
+      >
+        <FontAwesomeIcon icon={faCircleInfo} />
+      </button>
     </div>
   );
 }

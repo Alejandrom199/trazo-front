@@ -34,6 +34,8 @@ interface ArtifactPopoverProps {
    */
   detailsOpen?: boolean;
   onToggleDetails?: () => void;
+  /** Botones extra del encabezado, antes de la flecha (p. ej. el candado de bloqueo). */
+  headerActions?: ReactNode;
   onClose: () => void;
 }
 
@@ -56,6 +58,7 @@ export function ArtifactPopover({
   keepOpenOn,
   detailsOpen = true,
   onToggleDetails,
+  headerActions,
   onClose,
 }: ArtifactPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -110,6 +113,7 @@ export function ArtifactPopover({
           {subtitle && <p className="mt-1 truncate text-sm text-ink-600">{subtitle}</p>}
         </div>
         <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">
+          {headerActions}
           {onToggleDetails && (
             <button
               type="button"

@@ -6,3 +6,4 @@ export * from './narration';
 export * from './factories';
 export * from './connection';
 export * from './operations';
+export * from './containerLayout';

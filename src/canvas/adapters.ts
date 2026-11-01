@@ -1,5 +1,5 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
-import { protectedNodeIds, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
+import { joinedSides, protectedNodeIds, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds, type JoinedSides } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 
 /**
@@ -8,7 +8,7 @@ import type { DiagramModule } from '@/core/registry';
  * pinta y avisa de cambios (componente "controlado").
  */
 
-export type ArtifactNodeData = { node: DiagramNode };
+export type ArtifactNodeData = { node: DiagramNode; joinedSides?: JoinedSides };
 export type ArtifactFlowNode = Node<ArtifactNodeData, 'artifact'>;
 
 export type FlowEdgeData = { edge: DiagramEdge };
@@ -39,6 +39,7 @@ export function toFlowNodes(
 ): ArtifactFlowNode[] {
   const selected = new Set(selection.nodeIds);
   const undeletable = protectedNodeIds(diagram);
+  const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   return [...diagram.nodes]
     .sort((a, b) => drawOrder(a, module) - drawOrder(b, module))
     .map((node) => ({
@@ -57,7 +58,7 @@ export function toFlowNodes(
       // Bloqueado: React Flow no lo deja arrastrar; ni a él ni a su carril, borrar con Supr.
       draggable: !node.locked,
       deletable: !undeletable.has(node.id),
-      data: { node },
+      data: { node, joinedSides: isContainer(node) ? joinedSides(diagram, node, isContainer) : undefined },
     }));
 }
 

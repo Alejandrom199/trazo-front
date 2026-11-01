@@ -1,6 +1,4 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, NodePatch } from '@/core/model';
 import { readNumberProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -16,12 +14,10 @@ export function NodeProperties({ node, diagram, module }: { node: DiagramNode; d
   const kind = module.nodeKinds[node.artifactType];
   const lane = node.parentId ? diagram.nodes.find((candidate) => candidate.id === node.parentId) : undefined;
   const update = (patch: NodePatch) => useDiagramStore.getState().updateNode(node.id, patch);
-  const lockedHint = node.locked ? 'Desbloquéalo para cambiarlo' : undefined;
+  const lockedHint = node.locked ? 'Desbloquéalo con el candado del encabezado para cambiarlo' : undefined;
 
   return (
     <div className="space-y-4">
-      <LockToggle locked={node.locked} onChange={(locked) => update({ locked })} />
-
       {kind?.hasLabel && (
         <Field label="Nombre">
           <TextInput value={node.label} onCommit={(label) => update({ label })} />
@@ -97,36 +93,6 @@ export function EdgeProperties({
         </Field>
       )}
     </div>
-  );
-}
-
-function LockToggle({ locked, onChange }: { locked: boolean; onChange: (locked: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={locked}
-      onClick={() => onChange(!locked)}
-      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
-        locked ? 'border-accent/30 bg-accent-soft' : 'border-line hover:bg-canvas'
-      }`}
-    >
-      <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm ${
-          locked ? 'bg-brand text-white' : 'bg-canvas text-ink-600'
-        }`}
-      >
-        <FontAwesomeIcon icon={locked ? faLock : faLockOpen} />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-medium text-ink-900">{locked ? 'Bloqueado' : 'Desbloqueado'}</span>
-        <span className="block text-xs text-ink-600">
-          {locked
-            ? 'No se puede mover, redimensionar ni borrar (tampoco el carril que lo contiene).'
-            : 'Bloquéalo para que no se mueva ni se borre por accidente.'}
-        </span>
-      </span>
-    </button>
   );
 }
 

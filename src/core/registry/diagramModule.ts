@@ -5,6 +5,7 @@ import type {
   Diagram,
   DiagramNode,
   DiagramType,
+  JoinedSides,
   Narration,
   Size,
   Template,
@@ -24,6 +25,11 @@ export interface ArtifactNodeProps {
    * usuario está escribiendo. El componente solo decide DÓNDE ponerla.
    */
   label: ReactNode;
+  /**
+   * Lados que tocan a otro contenedor (solo contenedores en el lienzo). Permite,
+   * p. ej., dibujar rectas las esquinas donde dos carriles se unen.
+   */
+  joinedSides?: JoinedSides;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { NO_JOINED_SIDES } from '@/core/model';
 import { CONTAINER_GRIP_CLASS, readNumberProperty, type ArtifactNodeProps, type NumberPropertyDefinition } from '@/core/registry';
 import { MUTED_STROKE, NOTE_FILL, STROKE_WIDTH, strokeFor } from './shapeStyles';
 
@@ -19,15 +20,25 @@ export const containerCornerRadius: NumberPropertyDefinition = {
  * Carril vertical: encabezado con el responsable y cuerpo donde caen los nodos.
  * El cuerpo es transparente para que las flechas que lo cruzan se sigan viendo.
  */
-export function PartitionShape({ node, selected, label }: ArtifactNodeProps) {
+export function PartitionShape({ node, selected, label, joinedSides = NO_JOINED_SIDES }: ArtifactNodeProps) {
   const color = selected ? strokeFor(true) : MUTED_STROKE;
   // Proporcionales al tamaño para que un carril pequeño (o su miniatura) siga pareciendo un carril.
   const headerHeight = Math.min(HEADER_HEIGHT, node.size.height * 0.25);
   const radius = Math.min(readNumberProperty(node, containerCornerRadius), node.size.width / 4);
+  // Donde dos carriles se tocan, esas esquinas quedan rectas y el borde compartido se dibuja una sola vez.
+  const { top, right, bottom, left } = joinedSides;
+  const corner = (sideA: boolean, sideB: boolean) => (sideA || sideB ? 0 : radius);
+  const border = `${STROKE_WIDTH}px solid ${color}`;
   return (
     <div
       className="flex size-full flex-col overflow-hidden"
-      style={{ border: `${STROKE_WIDTH}px solid ${color}`, borderRadius: radius }}
+      style={{
+        borderTop: top ? 'none' : border,
+        borderLeft: left ? 'none' : border,
+        borderRight: border,
+        borderBottom: border,
+        borderRadius: `${corner(top, left)}px ${corner(top, right)}px ${corner(bottom, right)}px ${corner(bottom, left)}px`,
+      }}
     >
       <div
         className={`${CONTAINER_GRIP_CLASS} flex shrink-0 items-center justify-center bg-surface px-3 text-center text-[13px] font-medium text-ink-900`}

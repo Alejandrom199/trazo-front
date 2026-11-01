@@ -15,8 +15,8 @@ import {
   type OnDelete,
   type OnNodeDrag,
 } from '@xyflow/react';
-import { absolutePosition, findContainerAt, type Diagram, type DiagramNode, type ElementIds, type NodeMove } from '@/core/model';
-import { createNode, type DiagramModule } from '@/core/registry';
+import { absolutePosition, findContainerAt, snapContainerPosition, type Diagram, type DiagramNode, type NodeMove } from '@/core/model';
+import type { DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { createId } from '@/core/utils/id';
 import { toFlowEdges, toFlowNodes, type ArtifactFlowNode, type FlowEdge } from './adapters';
@@ -25,13 +25,18 @@ import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
 import { useActiveModule } from './useActiveModule';
 import { useElementClickStore } from './elementClickStore';
+import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
+import { placeArtifact } from './placeArtifact';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
 const edgeTypes = { flow: FlowEdgeView };
 
 const NOTICE_DURATION_MS = 3500;
+
+/** Paso de ajuste cuando no se muestra la cuadrícula: los nodos se alinean sin que se note. */
+const FREE_SNAP_STEP = 10;
 
 /** Margen al encuadrar: deja libre el espacio de la barra superior y los paneles flotantes. */
 const FIT_PADDING = { top: '76px', left: '32px', right: '400px', bottom: '32px' } as const;
@@ -54,6 +59,9 @@ export function DiagramCanvas() {
   useFitViewOnOpen(diagram?.id);
   const highlight = useHighlightStore((state) => state.highlight);
   useFitViewOnHighlight(highlight);
+  const grid = useGridStore();
+  // Con cuadrícula visible, los nodos se ajustan a sus celdas; sin ella, a un paso fino.
+  const snapStep = grid.visible ? grid.size : FREE_SNAP_STEP;
 
   const canvasHighlight = useMemo(
     () => ({
@@ -71,7 +79,10 @@ export function DiagramCanvas() {
     [diagram, module, selection, canvasHighlight],
   );
 
-  const onNodesChange = useCallback((changes: NodeChange<ArtifactFlowNode>[]) => applyNodeChanges(changes), []);
+  const onNodesChange = useCallback(
+    (changes: NodeChange<ArtifactFlowNode>[]) => module && applyNodeChanges(module, changes),
+    [module],
+  );
   const onEdgesChange = useCallback((changes: EdgeChange<FlowEdge>[]) => applyEdgeSelection(changes), []);
 
   const onNodeDragStart = useCallback<OnNodeDrag<ArtifactFlowNode>>(() => {
@@ -143,7 +154,7 @@ export function DiagramCanvas() {
       const artifactType = event.dataTransfer.getData(ARTIFACT_DRAG_MIME);
       if (!artifactType || !module) return;
       event.preventDefault();
-      dropArtifact(module, artifactType, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+      placeArtifact(module, artifactType, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
     },
     [module, screenToFlowPosition],
   );
@@ -178,12 +189,16 @@ export function DiagramCanvas() {
         connectionRadius={28}
         elevateNodesOnSelect={false}
         snapToGrid
-        snapGrid={[10, 10]}
+        snapGrid={[snapStep, snapStep]}
         minZoom={0.25}
         maxZoom={2}
         zoomOnDoubleClick={false}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
+        {grid.visible ? (
+          <Background variant={BackgroundVariant.Lines} gap={grid.size} lineWidth={1} color="var(--color-line)" />
+        ) : (
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
+        )}
         <Controls position="bottom-left" showInteractive={false} />
       </ReactFlow>
 
@@ -219,11 +234,22 @@ function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
 /**
  * Traduce los avisos de React Flow a acciones del store. Las posiciones y tamaños
  * durante un gesto no crean pasos de deshacer (el checkpoint se tomó al empezar).
+ * Los contenedores sueltos que se mueven se "pegan" a sus vecinos (imán).
  */
-function applyNodeChanges(changes: NodeChange<ArtifactFlowNode>[]): void {
+function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlowNode>[]): void {
+  const diagram = store().diagram;
+  const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   const moves: NodeMove[] = [];
   for (const change of changes) {
-    if (change.type === 'position' && change.position) moves.push({ id: change.id, position: change.position });
+    if (change.type !== 'position' || !change.position) continue;
+    const node = diagram?.nodes.find((candidate) => candidate.id === change.id);
+    const snapsToNeighbors = diagram && node && node.parentId === null && isContainer(node);
+    const position = snapsToNeighbors
+      ? snapContainerPosition(diagram, node.id, change.position, node.size, isContainer)
+      : change.position;
+    moves.push({ id: change.id, position });
+  }
+  for (const change of changes) {
     if (change.type === 'dimensions' && change.resizing && change.dimensions) {
       store().resizeNode(change.id, { width: change.dimensions.width, height: change.dimensions.height });
     }
@@ -273,29 +299,6 @@ function placeIntoContainers(module: DiagramModule, draggedIds: string[]): void 
 function centerOf(diagram: Diagram, node: DiagramNode) {
   const origin = absolutePosition(diagram, node);
   return { x: origin.x + node.size.width / 2, y: origin.y + node.size.height / 2 };
-}
-
-/** Crea el artefacto centrado donde se soltó, dentro del carril si cayó en uno. */
-function dropArtifact(module: DiagramModule, artifactType: string, point: { x: number; y: number }): void {
-  const diagram = store().diagram;
-  const kind = module.nodeKinds[artifactType];
-  if (!diagram || !kind) return;
-
-  const topLeft = { x: point.x - kind.defaultSize.width / 2, y: point.y - kind.defaultSize.height / 2 };
-  const container = kind.isContainer
-    ? null
-    : findContainerAt(diagram, point, (node) => module.nodeKinds[node.artifactType]?.isContainer ?? false);
-  const containerOrigin = container ? absolutePosition(diagram, container) : { x: 0, y: 0 };
-
-  const node = createNode({
-    artifactType,
-    kind,
-    position: { x: topLeft.x - containerOrigin.x, y: topLeft.y - containerOrigin.y },
-    parentId: container?.id ?? null,
-  });
-  store().addNode(node);
-  store().setSelection({ nodeIds: [node.id], edgeIds: [] } satisfies ElementIds);
-  store().startEditing(kind.hasLabel ? node.id : null);
 }
 
 function useNotice() {

@@ -57,7 +57,7 @@ export function ArtifactNodeView({ id, data, selected }: NodeProps<ArtifactFlowN
         />
       )}
       <div className="size-full" onDoubleClick={kind.hasLabel ? () => startEditing(id) : undefined}>
-        <Shape node={node} selected={selected} label={label} />
+        <Shape node={node} selected={selected} label={label} joinedSides={data.joinedSides} />
       </div>
       {node.locked && (
         <span

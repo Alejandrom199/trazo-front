@@ -32,7 +32,7 @@ export function AppShell() {
               <DiagramCanvas />
             </div>
 
-            <div className="pointer-events-none absolute inset-x-3 top-3 *:pointer-events-auto">
+            <div className="pointer-events-none absolute inset-x-3 top-3 z-20 *:pointer-events-auto">
               <TopBar />
             </div>
 

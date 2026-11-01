@@ -1,3 +1,5 @@
+import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useCallback, useEffect } from 'react';
 import { useElementClickStore } from '@/canvas/elementClickStore';
 import { useActiveModule } from '@/canvas/useActiveModule';
@@ -58,6 +60,7 @@ export function CanvasArtifactPopover() {
       subtitle={subtitle}
       footer={footer}
       properties={properties}
+      headerActions={'locked' in element ? <LockButton nodeId={element.id} locked={element.locked} /> : undefined}
       detailsOpen={expanded}
       onToggleDetails={() => setExpanded(!expanded)}
       onClose={close}
@@ -65,3 +68,24 @@ export function CanvasArtifactPopover() {
   );
 }
 
+/** Candado del encabezado: muestra si el nodo está bloqueado y lo alterna con un clic. */
+function LockButton({ nodeId, locked }: { nodeId: string; locked: boolean }) {
+  const label = locked
+    ? 'Bloqueado: no se mueve, redimensiona ni borra. Clic para desbloquear'
+    : 'Desbloqueado. Clic para bloquear';
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={locked}
+      aria-label={label}
+      title={label}
+      onClick={() => useDiagramStore.getState().updateNode(nodeId, { locked: !locked })}
+      className={`flex size-7 items-center justify-center rounded-lg text-xs transition-colors ${
+        locked ? 'bg-brand text-white' : 'text-ink-400 hover:bg-raised hover:text-ink-900'
+      }`}
+    >
+      <FontAwesomeIcon icon={locked ? faLock : faLockOpen} />
+    </button>
+  );
+}
