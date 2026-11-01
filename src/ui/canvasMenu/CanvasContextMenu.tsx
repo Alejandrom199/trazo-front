@@ -230,13 +230,6 @@ function ArtifactPicker({ menu, module, onClose }: { menu: MenuState; module: Di
         ))}
       </div>
 
-      <footer className="flex flex-wrap gap-x-3 gap-y-1 border-t border-line/70 px-3.5 py-2 text-[11px] text-ink-400">
-        <KeyHint keys="↑ ↓">moverse</KeyHint>
-        <KeyHint keys="Enter">agregar</KeyHint>
-        <KeyHint keys="Tab">qué es</KeyHint>
-        <KeyHint keys="Esc">cerrar</KeyHint>
-      </footer>
-
       {info && (
         <ArtifactPopover
           artifact={info.artifact}
@@ -265,15 +258,6 @@ function buildSections(placeable: ArtifactDefinition[], query: string, recentTyp
     artifacts: placeable.filter((artifact) => artifact.category === category),
   }));
   return [{ title: 'Recientes', artifacts: recent }, ...byCategory].filter((section) => section.artifacts.length > 0);
-}
-
-function KeyHint({ keys, children }: { keys: string; children: ReactNode }) {
-  return (
-    <span className="flex items-center gap-1">
-      <kbd className="rounded border border-line/80 bg-surface/60 px-1 font-sans text-[10px] text-ink-600">{keys}</kbd>
-      {children}
-    </span>
-  );
 }
 
 // ── Nodo o flecha: acciones ────────────────────────────────────────────────────

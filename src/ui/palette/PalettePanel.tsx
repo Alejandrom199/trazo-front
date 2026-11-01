@@ -175,7 +175,6 @@ export function PalettePanel() {
       <header className="flex items-start gap-2 px-5 pt-5 pb-2">
         <div className="min-w-0 flex-1">
           <h2 className="text-[15px] font-semibold text-ink-900">Artefactos</h2>
-          <p className="mt-0.5 text-xs text-ink-400">Haz clic o arrastra para agregarlos. La (i) explica cada uno.</p>
         </div>
         <button
           type="button"
