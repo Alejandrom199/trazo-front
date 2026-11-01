@@ -6,14 +6,28 @@ const action = (x: number, y: number) => ({ x, y, width: 140, height: 60 });
 
 describe('floatingEndpoints', () => {
   it('Dado un nodo debajo de otro, Entonces la flecha es vertical y recta', () => {
-    const result = floatingEndpoints(action(0, 0), action(20, 200));
+    const result = floatingEndpoints(action(0, 0), action(0, 200));
 
     expect(result).toMatchObject({ sourcePosition: Position.Bottom, targetPosition: Position.Top });
     expect(result.sourceX).toBe(result.targetX);
   });
 
+  it('Dado un nodo debajo de otro pero algo corrido, Entonces cada extremo va al centro de su nodo', () => {
+    const result = floatingEndpoints(action(0, 0), action(20, 200));
+
+    expect(result.sourceX).toBe(70);
+    expect(result.targetX).toBe(90);
+  });
+
+  it('Dado un nodo final redondo algo corrido bajo el inicial, Entonces la punta llega a su centro', () => {
+    const initial = { x: 0, y: 0, width: 30, height: 30 };
+    const final = { x: 12, y: 150, width: 32, height: 32 };
+
+    expect(floatingEndpoints(initial, final)).toMatchObject({ sourceX: 15, targetX: 28 });
+  });
+
   it('Dados dos nodos en la misma fila, Entonces la flecha es horizontal y recta', () => {
-    const result = floatingEndpoints(action(300, 0), action(0, 10));
+    const result = floatingEndpoints(action(300, 0), action(0, 0));
 
     expect(result).toMatchObject({ sourcePosition: Position.Left, targetPosition: Position.Right });
     expect(result.sourceY).toBe(result.targetY);
