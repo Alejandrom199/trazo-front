@@ -19,7 +19,7 @@ function node(id: string, overrides: Partial<DiagramNode> = {}): DiagramNode {
 }
 
 function edge(id: string, sourceId: string, targetId: string): DiagramEdge {
-  return { id, artifactType: 'controlFlow', sourceId, targetId, guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null };
+  return { id, artifactType: 'controlFlow', sourceId, targetId, guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null, props: {} };
 }
 
 function diagramWith(nodes: DiagramNode[], edges: DiagramEdge[] = []): Diagram {

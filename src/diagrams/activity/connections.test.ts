@@ -18,7 +18,7 @@ function node(id: string, artifactType: string): DiagramNode {
 }
 
 function edge(sourceId: string, targetId: string, artifactType: string = A.controlFlow): DiagramEdge {
-  return { id: `${sourceId}-${targetId}`, artifactType, sourceId, targetId, guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null };
+  return { id: `${sourceId}-${targetId}`, artifactType, sourceId, targetId, guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null, props: {} };
 }
 
 function diagramWith(nodes: DiagramNode[], edges: DiagramEdge[] = []): Diagram {

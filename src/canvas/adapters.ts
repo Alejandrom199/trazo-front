@@ -49,7 +49,7 @@ export function toFlowNodes(
       id: node.id,
       type: 'artifact',
       className: classNames(
-        module.nodeKinds[node.artifactType]?.isContainer && 'trazo-container',
+        (module.nodeKinds[node.artifactType]?.isContainer || module.nodeKinds[node.artifactType]?.gripOnly) && 'trazo-container',
         highlight.ids.has(node.id) && highlight.className,
       ),
       position: node.position,
@@ -67,11 +67,14 @@ export function toFlowNodes(
 
 /**
  * React Flow exige que un padre aparezca antes que sus hijos, y lo que va antes
- * se dibuja debajo. Orden: contenedores → nodos sueltos → nodos dentro de contenedores.
+ * se dibuja debajo. Orden: capa de fondo (marcos) → contenedores → nodos sueltos
+ * → nodos dentro de contenedores.
  */
-function drawOrder(node: DiagramNode, module: DiagramModule): number {
-  if (node.parentId) return 2;
-  return module.nodeKinds[node.artifactType]?.isContainer ? 0 : 1;
+export function drawOrder(node: DiagramNode, module: DiagramModule): number {
+  if (node.parentId) return 3;
+  const kind = module.nodeKinds[node.artifactType];
+  if (kind?.layer === 'back') return 0;
+  return kind?.isContainer ? 1 : 2;
 }
 
 export function toFlowEdges(

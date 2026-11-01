@@ -29,6 +29,11 @@ const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string
       ? raw.edges.map((edge: unknown) => (isRecord(edge) ? { ...edge, ...DEFAULT_EDGE_SHAPE, waypoints: [] } : edge))
       : raw.edges,
   }),
+  // v3 → v4: las conexiones ganan propiedades propias; las anteriores no tienen ninguna.
+  3: (raw) => ({
+    ...raw,
+    edges: Array.isArray(raw.edges) ? raw.edges.map((edge: unknown) => (isRecord(edge) ? { ...edge, props: {} } : edge)) : raw.edges,
+  }),
 };
 
 export function parseDiagram(raw: unknown): ParseResult {
@@ -120,7 +125,7 @@ function toNode(raw: unknown): DiagramNode | null {
 
 function toEdge(raw: unknown): DiagramEdge | null {
   if (!isRecord(raw)) return null;
-  const { id, artifactType, sourceId, targetId, guard, label, routing, waypoints, lineStyle } = raw;
+  const { id, artifactType, sourceId, targetId, guard, label, routing, waypoints, lineStyle, props } = raw;
   if (![id, artifactType, sourceId, targetId].every((value) => typeof value === 'string')) return null;
   if (guard !== null && typeof guard !== 'string') return null;
   const validWaypoints = Array.isArray(waypoints)
@@ -136,6 +141,7 @@ function toEdge(raw: unknown): DiagramEdge | null {
     routing: ROUTINGS.includes(routing as EdgeRouting) ? (routing as EdgeRouting) : DEFAULT_EDGE_SHAPE.routing,
     waypoints: validWaypoints.map((point) => ({ x: point.x, y: point.y })),
     lineStyle: LINE_STYLES.includes(lineStyle as LineStyle) ? (lineStyle as LineStyle) : null,
+    props: isRecord(props) ? props : {},
   };
 }
 

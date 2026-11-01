@@ -6,13 +6,21 @@ export type ArtifactCategory =
   | 'nodo de objeto'
   | 'conector'
   | 'agrupación'
-  | 'anotación';
+  | 'anotación'
+  | 'participante'
+  | 'ocurrencia'
+  | 'fragmento combinado'
+  | 'mensaje';
 
 /**
  * Orden y nombres de las categorías: la paleta, el menú del lienzo y la página
  * Aprender agrupan los artefactos con esta misma lista.
  */
 export const ARTIFACT_CATEGORIES: readonly { category: ArtifactCategory; title: string; shortTitle: string }[] = [
+  { category: 'participante', title: 'Participantes', shortTitle: 'Participantes' },
+  { category: 'ocurrencia', title: 'Activación y destrucción', shortTitle: 'Ocurrencias' },
+  { category: 'fragmento combinado', title: 'Fragmentos combinados', shortTitle: 'Fragmentos' },
+  { category: 'mensaje', title: 'Mensajes', shortTitle: 'Mensajes' },
   { category: 'nodo de control', title: 'Nodos de control', shortTitle: 'Control' },
   { category: 'nodo ejecutable', title: 'Acciones', shortTitle: 'Acciones' },
   { category: 'nodo de objeto', title: 'Objetos', shortTitle: 'Objetos' },

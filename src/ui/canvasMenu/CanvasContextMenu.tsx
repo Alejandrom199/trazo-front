@@ -390,10 +390,11 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
   if (targetKind === 'edge') {
     const edge = diagram.edges.find((candidate) => candidate.id === id);
     if (!edge) return [];
-    const hasGuard = module.edgeKinds[edge.artifactType]?.text === 'guard';
+    const edgeKind = module.edgeKinds[edge.artifactType];
+    const editLabel = edgeKind?.text === 'guard' ? 'Escribir guarda' : `Escribir ${(edgeKind?.textCaption ?? 'texto').toLowerCase()}`;
     return [
       explain,
-      ...(hasGuard ? [{ id: 'edit', label: 'Escribir guarda', icon: faPen, shortcut: 'Doble clic', run: () => store.startEditingEdge(id) }] : []),
+      ...(edgeKind?.text ? [{ id: 'edit', label: editLabel, icon: faPen, shortcut: 'Doble clic', run: () => store.startEditingEdge(id) }] : []),
       { id: 'delete', label: 'Eliminar', icon: faTrashCan, shortcut: 'Supr', danger: true, run: () => store.removeElements({ nodeIds: [], edgeIds: [id] }) },
     ];
   }

@@ -46,7 +46,7 @@ describe('createDiagramFromTemplate', () => {
         { id: 'a', artifactType: 'action', label: 'Pagar', position: { x: 10, y: 50 }, size: { width: 100, height: 50 }, parentId: 'lane', props: {}, notes: '', locked: false },
         { id: 'b', artifactType: 'action', label: 'Salir', position: { x: 10, y: 150 }, size: { width: 100, height: 50 }, parentId: 'lane', props: {}, notes: '', locked: false },
       ],
-      edges: [{ id: 'ab', artifactType: 'controlFlow', sourceId: 'a', targetId: 'b', guard: 'ok', label: '', routing: 'orthogonal', waypoints: [], lineStyle: null }],
+      edges: [{ id: 'ab', artifactType: 'controlFlow', sourceId: 'a', targetId: 'b', guard: 'ok', label: '', routing: 'orthogonal', waypoints: [], lineStyle: null, props: {} }],
     },
   };
 

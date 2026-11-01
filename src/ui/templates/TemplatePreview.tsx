@@ -1,7 +1,9 @@
 import { absolutePosition, type Diagram } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 import type { Rect } from '@/canvas/edgeGeometry';
-import { buildEdgePath, dashArrayFor } from '@/canvas/edgePath';
+import { drawOrder } from '@/canvas/adapters';
+import { connectionPath } from '@/canvas/connectionPath';
+import { dashArrayFor } from '@/canvas/edgePath';
 
 interface TemplatePreviewProps {
   diagram: Diagram;
@@ -31,10 +33,8 @@ export function TemplatePreview({ diagram, module, width, height }: TemplatePrev
   const offsetX = (width - contentWidth * scale) / 2;
   const offsetY = (height - contentHeight * scale) / 2;
 
-  // Contenedores primero, para que queden debajo.
-  const nodes = [...diagram.nodes].sort(
-    (a, b) => Number(!module.nodeKinds[a.artifactType]?.isContainer) - Number(!module.nodeKinds[b.artifactType]?.isContainer),
-  );
+  // Mismo orden de dibujo que el lienzo.
+  const nodes = [...diagram.nodes].sort((a, b) => drawOrder(a, module) - drawOrder(b, module));
 
   return (
     <div className="pointer-events-none relative overflow-hidden" style={{ width, height }} aria-hidden>
@@ -58,7 +58,7 @@ export function TemplatePreview({ diagram, module, width, height }: TemplatePrev
             const source = rects.get(edge.sourceId);
             const target = rects.get(edge.targetId);
             if (!source || !target) return null;
-            const { d } = buildEdgePath(source, target, edge.routing, edge.waypoints);
+            const { d } = connectionPath(diagram, module, edge, source, target);
             const style = edge.lineStyle ?? (module.edgeKinds[edge.artifactType]?.dashed ? 'dashed' : 'solid');
             return <path key={edge.id} d={d} style={{ fill: 'none', stroke: 'var(--color-edge)' }} strokeWidth={1.5} strokeDasharray={dashArrayFor(style)} />;
           })}

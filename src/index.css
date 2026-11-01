@@ -139,13 +139,15 @@ select {
   @apply rounded-none border-0 bg-transparent p-0;
 }
 
-/* Un contenedor (carril) solo se agarra por su encabezado y sus tiradores de tamaño;
-   el cuerpo deja pasar el ratón a las flechas y al lienzo. */
+/* Un contenedor (carril, línea de vida) o un marco solo se agarra por su zona de
+   agarre, sus tiradores de tamaño y sus puntos de conexión; el cuerpo deja pasar
+   el ratón a las flechas y al lienzo. */
 .react-flow__node.trazo-container {
   pointer-events: none;
 }
 .react-flow__node.trazo-container .container-grip,
-.react-flow__node.trazo-container .react-flow__resize-control {
+.react-flow__node.trazo-container .react-flow__resize-control,
+.react-flow__node.trazo-container .react-flow__handle {
   pointer-events: auto;
 }
 

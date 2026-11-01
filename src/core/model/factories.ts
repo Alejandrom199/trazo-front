@@ -38,6 +38,7 @@ export function createDiagramFromTemplate(template: Template, now: Date = new Da
     edges: template.diagram.edges.map((edge) => ({
       ...edge,
       id: createId(),
+      props: { ...edge.props },
       sourceId: translate(edge.sourceId),
       targetId: translate(edge.targetId),
     })),

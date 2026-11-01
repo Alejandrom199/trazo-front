@@ -4,6 +4,7 @@ import type {
   ConnectionResult,
   ContainerJoints,
   Diagram,
+  DiagramEdge,
   DiagramNode,
   DiagramType,
   Narration,
@@ -80,7 +81,26 @@ export interface NodeKind {
   connectable: boolean;
   /** Propiedades visuales que el usuario puede ajustar en el panel de propiedades. */
   properties: PropertyDefinition[];
+  /**
+   * 'x': solo se desliza en horizontal y comparte fila con los demás nodos que
+   * también lo hacen (p. ej. los participantes de un diagrama de secuencia).
+   */
+  dragAxis?: 'x';
+  /** Si se pega a los contenedores vecinos al acercarlo (imán). Por defecto, todo contenedor. */
+  magnetic?: boolean;
+  /**
+   * Se agarra solo por las partes marcadas con CONTAINER_GRIP_CLASS; el resto deja
+   * pasar el ratón (como un contenedor). Para marcos que encierran flechas.
+   */
+  gripOnly?: boolean;
+  /** 'back': se dibuja detrás de todo lo demás (p. ej. un fragmento combinado). */
+  layer?: 'back';
+  /** Al soltarlo dentro de un contenedor, se centra en él horizontalmente. */
+  centerInContainer?: boolean;
 }
+
+/** Lee si un nodo se pega a sus vecinos (imán). */
+export const isMagnetic = (kind: NodeKind): boolean => kind.magnetic ?? kind.isContainer;
 
 /** Punta de flecha: llena (triángulo cerrado) o abierta (dos trazos). */
 export type ArrowHead = 'filled' | 'open';
@@ -88,8 +108,9 @@ export type ArrowHead = 'filled' | 'open';
 /**
  * Texto editable con doble clic sobre una conexión:
  *   guard: una guarda, que se dibuja entre corchetes ([condición]).
+ *   label: un texto libre, como el nombre de un mensaje.
  */
-export type EdgeTextKind = 'guard';
+export type EdgeTextKind = 'guard' | 'label';
 
 /** Cómo se dibuja un artefacto que es conexión. */
 export interface EdgeKind {
@@ -98,6 +119,15 @@ export interface EdgeKind {
   arrow: ArrowHead | null;
   /** Qué texto admite; null = ninguno. */
   text: EdgeTextKind | null;
+  /** Cómo se llama ese texto en el panel de propiedades (por defecto "Guarda" o "Texto"). */
+  textCaption?: string;
+  /**
+   * 'horizontal': va de lado a lado a una altura propia (ver core/model/horizontalEdge),
+   * sin vértices, como un mensaje de secuencia. Por defecto, un recorrido libre.
+   */
+  layout?: 'horizontal';
+  /** Otros tipos de conexión a los que el usuario puede cambiarla en sus propiedades. */
+  switchableTo?: string[];
 }
 
 /** Un paso de "cómo leer este diagrama", con los artefactos que intervienen. */
@@ -134,6 +164,11 @@ export interface DiagramModule {
   edgeKinds: Record<string, EdgeKind>;
   /** Decide si se pueden unir dos nodos y con qué tipo de conexión. Función pura. */
   resolveConnection: (diagram: Diagram, sourceId: string, targetId: string) => ConnectionResult;
+  /**
+   * Valores iniciales de una conexión recién creada por el usuario (p. ej. a qué
+   * altura queda un mensaje). Si no se define, empieza sin texto ni propiedades.
+   */
+  initialEdge?: (diagram: Diagram, edgeType: string, sourceId: string, targetId: string) => Pick<DiagramEdge, 'label' | 'props'>;
   rules: ValidationRule[];
   narrate: (diagram: Diagram) => Narration;
   templates: Template[];

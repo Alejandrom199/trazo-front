@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, EdgePatch, EdgeRouting, LineStyle, NodePatch } from '@/core/model';
+import { EDGE_OFFSET_KEY, readEdgeOffset, type ArtifactDefinition, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type EdgeRouting, type LineStyle, type NodePatch } from '@/core/model';
 import { dashArrayFor } from '@/canvas/edgePath';
 import { readNumberProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -72,23 +72,42 @@ export function EdgeProperties({
   definition: ArtifactDefinition;
 }) {
   const nameOf = (id: string) => diagram.nodes.find((node) => node.id === id)?.label.trim() || 'nodo sin nombre';
-  const hasGuard = module.edgeKinds[edge.artifactType]?.text === 'guard';
+  const kind = module.edgeKinds[edge.artifactType];
+  const isHorizontal = kind?.layout === 'horizontal';
   /** El estilo que le corresponde por su tipo (p. ej. el anclaje de nota es discontinuo). */
-  const defaultStyle: LineStyle = module.edgeKinds[edge.artifactType]?.dashed ? 'dashed' : 'solid';
+  const defaultStyle: LineStyle = kind?.dashed ? 'dashed' : 'solid';
   const update = (patch: EdgePatch) => useDiagramStore.getState().updateEdge(edge.id, patch);
+  const alternatives = (kind?.switchableTo ?? [])
+    .map((type) => module.artifacts.find((artifact) => artifact.type === type))
+    .filter((artifact): artifact is ArtifactDefinition => artifact !== undefined);
 
   return (
     <div className="space-y-4">
-      <Field label="Tipo">
-        <p className="text-sm text-ink-900">{definition.name}</p>
+      <Field label="Tipo" hint={alternatives.length > 0 ? 'Cambia el tipo sin volver a dibujarla' : undefined}>
+        {alternatives.length > 0 ? (
+          <select
+            value={edge.artifactType}
+            // Al cambiar de tipo, el estilo de línea vuelve al del tipo nuevo.
+            onChange={(event) => update({ artifactType: event.target.value, lineStyle: null })}
+            className={inputClass}
+          >
+            {[definition, ...alternatives.filter((artifact) => artifact.type !== definition.type)].map((artifact) => (
+              <option key={artifact.type} value={artifact.type}>
+                {artifact.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-sm text-ink-900">{definition.name}</p>
+        )}
       </Field>
       <Field label="Conecta">
         <p className="text-sm text-ink-900">
           «{nameOf(edge.sourceId)}» → «{nameOf(edge.targetId)}»
         </p>
       </Field>
-      {hasGuard && (
-        <Field label="Guarda" hint="Condición para tomar este camino, sin corchetes">
+      {kind?.text === 'guard' && (
+        <Field label={kind.textCaption ?? 'Guarda'} hint="Condición para tomar este camino, sin corchetes">
           <TextInput
             value={edge.guard ?? ''}
             placeholder="p. ej. pago aprobado"
@@ -96,7 +115,22 @@ export function EdgeProperties({
           />
         </Field>
       )}
+      {kind?.text === 'label' && (
+        <Field label={kind.textCaption ?? 'Texto'}>
+          <TextInput value={edge.label} placeholder="p. ej. validar(usuario)" onCommit={(label) => update({ label })} />
+        </Field>
+      )}
 
+      {isHorizontal ? (
+        <Field label="Altura" hint="Desde el borde superior del origen. También se arrastra con el punto de su extremo.">
+          <NumberInput
+            prefix="Y"
+            value={readEdgeOffset(edge)}
+            min={0}
+            onCommit={(offset) => update({ props: { ...edge.props, [EDGE_OFFSET_KEY]: offset } })}
+          />
+        </Field>
+      ) : (
       <FieldGroup label="Trazado" hint="Selecciona la flecha y arrastra los puntos ○ para agregar vértices; doble clic en un vértice ● lo quita.">
         <Segmented
           value={edge.routing}
@@ -113,10 +147,15 @@ export function EdgeProperties({
           </button>
         )}
       </FieldGroup>
+      )}
 
       <FieldGroup
         label="Línea"
-        hint={edge.lineStyle && edge.lineStyle !== defaultStyle ? 'En UML los flujos se dibujan continuos; la línea discontinua se reserva para anclar notas.' : undefined}
+        hint={
+          edge.lineStyle && edge.lineStyle !== defaultStyle
+            ? `En UML este tipo se dibuja con línea ${defaultStyle === 'dashed' ? 'discontinua' : 'continua'}: cambiarla puede confundir a quien lo lea.`
+            : undefined
+        }
       >
         <Segmented
           value={edge.lineStyle ?? defaultStyle}

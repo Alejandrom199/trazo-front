@@ -248,7 +248,8 @@ export function PalettePanel() {
           <section className="mt-3">
             <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Conexiones</h3>
             <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
-              Pasa el ratón por un nodo y arrastra desde uno de sus puntos hasta otro nodo. El tipo se elige solo:
+              Pasa el ratón por un nodo y arrastra desde uno de sus puntos hasta otro nodo. El tipo se elige solo
+              {connectors.some((artifact) => module.edgeKinds[artifact.type]?.switchableTo?.length) && ' y luego puedes cambiarlo en sus propiedades'}:
             </p>
             <ul className="space-y-1 px-2 pb-1 text-xs text-ink-600">
               {connectors.map((artifact) => (

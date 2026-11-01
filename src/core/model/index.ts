@@ -7,3 +7,4 @@ export * from './factories';
 export * from './connection';
 export * from './operations';
 export * from './containerLayout';
+export * from './horizontalEdge';

@@ -87,6 +87,7 @@ export function createTemplateBuilder() {
         label: '',
         ...DEFAULT_EDGE_SHAPE,
         waypoints: [],
+        props: {},
       });
     },
 

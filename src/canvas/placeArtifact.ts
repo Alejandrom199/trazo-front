@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { absolutePosition, findContainerAt, snapContainerPosition, type DiagramNode, type Position } from '@/core/model';
-import { createNode, type DiagramModule } from '@/core/registry';
+import { createNode, isMagnetic, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useActiveModule } from './useActiveModule';
 
@@ -12,8 +12,10 @@ const STACK_OFFSET = 24;
 
 /**
  * Crea un artefacto centrado en `point` (coordenadas del lienzo). Si cae dentro
- * de un carril, queda dentro de él; si es un carril, se pega a sus vecinos.
- * Lo deja seleccionado y, si tiene texto, listo para escribirlo.
+ * de un contenedor, queda dentro de él (y centrado, si su tipo lo pide); si es un
+ * contenedor con imán, se pega a sus vecinos; si solo se desliza en horizontal,
+ * se pone en la fila de los demás que lo hacen. Lo deja seleccionado y, si tiene
+ * texto, listo para escribirlo.
  */
 export function placeArtifact(module: DiagramModule, artifactType: string, point: Position): void {
   const diagram = store().diagram;
@@ -21,12 +23,15 @@ export function placeArtifact(module: DiagramModule, artifactType: string, point
   if (!diagram || !kind) return;
   const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
 
-  const centered = { x: point.x - kind.defaultSize.width / 2, y: point.y - kind.defaultSize.height / 2 };
+  const row = kind.dragAxis === 'x' ? rowOf(module, diagram.nodes) : null;
+  const centered = { x: point.x - kind.defaultSize.width / 2, y: row ?? point.y - kind.defaultSize.height / 2 };
   const container = kind.isContainer ? null : findContainerAt(diagram, point, isContainer);
   const containerOrigin = container ? absolutePosition(diagram, container) : { x: 0, y: 0 };
-  const topLeft = kind.isContainer
-    ? snapContainerPosition(diagram, null, centered, kind.defaultSize, isContainer)
-    : centered;
+  const snapped = isMagnetic(kind) ? snapContainerPosition(diagram, null, centered, kind.defaultSize, isContainer) : centered;
+  const topLeft =
+    container && kind.centerInContainer
+      ? { x: containerOrigin.x + (container.size.width - kind.defaultSize.width) / 2, y: snapped.y }
+      : snapped;
 
   const node = createNode({
     artifactType,
@@ -37,6 +42,21 @@ export function placeArtifact(module: DiagramModule, artifactType: string, point
   store().addNode(node);
   store().setSelection({ nodeIds: [node.id], edgeIds: [] });
   store().startEditing(kind.hasLabel ? node.id : null);
+}
+
+/** Altura de la fila que comparten los nodos que solo se deslizan en horizontal (null si no hay ninguno). */
+function rowOf(module: DiagramModule, nodes: DiagramNode[]): number | null {
+  const first = nodes.find((node) => node.parentId === null && module.nodeKinds[node.artifactType]?.dragAxis === 'x');
+  return first ? first.position.y : null;
+}
+
+/** Centra horizontalmente un nodo en su contenedor (p. ej. una activación en su línea de vida). */
+export function centerInParent(nodeId: string): void {
+  const diagram = store().diagram;
+  const node = diagram?.nodes.find((candidate) => candidate.id === nodeId);
+  const parent = node?.parentId ? diagram?.nodes.find((candidate) => candidate.id === node.parentId) : undefined;
+  if (!node || !parent) return;
+  store().moveNodes([{ id: node.id, position: { x: (parent.size.width - node.size.width) / 2, y: node.position.y } }]);
 }
 
 /**

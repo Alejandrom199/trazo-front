@@ -16,7 +16,7 @@ import {
   type OnNodeDrag,
 } from '@xyflow/react';
 import { DEFAULT_EDGE_SHAPE, absolutePosition, findContainerAt, snapContainerPosition, type Diagram, type DiagramNode, type NodeMove } from '@/core/model';
-import type { DiagramModule } from '@/core/registry';
+import { isMagnetic, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { createId } from '@/core/utils/id';
 import { toFlowEdges, toFlowNodes, type ArtifactFlowNode, type FlowEdge } from './adapters';
@@ -29,7 +29,7 @@ import { useElementClickStore } from './elementClickStore';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
 import { LockBadges } from './LockBadges';
-import { placeArtifact } from './placeArtifact';
+import { centerInParent, placeArtifact } from './placeArtifact';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
@@ -129,9 +129,9 @@ export function DiagramCanvas() {
         sourceId: connection.source,
         targetId: connection.target,
         guard: null,
-        label: '',
         ...DEFAULT_EDGE_SHAPE,
         waypoints: [],
+        ...(module.initialEdge?.(current, result.edgeType, connection.source, connection.target) ?? { label: '', props: {} }),
       });
     },
     [module, showNotice],
@@ -276,10 +276,13 @@ function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlo
   for (const change of changes) {
     if (change.type !== 'position' || !change.position) continue;
     const node = diagram?.nodes.find((candidate) => candidate.id === change.id);
-    const snapsToNeighbors = diagram && node && node.parentId === null && isContainer(node);
+    const kind = node && module.nodeKinds[node.artifactType];
+    // Los que solo se deslizan en horizontal conservan su fila.
+    const requested = kind?.dragAxis === 'x' && node ? { x: change.position.x, y: node.position.y } : change.position;
+    const snapsToNeighbors = diagram && node && kind && node.parentId === null && isMagnetic(kind);
     const position = snapsToNeighbors
-      ? snapContainerPosition(diagram, node.id, change.position, node.size, isContainer)
-      : change.position;
+      ? snapContainerPosition(diagram, node.id, requested, node.size, isContainer)
+      : requested;
     moves.push({ id: change.id, position });
   }
   for (const change of changes) {
@@ -326,6 +329,7 @@ function placeIntoContainers(module: DiagramModule, draggedIds: string[]): void 
   for (const node of candidates) {
     const container = findContainerAt(diagram, centerOf(diagram, node), isContainer, node.id);
     store().reparentNodes([node.id], container?.id ?? null);
+    if (container && module.nodeKinds[node.artifactType]?.centerInContainer) centerInParent(node.id);
   }
 }
 

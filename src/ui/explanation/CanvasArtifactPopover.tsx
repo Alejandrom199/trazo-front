@@ -40,11 +40,16 @@ export function CanvasArtifactPopover() {
 
   const isNode = clicked.kind === 'node';
   const guard = !isNode && 'guard' in element ? element.guard : null;
-  const label = isNode && 'label' in element ? element.label.trim() : '';
+  const label = element.label.trim();
+  const edgeText = isNode ? null : module.edgeKinds[element.artifactType]?.text;
   const subtitle = label ? `«${label}»` : guard ? `Guarda: [${guard}]` : undefined;
   const footer = isNode
     ? 'Doble clic para editar su texto. En Aprender está la guía completa del diagrama.'
-    : 'Doble clic sobre la flecha para escribir su guarda.';
+    : edgeText === 'guard'
+      ? 'Doble clic sobre la flecha para escribir su guarda.'
+      : edgeText === 'label'
+        ? 'Doble clic sobre la flecha para escribir su texto.'
+        : 'En Aprender está la guía completa del diagrama.';
   const properties =
     'sourceId' in element ? (
       <EdgeProperties edge={element} diagram={diagram} module={module} definition={definition} />

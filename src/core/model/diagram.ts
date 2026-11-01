@@ -11,8 +11,9 @@ export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class';
  * y agrega la migración correspondiente en core/persistence/diagramFormat.ts.
  * v2: los nodos tienen `locked`.
  * v3: las conexiones tienen trazado, vértices y estilo de línea.
+ * v4: las conexiones tienen propiedades propias de su tipo (`props`).
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export interface Position {
   x: number;
@@ -64,6 +65,8 @@ export interface DiagramEdge {
   waypoints: Position[];
   /** Estilo del trazo; null = el que corresponde a su tipo de conexión. */
   lineStyle: LineStyle | null;
+  /** Propiedades específicas del tipo de conexión (p. ej. la altura de un mensaje). */
+  props: Record<string, unknown>;
 }
 
 /**

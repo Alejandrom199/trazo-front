@@ -54,6 +54,8 @@ interface DiagramState {
   reparentNodes: (nodeIds: string[], parentId: string | null) => void;
   /** Mueve los vértices de una flecha durante un arrastre (precedido de checkpoint). */
   setEdgeWaypoints: (edgeId: string, waypoints: Position[]) => void;
+  /** Cambia propiedades de una flecha durante un arrastre (p. ej. la altura de un mensaje). */
+  setEdgeProps: (edgeId: string, props: Record<string, unknown>) => void;
   // Cambios discretos: cada uno es un paso de deshacer.
   addNode: (node: DiagramNode) => void;
   connect: (edge: DiagramEdge) => void;
@@ -134,6 +136,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       apply((diagram) => nodeIds.reduce((acc, id) => reparentNode(acc, id, parentId), diagram), false),
 
     setEdgeWaypoints: (edgeId, waypoints) => apply((diagram) => updateEdge(diagram, edgeId, { waypoints }), false),
+    setEdgeProps: (edgeId, props) => apply((diagram) => updateEdge(diagram, edgeId, { props }), false),
 
     addNode: (node) => apply((diagram) => addNode(diagram, node), true),
     connect: (edge) => apply((diagram) => addEdge(diagram, edge), true),
