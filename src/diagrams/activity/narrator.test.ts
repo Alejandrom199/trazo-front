@@ -45,7 +45,7 @@ describe('narrador del diagrama de actividades', () => {
   it('Dado el login, Entonces narra la decisión con sus guardas y el bucle de reintento', () => {
     const text = textOf(narrateActivity(loginTemplate.diagram));
 
-    expect(text).toContain('Luego, se toma una decisión:');
+    expect(text).toContain('Luego, se toma una decisión: ¿Credenciales válidas?');
     expect(text).toContain('Si [credenciales válidas]:');
     expect(text).toContain('Si [credenciales inválidas]:');
     expect(text).toContain('Después vuelve a «Ingresar usuario y contraseña».');
@@ -77,6 +77,18 @@ describe('narrador del diagrama de actividades', () => {
     expect(text).toContain('se genera el objeto «Documento [borrador]»');
     expect(text).toContain('se envía la señal «Solicitar aprobación»');
     expect(text).toContain('Además, de forma independiente, en «Aprobador» se espera el evento «Solicitud recibida»');
+  });
+
+  it('Dada una decisión sin pregunta, Entonces la narra igual, sin inventarla', () => {
+    const t = createTemplateBuilder();
+    const start = t.node(A.initialNode, '', { x: 0, y: 0 });
+    const decision = t.node(A.decision, '', { x: 0, y: 100 });
+    t.flow(start, decision);
+    t.flow(decision, t.node(A.activityFinal, '', { x: -100, y: 200 }), 'sí');
+    t.flow(decision, t.node(A.activityFinal, '', { x: 100, y: 200 }), 'no');
+    const diagram = t.build({ id: 'x', name: 'x', description: '', difficulty: 'básico', learningGoals: [] }).diagram;
+
+    expect(textOf(narrateActivity(diagram))).toContain('Primero, se toma una decisión:');
   });
 
   it('Cada paso señala los elementos que describe, para poder resaltarlos', () => {

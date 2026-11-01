@@ -27,7 +27,14 @@ export const activityNodeKinds: Record<string, NodeKind> = {
     hasLabel: true,
     resizable: true,
   },
-  [A.decision]: { ...base, component: DiamondShape, defaultSize: { width: 44, height: 44 } },
+  // La decisión admite una pregunta, que se dibuja junto al rombo (no dentro, para que no crezca).
+  [A.decision]: {
+    ...base,
+    component: DiamondShape,
+    defaultSize: { width: 44, height: 44 },
+    hasLabel: true,
+    labelCaption: 'Pregunta',
+  },
   [A.merge]: { ...base, component: DiamondShape, defaultSize: { width: 44, height: 44 } },
   [A.fork]: { ...base, component: BarShape, defaultSize: { width: 140, height: 8 }, resizable: true },
   [A.join]: { ...base, component: BarShape, defaultSize: { width: 140, height: 8 }, resizable: true },

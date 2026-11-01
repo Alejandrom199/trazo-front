@@ -42,19 +42,33 @@ export function FlowFinalShape({ selected, node }: ArtifactNodeProps) {
   );
 }
 
-/** Rombo; lo usan tanto la decisión como la fusión (UML los dibuja igual). */
-export function DiamondShape({ selected, node }: ArtifactNodeProps) {
+/**
+ * Rombo; lo usan tanto la decisión como la fusión (UML los dibuja igual).
+ * Si hay texto (la pregunta de una decisión) va arriba a la derecha, fuera del
+ * rombo: así el rombo conserva su tamaño y las flechas no lo atraviesan.
+ */
+export function DiamondShape({ selected, node, label }: ArtifactNodeProps) {
   const { width, height } = node.size;
   const half = { x: width / 2, y: height / 2 };
   return (
-    <svg width={width} height={height} className="overflow-visible">
-      <polygon
-        points={`${half.x},1 ${width - 1},${half.y} ${half.x},${height - 1} 1,${half.y}`}
-        style={{ fill: SHAPE_FILL, stroke: strokeFor(selected) }}
-        strokeWidth={STROKE_WIDTH}
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="relative size-full">
+      <svg width={width} height={height} className="overflow-visible">
+        <polygon
+          points={`${half.x},1 ${width - 1},${half.y} ${half.x},${height - 1} 1,${half.y}`}
+          style={{ fill: SHAPE_FILL, stroke: strokeFor(selected) }}
+          strokeWidth={STROKE_WIDTH}
+          strokeLinejoin="round"
+        />
+      </svg>
+      {label && (
+        <div
+          className="absolute bottom-[78%] left-[78%] w-max max-w-56 text-[12px] leading-snug font-medium text-ink-900"
+          style={{ textAlign: 'left' }}
+        >
+          {label}
+        </div>
+      )}
+    </div>
   );
 }
 

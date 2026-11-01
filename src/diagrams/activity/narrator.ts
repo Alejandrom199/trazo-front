@@ -93,7 +93,9 @@ class ActivityNarrator {
   }
 
   private describeDecision(node: DiagramNode, exits: DiagramEdge[], depth: number, stopAt: ReadonlySet<string>): WalkEnd {
-    this.say(depth, `${this.connector()}se toma una decisión:`, [node]);
+    // Con pregunta escrita, la narración la cita: "se toma una decisión: ¿Hay stock?".
+    const question = node.label.trim();
+    this.say(depth, `${this.connector()}se toma una decisión${question ? `: ${question}` : ':'}`, [node]);
     const lane = this.currentLane;
     const meeting = this.meetingPoint(exits, A.merge);
     const innerStop = withMeeting(stopAt, meeting);

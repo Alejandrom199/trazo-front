@@ -23,7 +23,7 @@ function buildDocumentApprovalTemplate() {
   const draft = t.node(A.objectNode, 'Documento [borrador]', { ...author, y: 340 }, { width: 160, height: 50 });
   const request = t.node(A.sendSignal, 'Solicitar aprobación', { ...author, y: 440 }, { width: 190, height: 56 });
   const verdictReceived = t.node(A.acceptEvent, 'Dictamen recibido', { ...author, y: 620 }, { width: 180, height: 56 });
-  const approved = t.node(A.decision, '', { ...author, y: 710 });
+  const approved = t.node(A.decision, '¿Fue aprobado?', { ...author, y: 710 });
   const fix = t.node(A.action, 'Ajustar documento', { ...authorReturn, y: 710 });
   const publish = t.node(A.action, 'Publicar documento', { ...author, y: 800 });
   const end = t.node(A.activityFinal, '', { ...author, y: 890 });

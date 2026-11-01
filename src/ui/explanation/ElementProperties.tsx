@@ -19,7 +19,7 @@ export function NodeProperties({ node, diagram, module }: { node: DiagramNode; d
   return (
     <div className="space-y-4">
       {kind?.hasLabel && (
-        <Field label="Nombre">
+        <Field label={kind.labelCaption ?? 'Nombre'}>
           <TextInput value={node.label} onCommit={(label) => update({ label })} />
         </Field>
       )}

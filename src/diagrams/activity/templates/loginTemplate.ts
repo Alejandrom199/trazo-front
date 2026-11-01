@@ -9,7 +9,7 @@ function buildLoginTemplate() {
   const retry = t.node(A.merge, '', { x: 300, y: 110 });
   const enter = t.node(A.action, 'Ingresar usuario y contraseña', { x: 300, y: 200 });
   const validate = t.node(A.action, 'Validar credenciales', { x: 300, y: 300 });
-  const valid = t.node(A.decision, '', { x: 300, y: 390 });
+  const valid = t.node(A.decision, '¿Credenciales válidas?', { x: 300, y: 390 });
   const showError = t.node(A.action, 'Mostrar mensaje de error', { x: 560, y: 390 });
   const openSession = t.node(A.action, 'Abrir la sesión', { x: 300, y: 490 });
   const end = t.node(A.activityFinal, '', { x: 300, y: 580 });

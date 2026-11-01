@@ -30,6 +30,7 @@ export function ArtifactNodeView({ id, data, selected }: NodeProps<ArtifactFlowN
   const label = !kind.hasLabel ? null : isEditing ? (
     <EditableText
       initialValue={node.label}
+      placeholder={kind.labelCaption}
       multiline
       className="w-full"
       onCommit={(value) => {

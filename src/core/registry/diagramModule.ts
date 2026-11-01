@@ -71,6 +71,8 @@ export interface NodeKind {
   defaultProps: Record<string, unknown>;
   /** Si tiene texto editable con doble clic. */
   hasLabel: boolean;
+  /** Cómo se llama ese texto en el panel de propiedades (por defecto "Nombre"). */
+  labelCaption?: string;
   resizable: boolean;
   /** Si puede contener otros nodos (p. ej. un carril). */
   isContainer: boolean;

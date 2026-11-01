@@ -129,7 +129,8 @@ const decision: ArtifactDefinition = {
   category: 'nodo de control',
   name: 'Nodo de decisión',
   umlName: 'DecisionNode',
-  notation: 'Rombo con una entrada y varias salidas, cada una con una guarda entre corchetes.',
+  notation:
+    'Rombo con una entrada y varias salidas, cada una con una guarda entre corchetes. Junto al rombo se suele escribir la pregunta que decide, p. ej. «¿Hay stock?».',
   whatIs: 'Un punto donde el flujo elige UNA de varias salidas según una condición.',
   whatFor: 'Modelar caminos alternativos: "si es válido… si no…".',
   whyExists: 'Sin él no hay forma de expresar que solo uno de varios caminos se recorre.',

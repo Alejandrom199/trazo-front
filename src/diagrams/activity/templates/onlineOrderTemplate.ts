@@ -18,7 +18,7 @@ function buildOnlineOrderTemplate() {
   const choose = t.node(A.action, 'Seleccionar productos', { ...customer, y: 170 });
   const confirm = t.node(A.action, 'Confirmar pedido', { ...customer, y: 260 });
   const checkStock = t.node(A.action, 'Verificar stock', { ...system, y: 260 });
-  const inStock = t.node(A.decision, '', { ...system, y: 350 });
+  const inStock = t.node(A.decision, '¿Hay stock?', { ...system, y: 350 });
   const noStockNotice = t.node(A.action, 'Ver aviso de falta de stock', { ...customer, y: 350 });
   const cancelled = t.node(A.activityFinal, '', { ...customer, y: 440 });
   const charge = t.node(A.action, 'Cobrar el pago', { ...system, y: 450 });
