@@ -1,21 +1,12 @@
 import { faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo } from 'react';
-import type { ArtifactCategory } from '@/core/model';
+import { ARTIFACT_CATEGORIES } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { ArtifactExplanation } from '@/ui/explanation/ArtifactExplanation';
 import { EdgeSample } from './HowToRead';
 
-const CATEGORY_TITLES: Record<ArtifactCategory, string> = {
-  'nodo de control': 'Nodos de control',
-  'nodo ejecutable': 'Acciones',
-  'nodo de objeto': 'Objetos',
-  agrupación: 'Agrupación',
-  anotación: 'Anotaciones',
-  conector: 'Conexiones',
-};
-const CATEGORY_ORDER: ArtifactCategory[] = ['nodo de control', 'nodo ejecutable', 'nodo de objeto', 'conector', 'agrupación', 'anotación'];
 
 /** Id del ancla de un artefacto en la guía, para saltar a él desde otras secciones. */
 export const artifactAnchor = (type: string) => `guia-artefacto-${type}`;
@@ -39,12 +30,12 @@ export function ArtifactCatalog({ module, expandedType, onToggle, onOpenRelated,
 
   return (
     <div className="flex flex-col gap-8">
-      {CATEGORY_ORDER.map((category) => {
+      {ARTIFACT_CATEGORIES.map(({ category, title }) => {
         const artifacts = module.artifacts.filter((artifact) => artifact.category === category);
         if (artifacts.length === 0) return null;
         return (
           <section key={category}>
-            <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{CATEGORY_TITLES[category]}</h3>
+            <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{title}</h3>
             <div className="flex flex-col gap-2">
               {artifacts.map((artifact) => {
                 const kind = module.nodeKinds[artifact.type];

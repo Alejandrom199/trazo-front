@@ -24,6 +24,7 @@ import { ArtifactNodeView } from './ArtifactNodeView';
 import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
 import { useActiveModule } from './useActiveModule';
+import { useContextMenuStore, type ContextMenuTarget } from './contextMenuStore';
 import { useElementClickStore } from './elementClickStore';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
@@ -189,7 +190,14 @@ export function DiagramCanvas() {
         onEdgeDoubleClick={(_event, edge) => store().startEditingEdge(edge.id)}
         onNodeClick={(event, node) => publishNodeClick(event, node.id)}
         onEdgeClick={(event, edge) => publishEdgeClick(event, edge.id)}
-        onMoveStart={(event) => event && clearElementClick()}
+        onMoveStart={(event) => {
+          if (!event) return;
+          clearElementClick();
+          useContextMenuStore.getState().close();
+        }}
+        onPaneContextMenu={(event) => openContextMenu(event, { kind: 'pane' }, screenToFlowPosition)}
+        onNodeContextMenu={(event, node) => openContextMenu(event, { kind: 'node', id: node.id }, screenToFlowPosition)}
+        onEdgeContextMenu={(event, edge) => openContextMenu(event, { kind: 'edge', id: edge.id }, screenToFlowPosition)}
         onPaneClick={() => {
           useHighlightStore.getState().setHighlight(null);
           clearElementClick();
@@ -230,6 +238,18 @@ export function DiagramCanvas() {
 const store = () => useDiagramStore.getState();
 
 const clearElementClick = () => useElementClickStore.getState().setClicked(null);
+
+/** Clic derecho: en vez del menú del navegador, el de Trazo, en el punto exacto del clic. */
+function openContextMenu(
+  event: ReactMouseEvent | MouseEvent,
+  target: ContextMenuTarget,
+  screenToFlowPosition: (point: { x: number; y: number }) => { x: number; y: number },
+): void {
+  event.preventDefault();
+  clearElementClick();
+  const screen = { x: event.clientX, y: event.clientY };
+  useContextMenuStore.getState().open({ target, screen, flow: screenToFlowPosition(screen) });
+}
 
 /** Publica el clic en un nodo con el rectángulo del nodo en pantalla (para ubicar el popup a su lado). */
 function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {

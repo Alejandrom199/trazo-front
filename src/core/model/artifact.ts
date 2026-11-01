@@ -9,6 +9,19 @@ export type ArtifactCategory =
   | 'anotación';
 
 /**
+ * Orden y nombres de las categorías: la paleta, el menú del lienzo y la página
+ * Aprender agrupan los artefactos con esta misma lista.
+ */
+export const ARTIFACT_CATEGORIES: readonly { category: ArtifactCategory; title: string; shortTitle: string }[] = [
+  { category: 'nodo de control', title: 'Nodos de control', shortTitle: 'Control' },
+  { category: 'nodo ejecutable', title: 'Acciones', shortTitle: 'Acciones' },
+  { category: 'nodo de objeto', title: 'Objetos', shortTitle: 'Objetos' },
+  { category: 'conector', title: 'Conexiones', shortTitle: 'Conexiones' },
+  { category: 'agrupación', title: 'Agrupación', shortTitle: 'Agrupación' },
+  { category: 'anotación', title: 'Anotaciones', shortTitle: 'Anotación' },
+];
+
+/**
  * Cuántas conexiones de control/objeto admite un artefacto.
  * null en un máximo significa "sin límite".
  */

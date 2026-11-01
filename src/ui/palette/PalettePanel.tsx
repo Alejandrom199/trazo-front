@@ -1,36 +1,58 @@
-import { faAnglesLeft, faAnglesRight, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import {
+  faAnglesLeft,
+  faAnglesRight,
+  faBolt,
+  faCircleInfo,
+  faCodeBranch,
+  faCube,
+  faMagnifyingGlass,
+  faNoteSticky,
+  faShapes,
+  faTableColumns,
+  faXmark,
+  type IconDefinition,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useEffect, useRef, useState, type DragEvent } from 'react';
-import type { ArtifactCategory, ArtifactDefinition } from '@/core/model';
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { ARTIFACT_CATEGORIES, type ArtifactCategory, type ArtifactDefinition } from '@/core/model';
 import type { NodeKind } from '@/core/registry';
+import { useContextMenuStore } from '@/canvas/contextMenuStore';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
+import { searchArtifacts } from './artifactSearch';
 import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
 import { useUiStore } from '@/ui/uiStore';
 
-/** Orden en que se muestran las categorías en la paleta. */
-const CATEGORY_ORDER: { category: ArtifactCategory; title: string }[] = [
-  { category: 'nodo de control', title: 'Control' },
-  { category: 'nodo ejecutable', title: 'Acciones' },
-  { category: 'nodo de objeto', title: 'Objetos' },
-  { category: 'agrupación', title: 'Agrupación' },
-  { category: 'anotación', title: 'Anotación' },
-];
+/** Icono de cada categoría en la paleta plegada; las que no estén aquí usan uno genérico. */
+const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
+  'nodo de control': faCodeBranch,
+  'nodo ejecutable': faBolt,
+  'nodo de objeto': faCube,
+  agrupación: faTableColumns,
+  anotación: faNoteSticky,
+};
+
+const TIP_SEEN_KEY = 'trazo.contextMenuTipSeen';
 
 /**
- * Paleta de artefactos del módulo activo, agrupada por categoría.
+ * Paleta de artefactos del módulo activo, agrupada por categoría y con buscador.
  * Clic (o arrastrar) agrega el artefacto al lienzo; el botón (i) abre su explicación.
- * Pasar el ratón muestra una pista corta. Se puede plegar a una columna de
- * miniaturas que siguen agregando con clic o arrastre.
+ * Pasar el ratón muestra una pista corta. Plegada, queda un riel con un icono por
+ * categoría (cada uno despliega sus artefactos) y una lupa que abre el buscador
+ * del lienzo, el mismo del clic derecho.
  */
 export function PalettePanel() {
   const module = useActiveModule();
   const hint = usePaletteHint();
   const addAtCenter = useAddArtifactAtCenter();
   const [opened, setOpened] = useState<HintState | null>(null);
+  const [query, setQuery] = useState('');
+  const [flyout, setFlyout] = useState<{ category: ArtifactCategory; anchor: DOMRect } | null>(null);
+  const rememberArtifact = useUiStore((state) => state.rememberArtifact);
+  useContextMenuTip();
   const collapsed = useUiStore((state) => state.paletteCollapsed);
   const setCollapsed = useUiStore((state) => state.setPaletteCollapsed);
   const isNarrow = useMediaQuery(NARROW_QUERY);
@@ -43,6 +65,21 @@ export function PalettePanel() {
 
   const draggable = module.artifacts.filter((artifact) => module.nodeKinds[artifact.type]);
   const connectors = module.artifacts.filter((artifact) => module.edgeKinds[artifact.type]);
+  const categories = ARTIFACT_CATEGORIES.filter(({ category }) => draggable.some((artifact) => artifact.category === category));
+  const searching = query.trim() !== '';
+  const results = searching ? searchArtifacts(draggable, query) : [];
+
+  function add(artifactType: string) {
+    hint.hide();
+    addAtCenter(artifactType);
+    rememberArtifact(artifactType);
+  }
+
+  /** La lupa del riel abre el buscador del lienzo junto a ella; lo elegido va al centro de la vista. */
+  function openSearch(anchor: DOMRect) {
+    setFlyout(null);
+    useContextMenuStore.getState().open({ target: { kind: 'pane' }, screen: { x: anchor.right + 8, y: anchor.top }, flow: null });
+  }
 
   if (collapsed) {
     return (
@@ -57,27 +94,74 @@ export function PalettePanel() {
         >
           <FontAwesomeIcon icon={faAnglesRight} />
         </button>
-        <div className="flex w-full flex-1 flex-col items-center gap-0.5 overflow-y-auto px-1.5 pb-3">
-          {draggable.map((artifact) => {
-            const kind = module.nodeKinds[artifact.type];
-            return kind ? (
-              <PaletteItem
-                key={artifact.type}
-                artifact={artifact}
-                kind={kind}
-                compact
-                isOpen={false}
-                onHover={hint.show}
-                onLeave={hint.hide}
-                onAdd={() => {
-                  hint.hide();
-                  addAtCenter(artifact.type);
-                }}
-                onInfo={toggleExplanation}
-              />
-            ) : null;
+        <div className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1.5 pb-3">
+          {categories.map(({ category, shortTitle }) => {
+            const isOpen = flyout?.category === category;
+            return (
+              <button
+                key={category}
+                type="button"
+                data-palette-category
+                onClick={(event) => setFlyout(isOpen ? null : { category, anchor: event.currentTarget.getBoundingClientRect() })}
+                title={shortTitle}
+                aria-label={shortTitle}
+                aria-expanded={isOpen}
+                className={`flex size-10 items-center justify-center rounded-lg text-sm transition-colors ${
+                  isOpen ? 'bg-accent-soft text-accent' : 'text-ink-400 hover:bg-raised hover:text-ink-900'
+                }`}
+              >
+                <FontAwesomeIcon icon={CATEGORY_ICONS[category] ?? faShapes} />
+              </button>
+            );
           })}
         </div>
+        <button
+          type="button"
+          onClick={(event) => openSearch(event.currentTarget.getBoundingClientRect())}
+          title="Buscar artefacto (también con clic derecho en el lienzo)"
+          aria-label="Buscar artefacto"
+          className="mb-3 flex size-10 items-center justify-center rounded-lg text-sm text-ink-400 hover:bg-raised hover:text-ink-900"
+        >
+          <FontAwesomeIcon icon={faMagnifyingGlass} />
+        </button>
+        {flyout && (
+          <CategoryFlyout
+            title={categories.find((entry) => entry.category === flyout.category)?.shortTitle ?? ''}
+            anchor={flyout.anchor}
+            onClose={() => setFlyout(null)}
+          >
+            {draggable
+              .filter((artifact) => artifact.category === flyout.category)
+              .map((artifact) => {
+                const kind = module.nodeKinds[artifact.type];
+                return kind ? (
+                  <PaletteItem
+                    key={artifact.type}
+                    artifact={artifact}
+                    kind={kind}
+                    isOpen={opened?.artifact.type === artifact.type}
+                    onHover={undefined}
+                    onLeave={hint.hide}
+                    onAdd={() => {
+                      add(artifact.type);
+                      setFlyout(null);
+                    }}
+                    onDragEnd={() => setFlyout(null)}
+                    onInfo={toggleExplanation}
+                  />
+                ) : null;
+              })}
+          </CategoryFlyout>
+        )}
+        {opened && (
+          <ArtifactPopover
+            artifact={opened.artifact}
+            anchor={opened.anchor}
+            footer="Haz clic en el artefacto o arrástralo para agregarlo al lienzo."
+            keepOpenOn={isPaletteInfo}
+            onClose={() => setOpened(null)}
+          />
+        )}
         {hint.current && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
       </aside>
     );
@@ -108,9 +192,31 @@ export function PalettePanel() {
         </button>
       </header>
 
+      <div className="px-4 pt-1 pb-1">
+        <label className="flex items-center gap-2 rounded-lg border border-line bg-canvas px-2.5 py-1.5 focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/15">
+          <FontAwesomeIcon icon={faMagnifyingGlass} className="text-[11px] text-ink-400" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => event.key === 'Escape' && setQuery('')}
+            placeholder="Buscar artefacto…"
+            aria-label="Buscar artefacto"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-ink-900 outline-none placeholder:text-ink-400"
+          />
+          {searching && (
+            <button type="button" onClick={() => setQuery('')} aria-label="Borrar búsqueda" className="text-[11px] text-ink-400 hover:text-ink-900">
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+          )}
+        </label>
+      </div>
+
       <div className="flex-1 overflow-y-auto px-3 pb-4">
-        {CATEGORY_ORDER.map(({ category, title }) => {
-          const items = draggable.filter((artifact) => artifact.category === category);
+        {searching && results.length === 0 && (
+          <p className="px-2 py-6 text-center text-sm text-ink-400">Ningún artefacto coincide con «{query.trim()}».</p>
+        )}
+        {(searching ? [{ category: 'resultados', shortTitle: 'Resultados' }] : categories).map(({ category, shortTitle: title }) => {
+          const items = searching ? results : draggable.filter((artifact) => artifact.category === category);
           if (items.length === 0) return null;
           return (
             <section key={category} className="mt-3">
@@ -126,8 +232,7 @@ export function PalettePanel() {
                     onHover={opened ? undefined : hint.show}
                     onLeave={hint.hide}
                     onAdd={() => {
-                      hint.hide();
-                      addAtCenter(artifact.type);
+                      add(artifact.type);
                       // En móvil la paleta flota sobre el lienzo: se pliega para ver lo agregado.
                       if (isNarrow) setCollapsed(true);
                     }}
@@ -139,7 +244,7 @@ export function PalettePanel() {
           );
         })}
 
-        {connectors.length > 0 && (
+        {connectors.length > 0 && !searching && (
           <section className="mt-3">
             <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Conexiones</h3>
             <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
@@ -236,9 +341,10 @@ interface PaletteItemProps {
   onAdd: () => void;
   /** Abre (o cierra) su explicación, junto a la fila. */
   onInfo: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
+  onDragEnd?: () => void;
 }
 
-function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave, onAdd, onInfo }: PaletteItemProps) {
+function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave, onAdd, onInfo, onDragEnd }: PaletteItemProps) {
   function handleDragStart(event: DragEvent) {
     onLeave();
     event.dataTransfer.setData(ARTIFACT_DRAG_MIME, artifact.type);
@@ -253,6 +359,7 @@ function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave
       tabIndex={0}
       aria-label={`Agregar ${artifact.name} al lienzo`}
       onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
       onMouseEnter={(event) => onHover?.(artifact, event.currentTarget.getBoundingClientRect())}
       onMouseLeave={onLeave}
       onClick={onAdd}
@@ -293,4 +400,57 @@ function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave
       )}
     </div>
   );
+}
+
+/**
+ * Desplegable de una categoría junto al riel plegado, en vidrio. Se cierra con
+ * Escape, al hacer clic fuera o al agregar un artefacto.
+ */
+function CategoryFlyout({ title, anchor, onClose, children }: { title: string; anchor: DOMRect; onClose: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target as HTMLElement;
+      // Otro icono del riel cambia de categoría; la (i) abre su explicación sin cerrar esto.
+      if (ref.current?.contains(target) || target.closest('[data-palette-category], [role="dialog"]')) return;
+      onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('pointerdown', closeOnOutsideClick, true);
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('pointerdown', closeOnOutsideClick, true);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      role="group"
+      aria-label={title}
+      className="glass-panel fixed z-40 w-60 rounded-xl p-1.5"
+      style={{ left: anchor.right + 10, top: Math.max(12, Math.min(anchor.top - 8, window.innerHeight - 360)) }}
+    >
+      <h3 className="px-2 pt-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+/** La primera vez que se abre el editor, cuenta que también se puede agregar con clic derecho. */
+function useContextMenuTip() {
+  const showNotice = useUiStore((state) => state.showNotice);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(TIP_SEEN_KEY)) return;
+      localStorage.setItem(TIP_SEEN_KEY, 'true');
+    } catch {
+      // Sin almacenamiento no se puede recordar: mejor no repetir el aviso en cada visita.
+      return;
+    }
+    const timer = window.setTimeout(() => showNotice('Consejo: haz clic derecho en el lienzo para buscar y agregar artefactos.'), 1500);
+    return () => window.clearTimeout(timer);
+  }, [showNotice]);
 }

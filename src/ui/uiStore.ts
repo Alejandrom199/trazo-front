@@ -2,6 +2,9 @@ import { create } from 'zustand';
 
 const THEME_KEY = 'trazo.theme';
 const PALETTE_COLLAPSED_KEY = 'trazo.paletteCollapsed';
+const RECENT_ARTIFACTS_KEY = 'trazo.recentArtifacts';
+/** Cuántos artefactos usados recientemente se recuerdan. */
+const MAX_RECENT_ARTIFACTS = 4;
 /** Por debajo de este ancho la paleta arranca plegada (si el usuario no eligió antes). */
 const NARROW_SCREEN = 1024;
 
@@ -22,6 +25,9 @@ interface UiState {
   /** Paleta de artefactos plegada a una columna de miniaturas. */
   paletteCollapsed: boolean;
   setPaletteCollapsed: (collapsed: boolean) => void;
+  /** Últimos artefactos agregados (más reciente primero); el menú del lienzo los ofrece primero. */
+  recentArtifacts: string[];
+  rememberArtifact: (artifactType: string) => void;
   /** Panel "Explicar diagrama": ocupa el lugar del panel de explicación mientras está abierto. */
   narrationOpen: boolean;
   setNarrationOpen: (open: boolean) => void;
@@ -63,6 +69,16 @@ function readPaletteCollapsed(): boolean {
   return typeof window !== 'undefined' && window.innerWidth < NARROW_SCREEN;
 }
 
+function readRecentArtifacts(): string[] {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(RECENT_ARTIFACTS_KEY) ?? '[]');
+    if (Array.isArray(saved)) return saved.filter((type): type is string => typeof type === 'string').slice(0, MAX_RECENT_ARTIFACTS);
+  } catch {
+    // Sin almacenamiento (o dato corrupto): se empieza sin recientes.
+  }
+  return [];
+}
+
 const initialTheme = readTheme();
 applyTheme(initialTheme);
 
@@ -88,6 +104,17 @@ export const useUiStore = create<UiState>()((set) => ({
     }
     set({ paletteCollapsed: collapsed });
   },
+  recentArtifacts: readRecentArtifacts(),
+  rememberArtifact: (artifactType) =>
+    set((state) => {
+      const recentArtifacts = [artifactType, ...state.recentArtifacts.filter((type) => type !== artifactType)].slice(0, MAX_RECENT_ARTIFACTS);
+      try {
+        localStorage.setItem(RECENT_ARTIFACTS_KEY, JSON.stringify(recentArtifacts));
+      } catch {
+        // Sin almacenamiento los recientes duran solo esta sesión.
+      }
+      return { recentArtifacts };
+    }),
   narrationOpen: false,
   setNarrationOpen: (open) => set({ narrationOpen: open }),
   popoverTab: 'properties',

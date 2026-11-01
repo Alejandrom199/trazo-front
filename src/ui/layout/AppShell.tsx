@@ -1,5 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { DiagramCanvas } from '@/canvas/DiagramCanvas';
+import { CanvasContextMenu } from '@/ui/canvasMenu/CanvasContextMenu';
 import { CanvasArtifactPopover } from '@/ui/explanation/CanvasArtifactPopover';
 import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
 import { LearnPage } from '@/ui/learn/LearnPage';
@@ -65,6 +66,7 @@ export function AppShell() {
         {route.page === 'editor' && (
           <>
             <CanvasArtifactPopover />
+            <CanvasContextMenu />
             <TemplateGallery />
           </>
         )}
