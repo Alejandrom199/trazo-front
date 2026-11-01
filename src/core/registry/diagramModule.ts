@@ -82,12 +82,22 @@ export interface NodeKind {
   properties: PropertyDefinition[];
 }
 
+/** Punta de flecha: llena (triángulo cerrado) o abierta (dos trazos). */
+export type ArrowHead = 'filled' | 'open';
+
+/**
+ * Texto editable con doble clic sobre una conexión:
+ *   guard: una guarda, que se dibuja entre corchetes ([condición]).
+ */
+export type EdgeTextKind = 'guard';
+
 /** Cómo se dibuja un artefacto que es conexión. */
 export interface EdgeKind {
   dashed: boolean;
-  arrow: boolean;
-  /** Si admite guarda ([condición]) editable con doble clic. */
-  hasGuard: boolean;
+  /** Punta en el destino; null = sin punta. */
+  arrow: ArrowHead | null;
+  /** Qué texto admite; null = ninguno. */
+  text: EdgeTextKind | null;
 }
 
 /** Un paso de "cómo leer este diagrama", con los artefactos que intervienen. */

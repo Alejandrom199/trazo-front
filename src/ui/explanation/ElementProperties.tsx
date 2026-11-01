@@ -72,7 +72,7 @@ export function EdgeProperties({
   definition: ArtifactDefinition;
 }) {
   const nameOf = (id: string) => diagram.nodes.find((node) => node.id === id)?.label.trim() || 'nodo sin nombre';
-  const hasGuard = module.edgeKinds[edge.artifactType]?.hasGuard ?? false;
+  const hasGuard = module.edgeKinds[edge.artifactType]?.text === 'guard';
   /** El estilo que le corresponde por su tipo (p. ej. el anclaje de nota es discontinuo). */
   const defaultStyle: LineStyle = module.edgeKinds[edge.artifactType]?.dashed ? 'dashed' : 'solid';
   const update = (patch: EdgePatch) => useDiagramStore.getState().updateEdge(edge.id, patch);

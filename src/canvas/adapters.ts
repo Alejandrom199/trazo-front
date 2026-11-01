@@ -1,6 +1,6 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import { containerJoints, protectedNodeIds, type ContainerJoints, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
-import type { DiagramModule } from '@/core/registry';
+import type { ArrowHead, DiagramModule } from '@/core/registry';
 import { dashArrayFor } from './edgePath';
 
 /**
@@ -31,6 +31,8 @@ function classNames(...names: (string | false | undefined)[]): string | undefine
 /** Variables CSS del tema: las flechas cambian solas entre claro y oscuro. */
 const EDGE_COLOR = 'var(--color-edge)';
 const EDGE_COLOR_SELECTED = 'var(--color-accent)';
+
+const ARROW_MARKERS: Record<ArrowHead, MarkerType> = { filled: MarkerType.ArrowClosed, open: MarkerType.Arrow };
 
 export function toFlowNodes(
   diagram: Diagram,
@@ -91,7 +93,7 @@ export function toFlowEdges(
       selected: isSelected,
       className: classNames(highlight.ids.has(edge.id) && highlight.className),
       data: { edge },
-      markerEnd: kind?.arrow ? { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } : undefined,
+      markerEnd: kind?.arrow ? { type: ARROW_MARKERS[kind.arrow], color, width: 16, height: 16 } : undefined,
       style: {
         stroke: color,
         strokeWidth: 1.5,

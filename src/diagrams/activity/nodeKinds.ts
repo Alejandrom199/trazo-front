@@ -85,7 +85,7 @@ export const activityNodeKinds: Record<string, NodeKind> = {
 };
 
 export const activityEdgeKinds: Record<string, EdgeKind> = {
-  [A.controlFlow]: { dashed: false, arrow: true, hasGuard: true },
-  [A.objectFlow]: { dashed: false, arrow: true, hasGuard: true },
-  [A.annotationLink]: { dashed: true, arrow: false, hasGuard: false },
+  [A.controlFlow]: { dashed: false, arrow: 'filled', text: 'guard' },
+  [A.objectFlow]: { dashed: false, arrow: 'filled', text: 'guard' },
+  [A.annotationLink]: { dashed: true, arrow: null, text: null },
 };

@@ -83,7 +83,7 @@ describe('registro de módulos', () => {
 
   it('Dado un componente visual sin artefacto en el catálogo, Entonces el registro lo rechaza', () => {
     const registry = createRegistry();
-    const module = buildModule({ edgeKinds: { ghost: { dashed: false, arrow: true, hasGuard: false } } });
+    const module = buildModule({ edgeKinds: { ghost: { dashed: false, arrow: 'filled', text: null } } });
 
     expect(() => registry.register(module)).toThrow(/ghost/);
   });

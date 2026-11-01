@@ -38,7 +38,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const { edge } = data;
   const path = buildEdgePath(rectOf(sourceNode), rectOf(targetNode), edge.routing, edge.waypoints);
 
-  const hasGuard = module?.edgeKinds[edge.artifactType]?.hasGuard ?? false;
+  const hasGuard = module?.edgeKinds[edge.artifactType]?.text === 'guard';
   const showLabel = hasGuard && (isEditing || edge.guard);
 
   // Un punto sobre la línea por cada tramo: ahí nace un vértice nuevo.
