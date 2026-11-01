@@ -15,6 +15,8 @@ import {
   type NewDiagramInput,
   type NodeMove,
   type NodePatch,
+  type EdgePatch,
+  type Position,
   type Size,
 } from '@/core/model';
 
@@ -50,6 +52,8 @@ interface DiagramState {
   moveNodes: (moves: NodeMove[]) => void;
   resizeNode: (nodeId: string, size: Size) => void;
   reparentNodes: (nodeIds: string[], parentId: string | null) => void;
+  /** Mueve los vértices de una flecha durante un arrastre (precedido de checkpoint). */
+  setEdgeWaypoints: (edgeId: string, waypoints: Position[]) => void;
   // Cambios discretos: cada uno es un paso de deshacer.
   addNode: (node: DiagramNode) => void;
   connect: (edge: DiagramEdge) => void;
@@ -57,6 +61,8 @@ interface DiagramState {
   /** Cambia propiedades de un nodo desde el panel de propiedades (un paso de deshacer). */
   updateNode: (nodeId: string, patch: NodePatch) => void;
   setEdgeGuard: (edgeId: string, guard: string | null) => void;
+  /** Cambia trazado, vértices o estilo de una flecha (un paso de deshacer). */
+  updateEdge: (edgeId: string, patch: EdgePatch) => void;
   removeElements: (ids: ElementIds) => void;
 
   undo: () => void;
@@ -127,6 +133,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     reparentNodes: (nodeIds, parentId) =>
       apply((diagram) => nodeIds.reduce((acc, id) => reparentNode(acc, id, parentId), diagram), false),
 
+    setEdgeWaypoints: (edgeId, waypoints) => apply((diagram) => updateEdge(diagram, edgeId, { waypoints }), false),
+
     addNode: (node) => apply((diagram) => addNode(diagram, node), true),
     connect: (edge) => apply((diagram) => addEdge(diagram, edge), true),
     setNodeLabel: (nodeId, label) =>
@@ -144,6 +152,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       apply((diagram) => {
         const edge = diagram.edges.find((candidate) => candidate.id === edgeId);
         return !edge || edge.guard === guard ? diagram : updateEdge(diagram, edgeId, { guard });
+      }, true),
+    updateEdge: (edgeId, patch) =>
+      apply((diagram) => {
+        const edge = diagram.edges.find((candidate) => candidate.id === edgeId);
+        const changed = edge && Object.entries(patch).some(([key, value]) => JSON.stringify(edge[key as keyof typeof edge]) !== JSON.stringify(value));
+        return changed ? updateEdge(diagram, edgeId, patch) : diagram;
       }, true),
     removeElements: (ids) => {
       apply((diagram) => removeElements(diagram, ids), true);

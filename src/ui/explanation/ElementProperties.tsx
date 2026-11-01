@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, NodePatch } from '@/core/model';
+import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode, EdgePatch, EdgeRouting, LineStyle, NodePatch } from '@/core/model';
+import { dashArrayFor } from '@/canvas/edgePath';
 import { readNumberProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 
@@ -72,6 +73,9 @@ export function EdgeProperties({
 }) {
   const nameOf = (id: string) => diagram.nodes.find((node) => node.id === id)?.label.trim() || 'nodo sin nombre';
   const hasGuard = module.edgeKinds[edge.artifactType]?.hasGuard ?? false;
+  /** El estilo que le corresponde por su tipo (p. ej. el anclaje de nota es discontinuo). */
+  const defaultStyle: LineStyle = module.edgeKinds[edge.artifactType]?.dashed ? 'dashed' : 'solid';
+  const update = (patch: EdgePatch) => useDiagramStore.getState().updateEdge(edge.id, patch);
 
   return (
     <div className="space-y-4">
@@ -92,6 +96,104 @@ export function EdgeProperties({
           />
         </Field>
       )}
+
+      <FieldGroup label="Trazado" hint="Selecciona la flecha y arrastra los puntos ○ para agregar vértices; doble clic en un vértice ● lo quita.">
+        <Segmented
+          value={edge.routing}
+          options={ROUTING_OPTIONS}
+          onChange={(routing) => update({ routing })}
+        />
+        {edge.waypoints.length > 0 && (
+          <button
+            type="button"
+            onClick={() => update({ waypoints: [] })}
+            className="mt-2 text-xs font-medium text-accent hover:underline"
+          >
+            Quitar {edge.waypoints.length === 1 ? 'el vértice' : `los ${edge.waypoints.length} vértices`}
+          </button>
+        )}
+      </FieldGroup>
+
+      <FieldGroup
+        label="Línea"
+        hint={edge.lineStyle && edge.lineStyle !== defaultStyle ? 'En UML los flujos se dibujan continuos; la línea discontinua se reserva para anclar notas.' : undefined}
+      >
+        <Segmented
+          value={edge.lineStyle ?? defaultStyle}
+          options={LINE_OPTIONS}
+          onChange={(lineStyle) => update({ lineStyle: lineStyle === defaultStyle ? null : lineStyle })}
+        />
+      </FieldGroup>
+    </div>
+  );
+}
+
+const ROUTING_OPTIONS: { value: EdgeRouting; label: string; icon: ReactNode }[] = [
+  { value: 'orthogonal', label: 'Ortogonal', icon: <RoutingIcon d="M3 15 V8 H15 V3" /> },
+  { value: 'straight', label: 'Recta', icon: <RoutingIcon d="M3 15 L9 5 L15 12" /> },
+  { value: 'curved', label: 'Curva', icon: <RoutingIcon d="M3 15 C5 3, 13 3, 15 12" /> },
+];
+
+const LINE_OPTIONS: { value: LineStyle; label: string; icon: ReactNode }[] = [
+  { value: 'solid', label: 'Continua', icon: <LineIcon /> },
+  { value: 'dashed', label: 'Discontinua', icon: <LineIcon dash={dashArrayFor('dashed')} /> },
+  { value: 'dotted', label: 'Punteada', icon: <LineIcon dash={dashArrayFor('dotted')} round /> },
+];
+
+function RoutingIcon({ d }: { d: string }) {
+  return (
+    <svg width={18} height={18} viewBox="0 0 18 18" aria-hidden>
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LineIcon({ dash, round = false }: { dash?: string; round?: boolean }) {
+  return (
+    <svg width={22} height={18} viewBox="0 0 22 18" aria-hidden>
+      <line x1={2} y1={9} x2={20} y2={9} stroke="currentColor" strokeWidth={2} strokeDasharray={dash} strokeLinecap={round ? 'round' : 'butt'} />
+    </svg>
+  );
+}
+
+/** Grupo de botones excluyentes (como pestañas pequeñas). */
+function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string; icon: ReactNode }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div role="radiogroup" className="grid grid-cols-3 gap-1 rounded-lg bg-canvas p-1">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] transition-colors ${
+            value === option.value ? 'bg-surface font-medium text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'
+          }`}
+        >
+          {option.icon}
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Como Field, pero sin <label>: para grupos de botones (una etiqueta activaría el primero). */
+function FieldGroup({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={label}>
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-ink-400">{label}</span>
+      {children}
+      {hint && <span className="mt-1.5 block text-[11px] leading-relaxed text-ink-400">{hint}</span>}
     </div>
   );
 }

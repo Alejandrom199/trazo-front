@@ -3,6 +3,7 @@ import {
   addEdge,
   addNode,
   createEmptyDiagram,
+  DEFAULT_EDGE_SHAPE,
   findContainerAt,
   type Diagram,
   type Position,
@@ -84,6 +85,8 @@ export function createTemplateBuilder() {
         targetId,
         guard,
         label: '',
+        ...DEFAULT_EDGE_SHAPE,
+        waypoints: [],
       });
     },
 

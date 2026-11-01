@@ -1,6 +1,7 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import { containerJoints, protectedNodeIds, type ContainerJoints, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
+import { dashArrayFor } from './edgePath';
 
 /**
  * Traducción de nuestro modelo (Diagram) a los objetos que dibuja React Flow.
@@ -91,7 +92,13 @@ export function toFlowEdges(
       className: classNames(highlight.ids.has(edge.id) && highlight.className),
       data: { edge },
       markerEnd: kind?.arrow ? { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } : undefined,
-      style: { stroke: color, strokeWidth: 1.5, strokeDasharray: kind?.dashed ? '5 4' : undefined },
+      style: {
+        stroke: color,
+        strokeWidth: 1.5,
+        // Estilo elegido por el usuario; si no eligió, el de su tipo de conexión.
+        strokeDasharray: edge.lineStyle ? dashArrayFor(edge.lineStyle) : kind?.dashed ? dashArrayFor('dashed') : undefined,
+        strokeLinecap: edge.lineStyle === 'dotted' ? 'round' : undefined,
+      },
     };
   });
 }

@@ -10,8 +10,9 @@ export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class';
  * Versión actual del formato guardado. Súbela cuando cambie la forma de Diagram
  * y agrega la migración correspondiente en core/persistence/diagramFormat.ts.
  * v2: los nodos tienen `locked`.
+ * v3: las conexiones tienen trazado, vértices y estilo de línea.
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export interface Position {
   x: number;
@@ -57,7 +58,28 @@ export interface DiagramEdge {
   /** Texto de la guarda SIN corchetes ("usuario válido"); la UI dibuja los [ ]. */
   guard: string | null;
   label: string;
+  /** Cómo se dibuja el recorrido entre los extremos y los vértices. */
+  routing: EdgeRouting;
+  /** Puntos intermedios por los que pasa la flecha, en coordenadas del lienzo. */
+  waypoints: Position[];
+  /** Estilo del trazo; null = el que corresponde a su tipo de conexión. */
+  lineStyle: LineStyle | null;
 }
+
+/**
+ * ortogonal: tramos horizontales y verticales con esquinas suaves.
+ * recta: segmentos rectos de vértice en vértice.
+ * curva: una curva suave que pasa por los vértices.
+ */
+export type EdgeRouting = 'orthogonal' | 'straight' | 'curved';
+
+export type LineStyle = 'solid' | 'dashed' | 'dotted';
+
+/** Valores de una conexión recién creada. */
+export const DEFAULT_EDGE_SHAPE = { routing: 'orthogonal', waypoints: [], lineStyle: null } as const satisfies Pick<
+  DiagramEdge,
+  'routing' | 'waypoints' | 'lineStyle'
+>;
 
 export interface Diagram {
   id: string;

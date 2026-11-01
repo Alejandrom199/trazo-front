@@ -21,7 +21,7 @@ function sampleDiagram(name = 'Login', updatedAt = '2026-10-28T12:00:00.000Z'): 
       { id: 'a', artifactType: 'action', label: 'Pagar', position: { x: 0, y: 0 }, size: { width: 140, height: 60 }, parentId: null, props: {}, notes: '', locked: false },
       { id: 'b', artifactType: 'activityFinal', label: '', position: { x: 0, y: 100 }, size: { width: 30, height: 30 }, parentId: null, props: {}, notes: '', locked: false },
     ],
-    edges: [{ id: 'ab', artifactType: 'controlFlow', sourceId: 'a', targetId: 'b', guard: null, label: '' }],
+    edges: [{ id: 'ab', artifactType: 'controlFlow', sourceId: 'a', targetId: 'b', guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null }],
   };
 }
 
@@ -35,7 +35,7 @@ describe('parseDiagram', () => {
   it.each([
     ['algo que no es un objeto', 42],
     ['un objeto sin versión', { name: 'x' }],
-    ['una conexión a un nodo inexistente', { ...sampleDiagram(), edges: [{ id: 'e', artifactType: 'controlFlow', sourceId: 'a', targetId: 'zzz', guard: null, label: '' }] }],
+    ['una conexión a un nodo inexistente', { ...sampleDiagram(), edges: [{ id: 'e', artifactType: 'controlFlow', sourceId: 'a', targetId: 'zzz', guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null }] }],
     ['un nodo con posición no numérica', { ...sampleDiagram(), nodes: [{ ...sampleDiagram().nodes[0], position: { x: 'uno', y: 0 } }], edges: [] }],
     ['un contenedor inexistente', { ...sampleDiagram(), nodes: [{ ...sampleDiagram().nodes[0], parentId: 'fantasma' }], edges: [] }],
   ])('Dado %s, Entonces lo rechaza con un mensaje', (_case, raw) => {
@@ -53,6 +53,27 @@ describe('parseDiagram', () => {
 
     expect(result).toMatchObject({ ok: true, diagram: { schemaVersion: CURRENT_SCHEMA_VERSION } });
     if (result.ok) expect(result.diagram.nodes.every((node) => node.locked === false)).toBe(true);
+  });
+
+  it('Dado un diagrama guardado en la versión 2 (flechas sin trazado), Entonces las abre ortogonales, sin vértices y con el estilo de su tipo', () => {
+    const current = sampleDiagram();
+    const v2 = {
+      ...current,
+      schemaVersion: 2,
+      edges: current.edges.map(({ routing: _routing, waypoints: _waypoints, lineStyle: _lineStyle, ...edge }) => edge),
+    };
+
+    const result = parseDiagram(JSON.parse(JSON.stringify(v2)));
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.diagram.edges[0]).toMatchObject({ routing: 'orthogonal', waypoints: [], lineStyle: null });
+  });
+
+  it('Dada una flecha con vértices y estilo, Entonces se conservan al guardar y abrir', () => {
+    const diagram = sampleDiagram();
+    const edited = { ...diagram, edges: [{ ...diagram.edges[0]!, routing: 'curved' as const, waypoints: [{ x: 10, y: 20 }], lineStyle: 'dotted' as const }] };
+
+    expect(parseDiagram(JSON.parse(JSON.stringify(edited)))).toEqual({ ok: true, diagram: edited });
   });
 
   it('Dado un diagrama de una versión futura, Entonces pide actualizar la app', () => {

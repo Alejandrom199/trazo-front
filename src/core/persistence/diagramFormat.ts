@@ -1,4 +1,4 @@
-import { CURRENT_SCHEMA_VERSION, type Diagram, type DiagramEdge, type DiagramNode } from '@/core/model';
+import { CURRENT_SCHEMA_VERSION, DEFAULT_EDGE_SHAPE, type Diagram, type DiagramEdge, type DiagramNode, type EdgeRouting, type LineStyle } from '@/core/model';
 
 /**
  * Lectura segura de diagramas que vienen de fuera del programa (localStorage o
@@ -21,6 +21,13 @@ const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string
     nodes: Array.isArray(raw.nodes)
       ? raw.nodes.map((node: unknown) => (isRecord(node) ? { ...node, locked: false } : node))
       : raw.nodes,
+  }),
+  // v2 → v3: las conexiones ganan trazado, vértices y estilo; las anteriores quedan como se veían.
+  2: (raw) => ({
+    ...raw,
+    edges: Array.isArray(raw.edges)
+      ? raw.edges.map((edge: unknown) => (isRecord(edge) ? { ...edge, ...DEFAULT_EDGE_SHAPE, waypoints: [] } : edge))
+      : raw.edges,
   }),
 };
 
@@ -113,9 +120,12 @@ function toNode(raw: unknown): DiagramNode | null {
 
 function toEdge(raw: unknown): DiagramEdge | null {
   if (!isRecord(raw)) return null;
-  const { id, artifactType, sourceId, targetId, guard, label } = raw;
+  const { id, artifactType, sourceId, targetId, guard, label, routing, waypoints, lineStyle } = raw;
   if (![id, artifactType, sourceId, targetId].every((value) => typeof value === 'string')) return null;
   if (guard !== null && typeof guard !== 'string') return null;
+  const validWaypoints = Array.isArray(waypoints)
+    ? waypoints.filter((point): point is { x: number; y: number } => isRecord(point) && isFiniteNumber(point.x) && isFiniteNumber(point.y))
+    : [];
   return {
     id: id as string,
     artifactType: artifactType as string,
@@ -123,8 +133,14 @@ function toEdge(raw: unknown): DiagramEdge | null {
     targetId: targetId as string,
     guard,
     label: typeof label === 'string' ? label : '',
+    routing: ROUTINGS.includes(routing as EdgeRouting) ? (routing as EdgeRouting) : DEFAULT_EDGE_SHAPE.routing,
+    waypoints: validWaypoints.map((point) => ({ x: point.x, y: point.y })),
+    lineStyle: LINE_STYLES.includes(lineStyle as LineStyle) ? (lineStyle as LineStyle) : null,
   };
 }
+
+const ROUTINGS: EdgeRouting[] = ['orthogonal', 'straight', 'curved'];
+const LINE_STYLES: LineStyle[] = ['solid', 'dashed', 'dotted'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

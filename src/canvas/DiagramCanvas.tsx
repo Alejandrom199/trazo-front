@@ -15,7 +15,7 @@ import {
   type OnDelete,
   type OnNodeDrag,
 } from '@xyflow/react';
-import { absolutePosition, findContainerAt, snapContainerPosition, type Diagram, type DiagramNode, type NodeMove } from '@/core/model';
+import { DEFAULT_EDGE_SHAPE, absolutePosition, findContainerAt, snapContainerPosition, type Diagram, type DiagramNode, type NodeMove } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { createId } from '@/core/utils/id';
@@ -129,6 +129,8 @@ export function DiagramCanvas() {
         targetId: connection.target,
         guard: null,
         label: '',
+        ...DEFAULT_EDGE_SHAPE,
+        waypoints: [],
       });
     },
     [module, showNotice],

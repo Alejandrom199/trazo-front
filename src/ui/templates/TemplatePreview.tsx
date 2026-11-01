@@ -1,7 +1,7 @@
-import { getSmoothStepPath } from '@xyflow/react';
 import { absolutePosition, type Diagram } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
-import { floatingEndpoints, type Rect } from '@/canvas/edgeGeometry';
+import type { Rect } from '@/canvas/edgeGeometry';
+import { buildEdgePath, dashArrayFor } from '@/canvas/edgePath';
 
 interface TemplatePreviewProps {
   diagram: Diagram;
@@ -58,9 +58,9 @@ export function TemplatePreview({ diagram, module, width, height }: TemplatePrev
             const source = rects.get(edge.sourceId);
             const target = rects.get(edge.targetId);
             if (!source || !target) return null;
-            const [path] = getSmoothStepPath({ ...floatingEndpoints(source, target), borderRadius: 10, offset: 18 });
-            const dashed = module.edgeKinds[edge.artifactType]?.dashed;
-            return <path key={edge.id} d={path} style={{ fill: 'none', stroke: 'var(--color-edge)' }} strokeWidth={1.5} strokeDasharray={dashed ? '5 4' : undefined} />;
+            const { d } = buildEdgePath(source, target, edge.routing, edge.waypoints);
+            const style = edge.lineStyle ?? (module.edgeKinds[edge.artifactType]?.dashed ? 'dashed' : 'solid');
+            return <path key={edge.id} d={d} style={{ fill: 'none', stroke: 'var(--color-edge)' }} strokeWidth={1.5} strokeDasharray={dashArrayFor(style)} />;
           })}
         </svg>
       </div>

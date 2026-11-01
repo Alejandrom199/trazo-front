@@ -14,7 +14,7 @@ const node: DiagramNode = {
   notes: '',
   locked: false,
 };
-const edge: DiagramEdge = { id: 'e', artifactType: 'controlFlow', sourceId: 'a', targetId: 'a', guard: null, label: '' };
+const edge: DiagramEdge = { id: 'e', artifactType: 'controlFlow', sourceId: 'a', targetId: 'a', guard: null, label: '', routing: 'orthogonal', waypoints: [], lineStyle: null };
 const diagram = { ...createEmptyDiagram({ diagramType: 'activity', name: 't' }), nodes: [node], edges: [edge] };
 
 describe('resolveExplanationTarget', () => {
