@@ -1,9 +1,11 @@
-import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons';
+import { faArrowUpRightFromSquare, faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useCallback, useEffect } from 'react';
 import { useElementClickStore } from '@/canvas/elementClickStore';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { createDiagramFromTemplate, linkedTemplateId } from '@/core/model';
+import { diagramRegistry } from '@/core/registry';
 import { ArtifactPopover } from './ArtifactPopover';
 import { EdgeProperties, NodeProperties } from './ElementProperties';
 
@@ -65,12 +67,19 @@ export function CanvasArtifactPopover() {
       subtitle={subtitle}
       footer={footer}
       properties={properties}
-      headerActions={'locked' in element ? <LockButton nodeId={element.id} locked={element.locked} /> : undefined}
+      headerActions={'locked' in element ? <><LinkedDiagramButton props={element.props} onOpen={close} /><LockButton nodeId={element.id} locked={element.locked} /></> : undefined}
       detailsOpen={expanded}
       onToggleDetails={() => setExpanded(!expanded)}
       onClose={close}
     />
   );
+}
+
+function LinkedDiagramButton({ props, onOpen }: { props: Record<string, unknown>; onOpen: () => void }) {
+  const templateId = linkedTemplateId(props);
+  const template = templateId ? diagramRegistry.list().flatMap((module) => module.templates).find((candidate) => candidate.id === templateId) : undefined;
+  if (!template) return null;
+  return <button type="button" title={`Abrir detalle: ${template.name}`} aria-label={`Abrir diagrama relacionado: ${template.name}`} onClick={() => { useDiagramStore.getState().openDiagram(createDiagramFromTemplate(template)); onOpen(); }} className="flex size-7 items-center justify-center rounded-lg bg-accent-soft text-xs text-accent hover:bg-brand hover:text-white"><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></button>;
 }
 
 /** Candado del encabezado: muestra si el nodo está bloqueado y lo alterna con un clic. */

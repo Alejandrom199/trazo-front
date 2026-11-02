@@ -2,6 +2,7 @@ import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import { containerJoints, protectedNodeIds, type ContainerJoints, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
 import type { ArrowHead, DiagramModule } from '@/core/registry';
 import { dashArrayFor } from './edgePath';
+import type { CanvasPresentation } from './canvasView';
 
 /**
  * Traducción de nuestro modelo (Diagram) a los objetos que dibuja React Flow.
@@ -39,6 +40,8 @@ export function toFlowNodes(
   module: DiagramModule,
   selection: ElementIds,
   highlight: CanvasHighlight = NO_HIGHLIGHT,
+  presentation?: CanvasPresentation,
+  selectContainers = true,
 ): ArtifactFlowNode[] {
   const selected = new Set(selection.nodeIds);
   const undeletable = protectedNodeIds(diagram);
@@ -51,12 +54,15 @@ export function toFlowNodes(
       className: classNames(
         (module.nodeKinds[node.artifactType]?.isContainer || module.nodeKinds[node.artifactType]?.gripOnly) && 'trazo-container',
         highlight.ids.has(node.id) && highlight.className,
+        presentation?.dimmedNodeIds.has(node.id) && 'trazo-dimmed',
+        node.artifactType === 'note' && 'trazo-secondary-detail',
       ),
       position: node.position,
       width: node.size.width,
       height: node.size.height,
       parentId: node.parentId ?? undefined,
       selected: selected.has(node.id),
+      selectable: selectContainers || !isContainer(node),
       connectable: module.nodeKinds[node.artifactType]?.connectable ?? false,
       // Bloqueado: React Flow no lo deja arrastrar; ni a él ni a su carril, borrar con Supr.
       draggable: !node.locked,
@@ -82,6 +88,7 @@ export function toFlowEdges(
   module: DiagramModule,
   selection: ElementIds,
   highlight: CanvasHighlight = NO_HIGHLIGHT,
+  presentation?: CanvasPresentation,
 ): FlowEdge[] {
   const selected = new Set(selection.edgeIds);
   return diagram.edges.map((edge) => {
@@ -94,9 +101,10 @@ export function toFlowEdges(
       source: edge.sourceId,
       target: edge.targetId,
       selected: isSelected,
-      className: classNames(highlight.ids.has(edge.id) && highlight.className),
+      className: classNames(highlight.ids.has(edge.id) && highlight.className, presentation?.dimmedEdgeIds.has(edge.id) && 'trazo-dimmed', /annotation/i.test(edge.artifactType) && 'trazo-secondary-detail'),
       data: { edge },
       markerEnd: kind?.arrow ? { type: ARROW_MARKERS[kind.arrow], color, width: 16, height: 16 } : undefined,
+      markerStart: kind?.sourceMarker ? `url(#trazo-${kind.sourceMarker})` : undefined,
       style: {
         stroke: color,
         strokeWidth: 1.5,

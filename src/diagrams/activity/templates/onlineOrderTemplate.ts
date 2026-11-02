@@ -41,7 +41,7 @@ function buildOnlineOrderTemplate() {
 
   return t.build({
     id: 'activity.online-order',
-    name: 'Pedido online',
+    name: 'Pedido en línea',
     description:
       'Un pedido recorre tres responsables: el cliente compra, el sistema verifica y cobra, y la bodega prepara y despacha.',
     difficulty: 'intermedio',

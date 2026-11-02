@@ -1,4 +1,4 @@
-import type { Diagram, DiagramEdge, DiagramNode, Narration } from '@/core/model';
+import type { Diagram, DiagramEdge, DiagramNode, Narration, NarrationKind } from '@/core/model';
 import { ActivityArtifact as A } from './artifactTypes';
 import { buildFlowGraph, outgoingOf, startNodeIds, type FlowGraph } from './rules/flowGraph';
 
@@ -47,16 +47,16 @@ class ActivityNarrator {
   run(): Narration {
     const starts = this.orderedStarts();
     if (starts.length === 0) {
-      this.say(0, 'El diagrama no tiene nodo inicial, así que no se puede saber por dónde empieza.', []);
+      this.say(0, 'El diagrama no tiene nodo inicial, así que no se puede saber por dónde empieza.', [], [], 'warning');
       return this.lines;
     }
 
     const title = this.diagram.name.trim();
     starts.forEach((start, index) => {
       if (index === 0) {
-        this.say(0, title ? `El proceso «${title}» empieza en el nodo inicial.` : 'El proceso empieza en el nodo inicial.', [start]);
+        this.say(0, title ? `El proceso «${title}» empieza en el nodo inicial.` : 'El proceso empieza en el nodo inicial.', [start], [], 'start');
       } else {
-        this.say(0, this.independentStartText(start), [start]);
+        this.say(0, this.independentStartText(start), [start], [], 'start');
       }
       this.told.add(start.id);
       this.nextConnector = 'primero, ';
@@ -95,13 +95,13 @@ class ActivityNarrator {
   private describeDecision(node: DiagramNode, exits: DiagramEdge[], depth: number, stopAt: ReadonlySet<string>): WalkEnd {
     // Con pregunta escrita, la narración la cita: "se toma una decisión: ¿Hay stock?".
     const question = node.label.trim();
-    this.say(depth, `${this.connector()}se toma una decisión${question ? `: ${question}` : ':'}`, [node]);
+    this.say(depth, `${this.connector()}se toma una decisión${question ? `: ${question}` : ':'}`, [node], [], 'decision');
     const lane = this.currentLane;
     const meeting = this.meetingPoint(exits, A.merge);
     const innerStop = withMeeting(stopAt, meeting);
 
     const ends = orderBranches(exits).map((exit) => {
-      this.say(depth + 1, exit.guard?.trim() ? `Si [${exit.guard.trim()}]:` : 'Por el camino sin guarda:', [], [exit]);
+      this.say(depth + 1, exit.guard?.trim() ? `Si [${exit.guard.trim()}]:` : 'Por el camino sin guarda:', [], [exit], 'branch');
       this.startBranch(lane);
       return this.walk(exit, depth + 2, innerStop);
     });
@@ -113,13 +113,13 @@ class ActivityNarrator {
       node.artifactType === A.fork
         ? `${this.connector()}el flujo se divide: ${exits.length} tareas ocurren en paralelo.`
         : `${this.connector()}el flujo sigue por ${exits.length} caminos a la vez.`;
-    this.say(depth, intro, [node]);
+    this.say(depth, intro, [node], [], 'parallel');
     const lane = this.currentLane;
     const meeting = this.meetingPoint(exits, A.join);
     const innerStop = withMeeting(stopAt, meeting);
 
     const ends = exits.map((exit, index) => {
-      this.say(depth + 1, `Rama ${index + 1}:`, [], [exit]);
+      this.say(depth + 1, `Rama ${index + 1}:`, [], [exit], 'branch');
       this.startBranch(lane);
       return this.walk(exit, depth + 2, innerStop);
     });
@@ -138,7 +138,7 @@ class ActivityNarrator {
     const someoneArrived = ends.some((end) => end.kind === 'converged' && end.nodeId === meeting);
     if (!meetingNode || !someoneArrived) return { kind: 'ended' };
 
-    this.say(depth, meetingText, [meetingNode]);
+    this.say(depth, meetingText, [meetingNode], [], 'merge');
     this.told.add(meetingNode.id);
     this.nextConnector = 'luego, ';
     return this.continueAfter(meetingNode, depth, stopAt);
@@ -187,9 +187,9 @@ class ActivityNarrator {
       case A.objectNode:
         return this.sayStep(depth, `se genera el objeto ${label ? `«${label}»` : 'sin nombre'}.`, node, edge);
       case A.activityFinal:
-        return this.sayStep(depth, 'el proceso termina.', node, edge);
+        return this.sayStep(depth, 'el proceso termina.', node, edge, 'end');
       case A.flowFinal:
-        return this.sayStep(depth, 'este flujo termina; el resto del proceso sigue su curso.', node, edge);
+        return this.sayStep(depth, 'este flujo termina; el resto del proceso sigue su curso.', node, edge, 'end');
       default:
         // Nodos de control (fusión, join, decisión, fork) no se narran como pasos:
         // su efecto se cuenta en la estructura (decisiones, ramas, reuniones).
@@ -198,11 +198,11 @@ class ActivityNarrator {
   }
 
   /** Frase de un paso: conector + carril (si cambió) + texto. */
-  private sayStep(depth: number, text: string, node: DiagramNode, edge: DiagramEdge): void {
+  private sayStep(depth: number, text: string, node: DiagramNode, edge: DiagramEdge, kind: 'step' | 'end' = 'step'): void {
     const lane = node.parentId ? (this.laneNameById.get(node.parentId) ?? null) : null;
     const laneText = lane && lane !== this.currentLane ? `en «${lane}», ` : '';
     if (lane) this.currentLane = lane;
-    this.say(depth, `${this.connector()}${laneText}${text}`, [node], [edge]);
+    this.say(depth, `${this.connector()}${laneText}${text}`, [node], [edge], kind);
   }
 
   /**
@@ -223,7 +223,7 @@ class ActivityNarrator {
 
   private describeEnd(node: DiagramNode, depth: number): WalkEnd {
     const isFinal = node.artifactType === A.activityFinal || node.artifactType === A.flowFinal;
-    if (!isFinal) this.say(depth, 'Aquí el flujo se detiene: no hay más pasos.', [node]);
+    if (!isFinal) this.say(depth, 'Aquí el flujo se detiene: no hay más pasos.', [node], [], 'warning');
     return { kind: 'ended' };
   }
 
@@ -245,9 +245,16 @@ class ActivityNarrator {
     return nextNode?.label.trim() ? `«${nextNode.label.trim()}»` : 'un paso anterior';
   }
 
-  private say(depth: number, text: string, nodes: DiagramNode[], edges: DiagramEdge[] = []): void {
+  private say(
+    depth: number,
+    text: string,
+    nodes: DiagramNode[],
+    edges: DiagramEdge[] = [],
+    kind: NarrationKind = 'step',
+  ): void {
     this.lines.push({
       text: capitalize(text),
+      kind,
       depth,
       nodeIds: nodes.map((node) => node.id),
       edgeIds: edges.map((edge) => edge.id),

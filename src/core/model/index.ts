@@ -8,3 +8,4 @@ export * from './connection';
 export * from './operations';
 export * from './containerLayout';
 export * from './horizontalEdge';
+export * from './viewMetadata';

@@ -6,16 +6,19 @@ import type { DiagramType } from '@/core/model';
  *   #/                     → editor
  *   #/aprender             → página Aprender (tarjetas de diagramas)
  *   #/aprender/activity    → guía de un tipo de diagrama
+ *   #/aprender/flow-uml    → recorrido UML en ingeniería de software
  * Al vivir en la URL, los botones Atrás/Adelante del navegador funcionan solos.
  */
 export type Route =
   | { page: 'editor' }
   | { page: 'learn' }
+  | { page: 'learn-flow' }
   | { page: 'learn-diagram'; diagramType: DiagramType };
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   if (parts[0] !== 'aprender') return { page: 'editor' };
+  if (parts[1] === 'flow-uml') return { page: 'learn-flow' };
   const diagramType = parts[1];
   return diagramType ? { page: 'learn-diagram', diagramType: diagramType as DiagramType } : { page: 'learn' };
 }
@@ -26,6 +29,8 @@ export function routeToHash(route: Route): string {
       return '#/';
     case 'learn':
       return '#/aprender';
+    case 'learn-flow':
+      return '#/aprender/flow-uml';
     case 'learn-diagram':
       return `#/aprender/${route.diagramType}`;
   }

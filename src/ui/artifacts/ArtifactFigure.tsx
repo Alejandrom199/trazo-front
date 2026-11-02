@@ -17,10 +17,11 @@ interface ArtifactFigureProps {
  * y oscuro (un carril escalado al 5 % perdía el borde).
  */
 export function ArtifactFigure({ kind, artifactType, box, label }: ArtifactFigureProps) {
+  const size = kind.previewSize ?? kind.defaultSize;
   const minSide = Math.min(box.width, box.height) * 0.6;
-  const scale = Math.min(box.width / kind.defaultSize.width, box.height / kind.defaultSize.height, 1);
-  const width = Math.max(kind.defaultSize.width * scale, minSide);
-  const height = Math.max(kind.defaultSize.height * scale, Math.min(minSide, kind.defaultSize.height));
+  const scale = Math.min(box.width / size.width, box.height / size.height, 1);
+  const width = Math.max(size.width * scale, minSide);
+  const height = Math.max(size.height * scale, Math.min(minSide, size.height));
   const figureNode: DiagramNode = {
     id: `figure-${artifactType}`,
     artifactType,

@@ -6,6 +6,7 @@ import {
   ConnectionMode,
   Controls,
   ReactFlow,
+  SelectionMode,
   useReactFlow,
   type Connection,
   type EdgeChange,
@@ -30,6 +31,10 @@ import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
 import { LockBadges } from './LockBadges';
 import { centerInParent, placeArtifact } from './placeArtifact';
+import { canvasPresentation } from './canvasView';
+import { useCanvasViewStore } from './canvasViewStore';
+import { useCanvasInteractionStore } from './canvasInteractionStore';
+import { CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
@@ -41,12 +46,12 @@ const NOTICE_DURATION_MS = 3500;
 const FREE_SNAP_STEP = 10;
 
 /**
- * Margen al encuadrar: deja libre el espacio de la barra superior y del panel
- * flotante de la derecha (que en pantallas angostas no se abre solo).
+ * Margen al encuadrar: deja libres la barra superior, el panel de la derecha y
+ * la barra de problemas inferior (44 px de alto, separada 12 px del borde).
  */
 function fitPadding(): { top: `${number}px`; left: `${number}px`; right: `${number}px`; bottom: `${number}px` } {
   const wide = window.innerWidth >= WIDE_SCREEN;
-  return { top: '76px', left: '24px', right: wide ? '400px' : '24px', bottom: '32px' } as const;
+  return { top: '76px', left: '24px', right: wide ? '400px' : '24px', bottom: '76px' } as const;
 }
 
 /** Ancho a partir del cual el panel de la derecha convive con el lienzo. */
@@ -68,9 +73,15 @@ export function DiagramCanvas() {
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
   useFitViewOnOpen(diagram?.id);
+  useResetViewOnOpen(diagram?.id);
   const highlight = useHighlightStore((state) => state.highlight);
   useFitViewOnHighlight(highlight);
   const grid = useGridStore();
+  const viewMode = useCanvasViewStore((state) => state.mode);
+  const detailMode = useCanvasViewStore((state) => state.detail);
+  const focus = useCanvasViewStore((state) => state.focus);
+  const canvasTool = useCanvasInteractionStore((state) => state.tool);
+  const [zoom, setZoom] = useState(1);
   // Con cuadrícula visible, los nodos se ajustan a sus celdas; sin ella, a un paso fino.
   const snapStep = grid.visible ? grid.size : FREE_SNAP_STEP;
 
@@ -81,13 +92,17 @@ export function DiagramCanvas() {
     }),
     [highlight],
   );
+  const presentation = useMemo(
+    () => diagram ? canvasPresentation(diagram, selection, viewMode, focus) : undefined,
+    [diagram, selection, viewMode, focus],
+  );
   const nodes = useMemo(
-    () => (diagram && module ? toFlowNodes(diagram, module, selection, canvasHighlight) : []),
-    [diagram, module, selection, canvasHighlight],
+    () => (diagram && module ? toFlowNodes(diagram, module, selection, canvasHighlight, presentation, canvasTool !== 'marquee') : []),
+    [diagram, module, selection, canvasHighlight, presentation, canvasTool],
   );
   const edges = useMemo(
-    () => (diagram && module ? toFlowEdges(diagram, module, selection, canvasHighlight) : []),
-    [diagram, module, selection, canvasHighlight],
+    () => (diagram && module ? toFlowEdges(diagram, module, selection, canvasHighlight, presentation) : []),
+    [diagram, module, selection, canvasHighlight, presentation],
   );
 
   const onNodesChange = useCallback(
@@ -173,7 +188,7 @@ export function DiagramCanvas() {
   );
 
   return (
-    <div className="relative size-full" onDragOver={onDragOver} onDrop={onDrop}>
+    <div className={`relative size-full ${(detailMode === 'compact' || (detailMode === 'auto' && zoom < 0.62)) ? 'trazo-detail-compact' : ''}`} onDragOver={onDragOver} onDrop={onDrop}>
       <ReactFlow<ArtifactFlowNode, FlowEdge>
         nodes={nodes}
         edges={edges}
@@ -195,6 +210,7 @@ export function DiagramCanvas() {
           clearElementClick();
           useContextMenuStore.getState().close();
         }}
+        onMove={(_event, viewport) => setZoom(viewport.zoom)}
         onPaneContextMenu={(event) => openContextMenu(event, { kind: 'pane' }, screenToFlowPosition)}
         onNodeContextMenu={(event, node) => openContextMenu(event, { kind: 'node', id: node.id }, screenToFlowPosition)}
         onEdgeContextMenu={(event, edge) => openContextMenu(event, { kind: 'edge', id: edge.id }, screenToFlowPosition)}
@@ -202,6 +218,12 @@ export function DiagramCanvas() {
           useHighlightStore.getState().setHighlight(null);
           clearElementClick();
         }}
+        multiSelectionKeyCode="Shift"
+        selectionKeyCode={null}
+        selectionOnDrag={canvasTool === 'marquee'}
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={canvasTool === 'move'}
+        nodesDraggable={canvasTool === 'move'}
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
@@ -214,6 +236,16 @@ export function DiagramCanvas() {
         maxZoom={2}
         zoomOnDoubleClick={false}
       >
+        <svg className="pointer-events-none absolute size-0" aria-hidden>
+          <defs>
+            <marker id="trazo-diamond-open" markerWidth="14" markerHeight="10" refX="2" refY="5" orient="auto-start-reverse" markerUnits="strokeWidth">
+              <path d="M1 5 7 1 13 5 7 9Z" fill="var(--color-shape-fill)" stroke="var(--color-edge)" strokeWidth="1.2" />
+            </marker>
+            <marker id="trazo-diamond-filled" markerWidth="14" markerHeight="10" refX="2" refY="5" orient="auto-start-reverse" markerUnits="strokeWidth">
+              <path d="M1 5 7 1 13 5 7 9Z" fill="var(--color-edge)" stroke="var(--color-edge)" strokeWidth="1.2" />
+            </marker>
+          </defs>
+        </svg>
         {grid.visible ? (
           <Background variant={BackgroundVariant.Lines} gap={grid.size} lineWidth={1} color="var(--color-line)" />
         ) : (
@@ -223,10 +255,16 @@ export function DiagramCanvas() {
         <LockBadges />
       </ReactFlow>
 
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
+        <div className="pointer-events-auto">
+          <CanvasSelectionToolbar />
+        </div>
+      </div>
+
       {notice && (
         <div
           role="status"
-          className="pointer-events-none absolute bottom-6 left-1/2 max-w-md -translate-x-1/2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink-600 shadow-panel"
+          className="pointer-events-none absolute top-20 left-1/2 z-30 max-w-md -translate-x-1/2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink-600 shadow-panel"
         >
           {notice}
         </div>
@@ -253,6 +291,12 @@ function openContextMenu(
 
 /** Publica el clic en un nodo con el rectángulo del nodo en pantalla (para ubicar el popup a su lado). */
 function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
+  if (event.shiftKey) {
+    const { selection } = store();
+    store().setSelection({ ...selection, nodeIds: [...new Set([...selection.nodeIds, nodeId])] });
+    clearElementClick();
+    return;
+  }
   const element = (event.target as Element).closest('.react-flow__node');
   const rect = (element ?? (event.currentTarget as Element)).getBoundingClientRect();
   useElementClickStore.getState().setClicked({ kind: 'node', id: nodeId, rect });
@@ -260,6 +304,12 @@ function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
 
 /** En una flecha no hay rectángulo útil: se usa el punto exacto donde se hizo clic. */
 function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
+  if (event.shiftKey) {
+    const { selection } = store();
+    store().setSelection({ ...selection, edgeIds: [...new Set([...selection.edgeIds, edgeId])] });
+    clearElementClick();
+    return;
+  }
   const rect = { left: event.clientX, top: event.clientY, right: event.clientX, bottom: event.clientY };
   useElementClickStore.getState().setClicked({ kind: 'edge', id: edgeId, rect });
 }
@@ -361,6 +411,12 @@ function useFitViewOnOpen(diagramId: string | undefined) {
     const frame = window.requestAnimationFrame(() => void fitView({ padding: fitPadding(), maxZoom: 1 }));
     return () => window.cancelAnimationFrame(frame);
   }, [diagramId, fitView]);
+}
+
+function useResetViewOnOpen(diagramId: string | undefined) {
+  useEffect(() => {
+    if (diagramId) useCanvasViewStore.getState().reset();
+  }, [diagramId]);
 }
 
 /**

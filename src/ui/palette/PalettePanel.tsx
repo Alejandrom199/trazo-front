@@ -7,8 +7,11 @@ import {
   faCube,
   faMagnifyingGlass,
   faNoteSticky,
+  faObjectGroup,
   faShapes,
   faTableColumns,
+  faTimeline,
+  faUser,
   faXmark,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
@@ -33,6 +36,9 @@ const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
   'nodo de objeto': faCube,
   agrupación: faTableColumns,
   anotación: faNoteSticky,
+  participante: faUser,
+  ocurrencia: faTimeline,
+  'fragmento combinado': faObjectGroup,
 };
 
 const TIP_SEEN_KEY = 'trazo.contextMenuTipSeen';

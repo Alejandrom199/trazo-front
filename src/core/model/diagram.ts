@@ -3,7 +3,7 @@
  * es la "entidad" que se guarda, se valida y se narra.
  */
 
-/** Tipos de diagrama conocidos. Hoy solo se implementa "activity". */
+/** Tipos de diagrama conocidos; algunos pueden estar planificados y aún no registrados. */
 export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class';
 
 /**

@@ -40,6 +40,7 @@ describe('narrador del diagrama de actividades', () => {
       'Luego, se ejecuta «Pagar».',
       'Luego, el proceso termina.',
     ]);
+    expect(narrateActivity(diagram).map((line) => line.kind)).toEqual(['start', 'step', 'step', 'end']);
   });
 
   it('Dado el login, Entonces narra la decisión con sus guardas y el bucle de reintento', () => {
@@ -49,6 +50,9 @@ describe('narrador del diagrama de actividades', () => {
     expect(text).toContain('Si [credenciales válidas]:');
     expect(text).toContain('Si [credenciales inválidas]:');
     expect(text).toContain('Después vuelve a «Ingresar usuario y contraseña».');
+    expect(narrateActivity(loginTemplate.diagram).map((line) => line.kind)).toEqual(
+      expect.arrayContaining(['decision', 'branch']),
+    );
   });
 
   it('Dado el pedido online, Entonces dice quién hace cada paso según el carril', () => {
@@ -69,6 +73,7 @@ describe('narrador del diagrama de actividades', () => {
     expect(text).toContain('Cuando terminan las ramas que llegan al join, el proceso continúa.');
     expect(text.at(-1)).toBe('Luego, el proceso termina.');
     expect(lines.find((line) => line.text.startsWith('Rama 1'))?.depth).toBe(1);
+    expect(lines.map((line) => line.kind)).toEqual(expect.arrayContaining(['parallel', 'branch', 'merge', 'end']));
   });
 
   it('Dada la aprobación, Entonces narra señales, objetos y la espera independiente del aprobador', () => {

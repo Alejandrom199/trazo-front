@@ -25,7 +25,7 @@ function buildLoginTemplate() {
 
   return t.build({
     id: 'activity.login',
-    name: 'Login de usuario',
+    name: 'Inicio de sesión',
     description:
       'El usuario ingresa sus credenciales; si son inválidas ve un error y vuelve a intentarlo, si son válidas entra al sistema.',
     difficulty: 'básico',

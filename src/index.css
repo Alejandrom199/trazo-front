@@ -114,6 +114,16 @@ select {
   @apply size-8 border-line bg-surface fill-ink-600 text-ink-600 hover:bg-raised;
 }
 
+/* El marco de selección múltiple se distingue del fondo sin ocultar el diagrama. */
+.react-flow__selection {
+  border: 1px solid color-mix(in oklch, var(--color-accent) 78%, transparent);
+  background: color-mix(in oklch, var(--color-accent) 13%, transparent);
+}
+.react-flow__nodesselection-rect {
+  border: 1px solid color-mix(in oklch, var(--color-accent) 62%, transparent);
+  background: color-mix(in oklch, var(--color-accent) 7%, transparent);
+}
+
 /* Marca de React Flow discreta y sin fondo blanco (se ve bien en ambos temas). */
 .react-flow__attribution {
   @apply bg-transparent text-ink-400;
@@ -181,6 +191,32 @@ select {
 .react-flow__edge.trazo-highlight .react-flow__edge-path {
   stroke: rgb(var(--highlight)) !important;
   stroke-width: 2.5 !important;
+}
+
+/* Vistas del lienzo: lo secundario permanece disponible, pero deja de competir
+   con el escenario que el usuario está leyendo. */
+.react-flow__node.trazo-dimmed {
+  opacity: 0.16;
+  filter: saturate(0.25);
+}
+.react-flow__edge.trazo-dimmed {
+  opacity: 0.1;
+}
+.react-flow__node,
+.react-flow__edge {
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+/* Zoom semántico: en detalle compacto se conservan las figuras y el flujo,
+   pero desaparecen los textos auxiliares y los puntos de edición. */
+.trazo-detail-compact .trazo-edge-label,
+.trazo-detail-compact .react-flow__handle,
+.trazo-detail-compact .react-flow__resize-control {
+  display: none;
+}
+.trazo-detail-compact .trazo-secondary-detail {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes trazo-pulse {

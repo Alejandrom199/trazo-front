@@ -19,7 +19,7 @@ interface UiState {
   /** Tema visual; se aplica como data-theme en <html> y lo leen las variables de index.css. */
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  /** Galería de plantillas: se muestra al abrir la app y con "Nuevo". */
+  /** Selector para crear, reabrir o explorar ejemplos: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
   /** Paleta de artefactos plegada a una columna de miniaturas. */

@@ -1,4 +1,4 @@
-import { faArrowRight, faDiagramProject, faLayerGroup, faPeopleArrows, faSitemap, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faDiagramProject, faLayerGroup, faPeopleArrows, faRoute, faSitemap, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { DiagramType } from '@/core/model';
 import { diagramRegistry } from '@/core/registry';
@@ -41,6 +41,25 @@ export function LearnHome() {
           que puedes abrir en el editor y los errores más comunes.
         </p>
       </header>
+
+      <button
+        type="button"
+        onClick={() => navigate({ page: 'learn-flow' })}
+        className="group mt-8 flex w-full items-center gap-5 overflow-hidden rounded-xl border border-accent/30 bg-accent-soft p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+          <FontAwesomeIcon icon={faRoute} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-semibold text-ink-900">Flow UML</span>
+          <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-ink-600">
+            Recorre las fases de ingeniería de software y descubre qué pregunta responde cada diagrama UML.
+          </span>
+        </span>
+        <span className="hidden items-center gap-1.5 text-sm font-medium text-accent sm:flex">
+          Ver recorrido <FontAwesomeIcon icon={faArrowRight} className="text-xs transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </button>
 
       <div className="mt-8 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
         {available.map((module) => (

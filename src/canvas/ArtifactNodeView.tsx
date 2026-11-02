@@ -56,7 +56,7 @@ export function ArtifactNodeView({ id, data, selected }: NodeProps<ArtifactFlowN
         />
       )}
       <div className="size-full" onDoubleClick={kind.hasLabel ? () => startEditing(id) : undefined}>
-        <Shape node={node} selected={selected} label={label} joints={data.joints} />
+        <Shape node={node} selected={selected} editing={isEditing} label={label} joints={data.joints} />
       </div>
       {kind.connectable &&
         SIDES.map((side) => <Handle key={side} id={side} type="source" position={side} className="trazo-handle" />)}

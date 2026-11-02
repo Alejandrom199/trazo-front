@@ -52,7 +52,7 @@ export function ValidationPanel() {
   }
 
   return (
-    <div className="w-full max-w-[560px] min-w-0 overflow-hidden md:min-w-72 rounded-xl border border-line bg-surface shadow-panel">
+    <div className="w-full min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
       {expanded && (
         <ul className="max-h-[38vh] divide-y divide-line overflow-y-auto border-b border-line">
           {issues.length === 0 ? (
@@ -81,7 +81,7 @@ export function ValidationPanel() {
         aria-expanded={expanded}
         className="flex h-11 w-full items-center gap-3 px-4 text-left hover:bg-raised sm:gap-4"
       >
-        <span className="text-xs font-semibold uppercase tracking-wider text-ink-400">Problemas</span>
+        <span className="text-xs font-semibold text-ink-600">Problemas</span>
         {issues.length === 0 ? (
           <span className="flex items-center gap-1.5 text-xs font-medium text-success">
             <FontAwesomeIcon icon={faCheck} className="text-[11px]" />

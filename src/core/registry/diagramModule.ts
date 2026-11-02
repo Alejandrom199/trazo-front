@@ -7,6 +7,7 @@ import type {
   DiagramEdge,
   DiagramNode,
   DiagramType,
+  Difficulty,
   Narration,
   Size,
   Template,
@@ -21,6 +22,8 @@ import type {
 export interface ArtifactNodeProps {
   node: DiagramNode;
   selected: boolean;
+  /** Indica que la etiqueta contiene el editor activo en lugar de su vista de lectura. */
+  editing?: boolean;
   /**
    * La etiqueta ya resuelta por el lienzo: texto, o un campo de edición si el
    * usuario está escribiendo. El componente solo decide DÓNDE ponerla.
@@ -97,6 +100,11 @@ export interface NodeKind {
   layer?: 'back';
   /** Al soltarlo dentro de un contenedor, se centra en él horizontalmente. */
   centerInContainer?: boolean;
+  /**
+   * Tamaño con el que se dibuja fuera del lienzo (paleta, Aprender) si el de
+   * por defecto es muy alargado y su miniatura no se reconocería.
+   */
+  previewSize?: Size;
 }
 
 /** Lee si un nodo se pega a sus vecinos (imán). */
@@ -117,6 +125,8 @@ export interface EdgeKind {
   dashed: boolean;
   /** Punta en el destino; null = sin punta. */
   arrow: ArrowHead | null;
+  /** Rombo en el origen para agregación y composición. */
+  sourceMarker?: 'diamond-open' | 'diamond-filled';
   /** Qué texto admite; null = ninguno. */
   text: EdgeTextKind | null;
   /** Cómo se llama ese texto en el panel de propiedades (por defecto "Guarda" o "Texto"). */
@@ -147,6 +157,53 @@ export interface DiagramGuide {
   /** La idea que, una vez entendida, hace que todo lo demás encaje. */
   keyIdea: { title: string; text: string };
   howToRead: GuideStep[];
+  /** Qué hace que un ejemplo sea básico, intermedio o avanzado en este tipo concreto. */
+  difficultyCriteria?: { name: Difficulty; description: string }[];
+  /** Talleres opcionales que convierten la guía en práctica guiada. */
+  workshop?: LearningWorkshop;
+}
+
+export interface LearningOption {
+  id: string;
+  label: string;
+  explanation: string;
+  correct: boolean;
+}
+
+export interface LearningQuestion {
+  id: string;
+  prompt: string;
+  options: LearningOption[];
+}
+
+export interface CorrectionChallenge {
+  id: string;
+  title: string;
+  context: string;
+  diagram: Template;
+  question: LearningQuestion;
+  expectedProblems: number;
+}
+
+export interface BriefExercise {
+  id: string;
+  title: string;
+  brief: string;
+  questions: LearningQuestion[];
+}
+
+export interface ModelComparison {
+  id: string;
+  title: string;
+  context: string;
+  options: LearningOption[];
+}
+
+export interface LearningWorkshop {
+  levels: { name: Difficulty; description: string }[];
+  correctionChallenges: CorrectionChallenge[];
+  briefExercises: BriefExercise[];
+  comparisons: ModelComparison[];
 }
 
 /**

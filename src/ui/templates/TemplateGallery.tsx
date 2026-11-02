@@ -1,7 +1,14 @@
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowLeft,
+  faChevronRight,
+  faDiagramProject,
+  faPlus,
+  faShapes,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useEffect, type ReactNode } from 'react';
-import { createDiagramFromTemplate, type Difficulty, type Template } from '@/core/model';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createDiagramFromTemplate, type Difficulty, type DiagramType, type Template } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -17,24 +24,45 @@ const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   avanzado: 'bg-danger-soft text-danger',
 };
 
+type GalleryView =
+  | { step: 'start' }
+  | { step: 'examples'; diagramType: DiagramType };
+
+/** Nombre corto para opciones donde el contexto ya deja claro que es un diagrama. */
+function shortDiagramName(module: DiagramModule): string {
+  const name = module.displayName.replace(/^Diagrama de\s+/i, '');
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 /**
- * Galería para abrir o crear: tus diagramas guardados, uno en blanco o una plantilla.
- * Recorre todos los módulos registrados, así un tipo de diagrama nuevo
- * aparece aquí sin tocar este archivo.
+ * Flujo para crear o abrir diagramas. Las plantillas viven en un recorrido
+ * secundario para que "Nuevo" no presente de golpe todos los ejemplos.
  */
 export function TemplateGallery() {
   const isOpen = useUiStore((state) => state.galleryOpen);
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
   const persistenceAvailable = usePersistenceStore((state) => state.repository !== null);
+  const [view, setView] = useState<GalleryView>({ step: 'start' });
+  const modules = diagramRegistry.list();
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setView({ step: 'start' });
+      return;
+    }
     const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && setGalleryOpen(false);
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [isOpen, setGalleryOpen]);
 
   if (!isOpen) return null;
+
+  const selectedModule = view.step === 'examples' ? diagramRegistry.get(view.diagramType) : null;
+  const title = view.step === 'start' ? 'Nuevo diagrama' : 'Ejemplos';
+  const subtitle =
+    view.step === 'start'
+      ? 'Empieza en blanco, retoma un trabajo o explora un ejemplo cuando lo necesites.'
+      : 'Elige un tipo y abre una copia editable para practicar.';
 
   function openBlank(module: DiagramModule) {
     useDiagramStore.getState().newDiagram({ diagramType: module.diagramType, name: 'Diagrama sin título' });
@@ -46,6 +74,10 @@ export function TemplateGallery() {
     setGalleryOpen(false);
   }
 
+  function goBack() {
+    setView({ step: 'start' });
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-[2px] md:p-6"
@@ -55,73 +87,177 @@ export function TemplateGallery() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="gallery-title"
-        className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
+        className="flex h-[calc(100dvh-1.5rem)] max-h-[760px] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel md:h-[calc(100dvh-3rem)]"
       >
-        {/* Portada en el color de marca, plano. */}
-        <header className="bg-brand relative flex items-start justify-between gap-4 px-5 py-5 text-white md:px-8 md:py-7">
-          <div>
-            <h2 id="gallery-title" className="text-2xl font-semibold tracking-tight">
-              Abrir o crear un diagrama
-            </h2>
-            <p className="mt-1 max-w-xl text-sm text-white/85">
-              Retoma uno de tus diagramas, empieza en blanco o parte de una plantilla que te enseña artefactos concretos.
-            </p>
+        <header className="relative flex items-start justify-between gap-4 bg-brand px-5 py-5 text-white md:px-8 md:py-7">
+          <div className="flex min-w-0 items-start gap-3">
+            {view.step !== 'start' && (
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Volver"
+                className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <FontAwesomeIcon icon={faArrowLeft} className="text-sm" />
+              </button>
+            )}
+            <div className="min-w-0">
+              <h2 id="gallery-title" className="truncate text-2xl font-semibold tracking-tight">
+                {title}
+              </h2>
+              <p className="mt-1 max-w-xl text-sm text-white/85">{subtitle}</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setGalleryOpen(false)}
             aria-label="Cerrar"
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             <FontAwesomeIcon icon={faXmark} className="text-sm" />
           </button>
         </header>
 
-        <div className="overflow-y-auto px-4 py-5 md:px-7 md:py-6">
-          <SavedDiagrams onOpened={() => setGalleryOpen(false)} />
-          {diagramRegistry.list().map((module) => (
-            <section key={module.diagramType}>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">{module.displayName}</h3>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
-                <GalleryCard
-                  onClick={() => openBlank(module)}
-                  preview={
-                    <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-ink-400 text-xl text-ink-400">
-                      +
-                    </span>
-                  }
-                  title="En blanco"
-                  description="Un lienzo vacío para dibujar desde cero."
-                />
-                {module.templates.map((template) => (
-                  <GalleryCard
-                    key={template.id}
-                    onClick={() => openTemplate(template)}
-                    preview={<TemplatePreview diagram={template.diagram} module={module} {...PREVIEW} />}
-                    title={template.name}
-                    badge={
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${DIFFICULTY_STYLE[template.difficulty]}`}>
-                        {template.difficulty}
+        <div className="flex-1 overflow-y-auto px-4 py-5 md:px-7 md:py-6">
+          {view.step === 'start' && (
+            <StartView
+              modules={modules}
+              onOpenBlank={openBlank}
+              onShowExamples={() => {
+                const firstModule = modules[0];
+                if (firstModule) setView({ step: 'examples', diagramType: firstModule.diagramType });
+              }}
+              onSavedOpened={() => setGalleryOpen(false)}
+            />
+          )}
+
+          {view.step === 'examples' && selectedModule && (
+            <section aria-label="Ejemplos por tipo de diagrama">
+              <div role="tablist" aria-label="Tipo de diagrama" className="flex flex-wrap gap-2.5">
+                {modules.map((module) => {
+                  const active = module.diagramType === selectedModule.diagramType;
+                  return (
+                    <button
+                      key={module.diagramType}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setView({ step: 'examples', diagramType: module.diagramType })}
+                      className={`flex items-center gap-2.5 rounded-full border py-2.5 pr-3 pl-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                        active
+                          ? 'border-accent bg-accent-soft text-accent'
+                          : 'border-line bg-raised text-ink-900 hover:border-accent/45 hover:bg-accent-soft'
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={faDiagramProject} className="text-xs" />
+                      <span className="text-sm font-medium">{shortDiagramName(module)}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ${active ? 'bg-surface text-accent' : 'bg-surface text-ink-600'}`}>
+                        {module.templates.length}
                       </span>
-                    }
-                    description={template.description}
-                    goals={template.learningGoals.map(
-                      (type) => module.artifacts.find((artifact) => artifact.type === type)?.name ?? type,
-                    )}
-                  />
-                ))}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div role="tabpanel" className="mt-5 border-t border-line pt-5">
+                <h3 className="mb-3 text-sm font-semibold text-ink-900">Ejemplos de {shortDiagramName(selectedModule).toLowerCase()}</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+                  {selectedModule.templates.map((template) => (
+                    <GalleryCard
+                      key={template.id}
+                      onClick={() => openTemplate(template)}
+                      preview={<TemplatePreview diagram={template.diagram} module={selectedModule} {...PREVIEW} />}
+                      title={template.name}
+                      badge={<DifficultyBadge difficulty={template.difficulty} />}
+                      description={template.description}
+                      goals={template.learningGoals.map(
+                        (type) => selectedModule.artifacts.find((artifact) => artifact.type === type)?.name ?? type,
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
             </section>
-          ))}
+          )}
         </div>
 
-        <footer className="border-t border-line bg-canvas px-4 py-3 md:px-7 text-xs text-ink-600">
+        <footer className="border-t border-line bg-canvas px-4 py-3 text-xs text-ink-600 md:px-7">
           {persistenceAvailable
             ? 'Tus diagramas se guardan solos en este navegador. Para llevarlos a otro equipo, expórtalos como JSON.'
             : 'Este navegador no permite guardar (¿modo privado?): exporta como JSON para no perder tu trabajo.'}
         </footer>
       </div>
     </div>
+  );
+}
+
+function StartView({
+  modules,
+  onOpenBlank,
+  onShowExamples,
+  onSavedOpened,
+}: {
+  modules: DiagramModule[];
+  onOpenBlank: (module: DiagramModule) => void;
+  onShowExamples: () => void;
+  onSavedOpened: () => void;
+}) {
+  return (
+    <>
+      <SavedDiagrams onOpened={onSavedOpened} />
+
+      <section aria-labelledby="blank-diagrams-title">
+        <h3 id="blank-diagrams-title" className="mb-3 text-sm font-semibold text-ink-900">
+          Crear en blanco
+        </h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {modules.map((module) => (
+            <button
+              key={module.diagramType}
+              type="button"
+              onClick={() => onOpenBlank(module)}
+              className="group flex items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left hover:border-accent/45 hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-ink-400 text-accent group-hover:border-accent">
+                <FontAwesomeIcon icon={faPlus} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-ink-900 group-hover:text-accent">{shortDiagramName(module)}</span>
+                <span className="mt-1 block text-xs text-ink-600">Lienzo vacío para construirlo desde cero.</span>
+              </span>
+              <FontAwesomeIcon icon={faChevronRight} className="text-xs text-ink-400 group-hover:text-accent" />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6 border-t border-line pt-5" aria-labelledby="examples-entry-title">
+        <button
+          type="button"
+          onClick={onShowExamples}
+          className="group flex w-full items-center gap-4 rounded-xl bg-accent-soft px-4 py-3.5 text-left hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface text-accent shadow-sm">
+            <FontAwesomeIcon icon={faShapes} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span id="examples-entry-title" className="block text-sm font-semibold text-accent">
+              Ejemplos
+            </span>
+            <span className="mt-0.5 block text-xs text-ink-600">Explora diagramas completos y abre una copia para practicar.</span>
+          </span>
+          <FontAwesomeIcon icon={faChevronRight} className="text-xs text-accent" />
+        </button>
+      </section>
+    </>
+  );
+}
+
+function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${DIFFICULTY_STYLE[difficulty]}`}>
+      {difficulty}
+    </span>
   );
 }
 
@@ -139,7 +275,7 @@ function GalleryCard({ onClick, preview, title, badge, description, goals }: Gal
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col overflow-hidden rounded-xl border border-line bg-surface text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-panel focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
+      className="group flex flex-col overflow-hidden rounded-xl border border-line bg-surface text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 motion-reduce:hover:translate-y-0"
     >
       <div className="flex h-[150px] items-center justify-center border-b border-line bg-canvas">{preview}</div>
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -150,7 +286,7 @@ function GalleryCard({ onClick, preview, title, badge, description, goals }: Gal
         <p className="text-xs leading-relaxed text-ink-600">{description}</p>
         {goals && goals.length > 0 && (
           <div className="mt-auto pt-1">
-            <p className="mb-1.5 text-[11px] font-medium text-ink-400">Aprendes</p>
+            <p className="mb-1.5 text-[11px] font-medium text-ink-400">Incluye</p>
             <div className="flex flex-wrap gap-1">
               {goals.map((goal) => (
                 <span key={goal} className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent">

@@ -46,7 +46,7 @@ export function AppShell() {
                 {narrationOpen ? <NarrationPanel /> : <ExplanationPanel />}
               </div>
 
-              <div className="pointer-events-none absolute right-3 bottom-3 left-14 flex justify-center *:pointer-events-auto md:left-3 lg:right-[22rem]">
+              <div className="pointer-events-none absolute right-3 bottom-16 z-20 w-[min(25rem,calc(100%-1.5rem))] *:pointer-events-auto lg:right-[22rem] xl:bottom-3">
                 <ValidationPanel />
               </div>
 

@@ -4,6 +4,7 @@ import { usePersistenceStore, type SaveStatus } from '@/core/persistence/persist
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { GridControl } from './GridControl';
+import { CanvasViewControl } from './CanvasViewControl';
 
 /**
  * Barra del documento, sobre el lienzo: nombre del diagrama, tipo, estado del
@@ -34,6 +35,7 @@ export function TopBar() {
       </span>
 
       <div className="ml-auto flex items-center gap-0.5">
+        <CanvasViewControl />
         <GridControl />
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         <IconButton label="Deshacer (Ctrl+Z)" icon={faRotateLeft} disabled={!canUndo} onClick={undo} />

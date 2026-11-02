@@ -3,6 +3,7 @@ import { diagramRegistry } from '@/core/registry';
 import type { Route } from '@/ui/navigation/route';
 import { DiagramGuidePage } from './DiagramGuidePage';
 import { LearnHome } from './LearnHome';
+import { FlowUmlPage } from './FlowUmlPage';
 
 /**
  * Página Aprender. Se superpone al editor (que sigue montado debajo), así al
@@ -13,14 +14,14 @@ export function LearnPage({ route }: { route: Exclude<Route, { page: 'editor' }>
   const module = route.page === 'learn-diagram' && diagramRegistry.has(route.diagramType) ? diagramRegistry.get(route.diagramType) : null;
 
   // Cada página empieza arriba.
-  const pageKey = route.page === 'learn-diagram' ? route.diagramType : 'inicio';
+  const pageKey = route.page === 'learn-diagram' ? route.diagramType : route.page;
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [pageKey]);
 
   return (
     <div ref={scrollRef} className="absolute inset-0 z-30 overflow-y-auto bg-canvas">
-      {module ? <DiagramGuidePage module={module} scrollRoot={scrollRef} /> : <LearnHome />}
+      {route.page === 'learn-flow' ? <FlowUmlPage /> : module ? <DiagramGuidePage module={module} scrollRoot={scrollRef} /> : <LearnHome />}
     </div>
   );
 }

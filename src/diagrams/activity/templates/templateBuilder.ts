@@ -51,7 +51,7 @@ export function createTemplateBuilder() {
       return id;
     },
 
-    node(artifactType: string, label: string, center: Position, size?: Size): string {
+    node(artifactType: string, label: string, center: Position, size?: Size, props: Record<string, unknown> = {}): string {
       const kind = activityNodeKinds[artifactType];
       if (!kind) throw new Error(`Artefacto desconocido en plantilla: "${artifactType}".`);
 
@@ -68,14 +68,14 @@ export function createTemplateBuilder() {
         position: { x: topLeft.x - origin.x, y: topLeft.y - origin.y },
         size: { ...finalSize },
         parentId: lane?.id ?? null,
-        props: { ...kind.defaultProps },
+        props: { ...kind.defaultProps, ...props },
         notes: '',
         locked: false,
       });
       return id;
     },
 
-    flow(sourceId: string, targetId: string, guard: string | null = null): void {
+    flow(sourceId: string, targetId: string, guard: string | null = null, props: Record<string, unknown> = {}): void {
       const result = resolveActivityConnection(diagram, sourceId, targetId);
       if (!result.allowed) throw new Error(`Plantilla inválida (${sourceId} → ${targetId}): ${result.reason}`);
       diagram = addEdge(diagram, {
@@ -87,7 +87,7 @@ export function createTemplateBuilder() {
         label: '',
         ...DEFAULT_EDGE_SHAPE,
         waypoints: [],
-        props: {},
+        props,
       });
     },
 

@@ -18,7 +18,7 @@ const storage = browserStorage();
 const repository = storage ? createDiagramRepository(storage) : null;
 usePersistenceStore.getState().setRepository(repository);
 
-// 3. Se reabre el último diagrama; si no hay, uno vacío detrás de la galería de plantillas.
+// 3. Se reabre el último diagrama; si no hay, uno vacío detrás del selector de nuevo diagrama.
 openInitialDiagram(repository);
 startAutosave();
 

@@ -23,6 +23,11 @@ export const activityGuide: DiagramGuide = {
     title: 'Piensa en una ficha que avanza',
     text: 'UML define el comportamiento con "tokens": imagina una ficha que nace en el nodo inicial y recorre las flechas. Una acción se ejecuta cuando la ficha llega; una decisión deja pasar la ficha por un solo camino; un fork la copia en varias que avanzan a la vez, y un join espera a que lleguen todas antes de continuar.',
   },
+  difficultyCriteria: [
+    { name: 'básico', description: 'Un camino lineal con inicio, acciones y final.' },
+    { name: 'intermedio', description: 'Decisiones, responsabilidades o paralelismo dentro de un proceso acotado.' },
+    { name: 'avanzado', description: 'Excepciones, compensación, eventos externos, objetos y trabajo paralelo entre responsables.' },
+  ],
   howToRead: [
     {
       title: 'Empieza en el nodo inicial',
