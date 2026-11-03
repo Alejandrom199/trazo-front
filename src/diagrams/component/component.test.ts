@@ -62,7 +62,7 @@ describe('reglas', () => {
 
 describe('narración', () => {
   it('Dada la tienda en línea, Entonces cuenta qué ofrece y necesita cada pieza y quién lo cubre', () => {
-    const texts = narrateComponents(componentTemplates[0]!.diagram).map((line) => line.text);
+    const texts = narrateComponents(componentTemplates.find((template) => template.id === 'component.online-store')!.diagram).map((line) => line.text);
     expect(texts[0]).toBe('El sistema se divide en 3 componentes: «Tienda web», «Pedidos» y «Pagos».');
     expect(texts).toContain('«Tienda web» obtiene «IPedidos» de «Pedidos».');
   });

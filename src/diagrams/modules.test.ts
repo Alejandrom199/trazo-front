@@ -10,4 +10,9 @@ describe('todos los módulos', () => {
     const fixed = Object.entries(module.nodeKinds).filter(([, kind]) => !kind.resizable).map(([type]) => type);
     expect(fixed).toEqual([]);
   });
+
+  it.each(registry.list())('$displayName: tiene al menos seis ejemplos, de distintas dificultades', (module) => {
+    expect(module.templates.length).toBeGreaterThanOrEqual(6);
+    expect(new Set(module.templates.map((template) => template.difficulty)).size).toBe(3);
+  });
 });
