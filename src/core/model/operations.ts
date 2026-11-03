@@ -17,7 +17,7 @@ export interface NodeMove {
 }
 
 export type NodePatch = Partial<Pick<DiagramNode, 'label' | 'position' | 'size' | 'notes' | 'props' | 'locked'>>;
-export type EdgePatch = Partial<Pick<DiagramEdge, 'artifactType' | 'guard' | 'label' | 'routing' | 'waypoints' | 'lineStyle' | 'props'>>;
+export type EdgePatch = Partial<Pick<DiagramEdge, 'artifactType' | 'sourceId' | 'targetId' | 'guard' | 'label' | 'routing' | 'waypoints' | 'lineStyle' | 'props'>>;
 
 export function addNode(diagram: Diagram, node: DiagramNode): Diagram {
   return { ...diagram, nodes: [...diagram.nodes, node] };

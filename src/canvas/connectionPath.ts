@@ -8,7 +8,10 @@ import { buildEdgePath, type EdgePath } from './edgePath';
  * trazado y vértices) u horizontal (un mensaje de lado a lado a su altura).
  * Lo usan el lienzo y las miniaturas, para que ambos dibujen lo mismo.
  */
-export function connectionPath(diagram: Diagram, module: DiagramModule, edge: DiagramEdge, source: Rect, target: Rect): EdgePath {
+export function connectionPath(diagram: Diagram, module: DiagramModule, edge: DiagramEdge, sourceBox: Rect, targetBox: Rect): EdgePath {
+  // Las flechas llegan a la figura visible, no a la caja del nodo (ver NodeKind.edgeInsets).
+  const source = visibleRect(module, diagram, edge.sourceId, sourceBox);
+  const target = visibleRect(module, diagram, edge.targetId, targetBox);
   if (module.edgeKinds[edge.artifactType]?.layout !== 'horizontal') {
     return buildEdgePath(source, target, edge.routing, edge.waypoints);
   }
@@ -21,6 +24,14 @@ export function connectionPath(diagram: Diagram, module: DiagramModule, edge: Di
     // En un mensaje a sí mismo, la vuelta llega al borde de lo que haya a esa altura.
     targetInset: childInset(diagram, edge.targetId, isSelf ? y + SELF_EDGE_DROP : y, -direction),
   });
+}
+
+function visibleRect(module: DiagramModule, diagram: Diagram, nodeId: string, box: Rect): Rect {
+  const type = diagram.nodes.find((node) => node.id === nodeId)?.artifactType;
+  const insets = type ? module.nodeKinds[type]?.edgeInsets : undefined;
+  if (!insets) return box;
+  const { top = 0, right = 0, bottom = 0, left = 0 } = insets;
+  return { x: box.x + left, y: box.y + top, width: box.width - left - right, height: box.height - top - bottom };
 }
 
 /** Cuánto sobresale de la vuelta de un mensaje a sí mismo, a la derecha de la línea. */

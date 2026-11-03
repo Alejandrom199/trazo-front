@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, useReactFlow, type EdgeProps, type InternalNode } from '@xyflow/react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { absolutePosition, EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readLabelOffset, type DiagramEdge, type Position } from '@/core/model';
 import type { EdgeTextKind } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -34,6 +34,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const startDrag = useWaypointDrag(id);
   const startHeightDrag = useHeightDrag(id);
   const startLabelDrag = useLabelDrag();
+  const reconnect = useReconnect(id);
 
   if (!sourceNode || !targetNode || !data || !module || !diagram) return null;
 
@@ -48,7 +49,17 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
 
   return (
     <>
-      <BaseEdge id={id} path={path.d} style={style} markerEnd={markerEnd} interactionWidth={16} />
+      <BaseEdge id={id} path={path.d} style={reconnect.preview ? { ...style, opacity: 0.35 } : style} markerEnd={markerEnd} interactionWidth={16} />
+      {reconnect.preview && (
+        // Vista previa mientras se arrastra un extremo hacia otro nodo.
+        <path
+          d={`M${reconnect.preview.from.x},${reconnect.preview.from.y} L${reconnect.preview.to.x},${reconnect.preview.to.y}`}
+          // Sin eventos: al soltar, lo que está bajo el puntero debe ser el nodo, no esta línea.
+          style={{ fill: 'none', stroke: 'var(--color-accent)', pointerEvents: 'none' }}
+          strokeWidth={1.5}
+          strokeDasharray="5 4"
+        />
+      )}
       <EdgeLabelRenderer>
         {kind?.text && (
           <EdgeText
@@ -69,6 +80,24 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
             onPointerDown={(event) => startHeightDrag(event, edge)}
           />
         )}
+        {/* Extremos: se arrastran a otro nodo para reconectar la flecha. En un mensaje
+            horizontal, el origen ya es el tirador de altura: solo se reconecta el destino. */}
+        {selected &&
+          (['source', 'target'] as const)
+            .filter((end) => !(isHorizontal && end === 'source'))
+            .map((end) => {
+              const point = end === 'source' ? path.controlPoints[0]! : path.controlPoints.at(-1)!;
+              const fixed = end === 'source' ? path.controlPoints.at(-1)! : path.controlPoints[0]!;
+              return (
+                <Handle
+                  key={end}
+                  point={point}
+                  kind="end"
+                  title="Arrastra este extremo a otro nodo para reconectar la flecha"
+                  onPointerDown={(event) => reconnect.start(event, edge, end, fixed)}
+                />
+              );
+            })}
         {selected &&
           insertionPoints.map((point) => (
             <Handle
@@ -163,7 +192,7 @@ function EdgeText({ edge, textKind, at, above, isEditing, onDragStart }: EdgeTex
 
 interface HandleProps {
   point: Position;
-  kind: 'vertex' | 'insert' | 'height';
+  kind: 'vertex' | 'insert' | 'height' | 'end';
   title: string;
   onPointerDown: (event: ReactPointerEvent) => void;
   onDoubleClick?: () => void;
@@ -180,7 +209,9 @@ function Handle({ point, kind, title, onPointerDown, onDoubleClick }: HandleProp
         event.stopPropagation();
         onDoubleClick?.();
       }}
-      className={`nodrag nopan pointer-events-auto absolute rounded-full border-[1.5px] border-accent transition-transform hover:scale-125 ${
+      className={`nodrag nopan pointer-events-auto absolute border-[1.5px] border-accent transition-transform hover:scale-125 ${
+        kind === 'end' ? 'rounded-[2px] bg-surface' : 'rounded-full'
+      } ${
         kind === 'height' ? 'cursor-ns-resize' : 'cursor-move'
       } ${kind === 'insert' ? 'bg-surface opacity-80 hover:opacity-100' : 'bg-accent'}`}
       style={{
@@ -284,6 +315,42 @@ function useLabelDrag() {
       store().setEdgeProps(edge.id, { ...edge.props, [LABEL_OFFSET_KEY]: offset });
     });
   };
+}
+
+/**
+ * Reconectar: se arrastra un extremo de la flecha y se suelta sobre otro nodo. Si
+ * la conexión es válida (la misma regla del editor), la flecha pasa a ese nodo y
+ * conserva su tipo si sigue valiendo; si no, vuelve a como estaba.
+ */
+function useReconnect(edgeId: string) {
+  const { screenToFlowPosition } = useReactFlow();
+  const module = useActiveModule();
+  const [preview, setPreview] = useState<{ from: Position; to: Position } | null>(null);
+
+  const start = (event: ReactPointerEvent, edge: DiagramEdge, end: 'source' | 'target', fixed: Position) => {
+    event.stopPropagation();
+    event.preventDefault();
+    const move = (moveEvent: PointerEvent) => setPreview({ from: fixed, to: screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY }) });
+    const finish = (upEvent: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', finish);
+      setPreview(null);
+      const dropped = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest<HTMLElement>('.react-flow__node')?.dataset.id;
+      const diagram = store().diagram;
+      if (!dropped || !diagram || !module) return;
+      const sourceId = end === 'source' ? dropped : edge.sourceId;
+      const targetId = end === 'target' ? dropped : edge.targetId;
+      if (sourceId === edge.sourceId && targetId === edge.targetId) return;
+      const result = module.resolveConnection({ ...diagram, edges: diagram.edges.filter((other) => other.id !== edgeId) }, sourceId, targetId);
+      if (!result.allowed) return;
+      const keepsType = edge.artifactType === result.edgeType || module.edgeKinds[result.edgeType]?.switchableTo?.includes(edge.artifactType);
+      store().updateEdge(edgeId, { sourceId, targetId, artifactType: keepsType ? edge.artifactType : result.edgeType, waypoints: [] });
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', finish);
+  };
+
+  return { preview, start };
 }
 
 /** Sigue el puntero hasta que se suelta el botón. */

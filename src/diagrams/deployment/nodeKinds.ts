@@ -1,7 +1,7 @@
 import type { EdgeKind, NodeKind } from '@/core/registry';
 import { NoteShape } from '@/diagrams/shared/NoteShape';
 import { DeploymentArtifact as D } from './artifactTypes';
-import { ArtifactShape, DeviceShape, ExecutionEnvironmentShape, NodeShape } from './nodes/DeploymentShapes';
+import { ArtifactShape, CUBE_DEPTH, DeviceShape, ExecutionEnvironmentShape, NodeShape } from './nodes/DeploymentShapes';
 
 const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
   defaultLabel: '',
@@ -17,7 +17,8 @@ const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
  * Máquinas y entornos: contenedores (dentro van artefactos y entornos) que no se
  * pegan a sus vecinos. El entorno de ejecución, además, va dentro de una máquina.
  */
-const host = { ...base, isContainer: true, magnetic: false, previewSize: { width: 120, height: 84 } };
+// edgeInsets: las flechas llegan a la cara frontal del cubo, no a sus caras de arriba y de la derecha.
+const host = { ...base, isContainer: true, magnetic: false, previewSize: { width: 120, height: 84 }, edgeInsets: { top: CUBE_DEPTH, right: CUBE_DEPTH } };
 
 export const deploymentNodeKinds: Record<string, NodeKind> = {
   [D.node]: { ...host, component: NodeShape, defaultSize: { width: 300, height: 200 }, defaultLabel: 'Servidor' },

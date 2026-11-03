@@ -2,7 +2,8 @@ import { CONTAINER_GRIP_CLASS, type ArtifactNodeProps } from '@/core/registry';
 import { SHAPE_FILL, STROKE_WIDTH, strokeFor } from '@/diagrams/shared/shapeStyles';
 
 /** Profundidad del cubo (las caras de arriba y derecha). */
-const DEPTH = 12;
+export const CUBE_DEPTH = 12;
+const DEPTH = CUBE_DEPTH;
 
 /**
  * Cubo en perspectiva de UML para nodos, dispositivos y entornos de ejecución:

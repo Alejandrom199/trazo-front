@@ -116,6 +116,11 @@ export interface NodeKind {
   keepAspectRatio?: boolean;
   /** Contenedor que a su vez puede ir dentro de otro (p. ej. un entorno de ejecución dentro de un servidor). */
   nestable?: boolean;
+  /**
+   * Cuánto se mete la figura visible dentro de su caja, por lado, para que las
+   * flechas lleguen a ella y no al aire (p. ej. la cara frontal de un cubo 3D).
+   */
+  edgeInsets?: { top?: number; right?: number; bottom?: number; left?: number };
 }
 
 /** Lee si un nodo se pega a sus vecinos (imán). */
