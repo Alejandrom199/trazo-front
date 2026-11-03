@@ -163,16 +163,40 @@ export function findContainerAt(
   isContainer: (node: DiagramNode) => boolean,
   excludeId?: string,
 ): DiagramNode | null {
+  // Si hay contenedores anidados (un entorno dentro de un servidor), gana el más
+  // interno: el más pequeño que contiene el punto. Un contenedor nunca cae dentro
+  // de sí mismo ni de lo que lleva dentro.
   let found: DiagramNode | null = null;
   for (const node of diagram.nodes) {
-    if (node.id === excludeId || !isContainer(node)) continue;
+    if (!isContainer(node) || (excludeId && (node.id === excludeId || isInsideOf(diagram, node, excludeId)))) continue;
     const origin = absolutePosition(diagram, node);
     const inside =
       point.x >= origin.x &&
       point.x <= origin.x + node.size.width &&
       point.y >= origin.y &&
       point.y <= origin.y + node.size.height;
-    if (inside) found = node;
+    if (inside && (!found || node.size.width * node.size.height < found.size.width * found.size.height)) found = node;
   }
   return found;
+}
+
+/** Si `node` está dentro (a cualquier profundidad) del contenedor `ancestorId`. */
+export function isInsideOf(diagram: Diagram, node: DiagramNode, ancestorId: string): boolean {
+  let parentId = node.parentId;
+  while (parentId) {
+    if (parentId === ancestorId) return true;
+    parentId = diagram.nodes.find((candidate) => candidate.id === parentId)?.parentId ?? null;
+  }
+  return false;
+}
+
+/** Cuántos contenedores hay por encima de un nodo (0 = suelto en el lienzo). */
+export function depthOf(diagram: Diagram, node: DiagramNode): number {
+  let depth = 0;
+  let parentId = node.parentId;
+  while (parentId) {
+    depth += 1;
+    parentId = diagram.nodes.find((candidate) => candidate.id === parentId)?.parentId ?? null;
+  }
+  return depth;
 }

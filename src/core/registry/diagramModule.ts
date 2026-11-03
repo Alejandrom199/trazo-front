@@ -114,6 +114,8 @@ export interface NodeKind {
   secondaryDetail?: boolean;
   /** Al redimensionarlo conserva su proporción (figuras redondas o simétricas, como un círculo o un rombo). */
   keepAspectRatio?: boolean;
+  /** Contenedor que a su vez puede ir dentro de otro (p. ej. un entorno de ejecución dentro de un servidor). */
+  nestable?: boolean;
 }
 
 /** Lee si un nodo se pega a sus vecinos (imán). */

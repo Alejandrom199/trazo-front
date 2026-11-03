@@ -34,7 +34,7 @@ export function TemplatePreview({ diagram, module, width, height }: TemplatePrev
   const offsetY = (height - contentHeight * scale) / 2;
 
   // Mismo orden de dibujo que el lienzo.
-  const nodes = [...diagram.nodes].sort((a, b) => drawOrder(a, module) - drawOrder(b, module));
+  const nodes = [...diagram.nodes].sort((a, b) => drawOrder(a, module, diagram) - drawOrder(b, module, diagram));
 
   return (
     <div className="pointer-events-none relative overflow-hidden" style={{ width, height }} aria-hidden>

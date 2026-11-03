@@ -424,9 +424,11 @@ function placeIntoContainers(module: DiagramModule, draggedIds: string[]): void 
   const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   const dragged = new Set(draggedIds);
 
-  // Los contenedores no se anidan, y un hijo arrastrado junto con su padre ya se mueve con él.
+  // Solo los contenedores marcados como anidables entran en otro; un hijo arrastrado
+  // junto con su padre ya se mueve con él.
+  const placeable = (node: DiagramNode) => !isContainer(node) || (module.nodeKinds[node.artifactType]?.nestable ?? false);
   const candidates = diagram.nodes.filter(
-    (node) => dragged.has(node.id) && !isContainer(node) && !(node.parentId && dragged.has(node.parentId)),
+    (node) => dragged.has(node.id) && placeable(node) && !(node.parentId && dragged.has(node.parentId)),
   );
   for (const node of candidates) {
     const container = findContainerAt(diagram, centerOf(diagram, node), isContainer, node.id);

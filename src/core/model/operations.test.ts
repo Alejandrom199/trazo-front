@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Diagram, DiagramEdge, DiagramNode } from './diagram';
 import { createEmptyDiagram } from './factories';
-import { absolutePosition, findContainerAt, removeElements, reparentNode } from './operations';
+import { absolutePosition, depthOf, findContainerAt, removeElements, reparentNode } from './operations';
 
 function node(id: string, overrides: Partial<DiagramNode> = {}): DiagramNode {
   return {
@@ -106,5 +106,22 @@ describe('findContainerAt', () => {
 
     expect(findContainerAt(diagram, { x: 200, y: 300 }, isLane)?.id).toBe('lane');
     expect(findContainerAt(diagram, { x: 50, y: 300 }, isLane)).toBeNull();
+  });
+
+  const server = node('servidor', { artifactType: 'box', size: { width: 400, height: 300 } });
+  const docker = node('docker', { artifactType: 'box', parentId: 'servidor', position: { x: 50, y: 50 }, size: { width: 200, height: 150 } });
+  const isBox = (candidate: DiagramNode) => candidate.artifactType === 'box';
+
+  it('Dados contenedores anidados, Entonces elige el más interno', () => {
+    expect(findContainerAt(diagramWith([server, docker]), { x: 100, y: 100 }, isBox)?.id).toBe('docker');
+  });
+
+  it('Dado un contenedor que se mueve, Entonces no cae dentro de sí mismo ni de lo que lleva dentro', () => {
+    expect(findContainerAt(diagramWith([server, docker]), { x: 100, y: 100 }, isBox, 'servidor')).toBeNull();
+  });
+
+  it('Dado un nodo en un contenedor anidado, Entonces su profundidad cuenta cada nivel', () => {
+    const artifact = node('app', { parentId: 'docker' });
+    expect(depthOf(diagramWith([server, docker, artifact]), artifact)).toBe(2);
   });
 });

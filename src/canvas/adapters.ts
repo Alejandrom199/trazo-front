@@ -1,5 +1,5 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
-import { containerJoints, protectedNodeIds, type ContainerJoints, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
+import { containerJoints, depthOf, protectedNodeIds, type ContainerJoints, type Diagram, type DiagramEdge, type DiagramNode, type ElementIds } from '@/core/model';
 import type { ArrowHead, DiagramModule } from '@/core/registry';
 import { dashArrayFor } from './edgePath';
 import type { CanvasPresentation } from './canvasView';
@@ -48,7 +48,7 @@ export function toFlowNodes(
   const undeletable = protectedNodeIds(diagram);
   const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   return [...diagram.nodes]
-    .sort((a, b) => drawOrder(a, module) - drawOrder(b, module))
+    .sort((a, b) => drawOrder(a, module, diagram) - drawOrder(b, module, diagram))
     .map((node) => ({
       id: node.id,
       type: 'artifact',
@@ -73,14 +73,14 @@ export function toFlowNodes(
 
 /**
  * React Flow exige que un padre aparezca antes que sus hijos, y lo que va antes
- * se dibuja debajo. Orden: capa de fondo (marcos) → contenedores → nodos sueltos
- * → nodos dentro de contenedores.
+ * se dibuja debajo. Por nivel de anidamiento (los de fuera primero) y, dentro de
+ * cada nivel: capa de fondo (marcos) → contenedores → el resto.
  */
-export function drawOrder(node: DiagramNode, module: DiagramModule): number {
-  if (node.parentId) return 3;
+export function drawOrder(node: DiagramNode, module: DiagramModule, diagram?: Diagram): number {
   const kind = module.nodeKinds[node.artifactType];
-  if (kind?.layer === 'back') return 0;
-  return kind?.isContainer ? 1 : 2;
+  const layer = kind?.layer === 'back' ? 0 : kind?.isContainer ? 1 : 2;
+  const depth = diagram ? depthOf(diagram, node) : node.parentId ? 1 : 0;
+  return depth * 3 + layer;
 }
 
 export function toFlowEdges(
