@@ -14,7 +14,7 @@ const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
 };
 
 /** Las interfaces son solo su símbolo (28 px): el nombre se dibuja debajo, fuera del nodo. */
-const interfaceKind = { ...base, defaultSize: { width: 28, height: 28 }, resizable: false, labelCaption: 'Nombre del contrato' };
+const interfaceKind = { ...base, defaultSize: { width: 28, height: 28 }, keepAspectRatio: true, labelCaption: 'Nombre del contrato' };
 
 export const componentNodeKinds: Record<string, NodeKind> = {
   [C.component]: { ...base, component: ComponentShape, defaultSize: { width: 180, height: 90 }, defaultLabel: 'Componente', previewSize: { width: 90, height: 56 } },

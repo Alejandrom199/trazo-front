@@ -58,7 +58,7 @@ export const sequenceNodeKinds: Record<string, NodeKind> = {
     resizable: true,
     centerInContainer: true,
   },
-  [S.destruction]: { ...base, component: DestructionShape, defaultSize: { width: 22, height: 22 }, centerInContainer: true },
+  [S.destruction]: { ...base, component: DestructionShape, defaultSize: { width: 22, height: 22 }, centerInContainer: true, resizable: true, keepAspectRatio: true },
   [S.altFragment]: { ...splitFragment, component: FragmentShape, defaultLabel: 'condición' },
   [S.optFragment]: { ...fragment, component: FragmentShape, defaultLabel: 'condición' },
   [S.loopFragment]: { ...fragment, component: FragmentShape, defaultLabel: 'mientras…' },

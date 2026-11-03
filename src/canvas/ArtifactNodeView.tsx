@@ -48,6 +48,7 @@ export function ArtifactNodeView({ id, data, selected }: NodeProps<ArtifactFlowN
       {kind.resizable && !node.locked && (
         <NodeResizer
           isVisible={selected && !isEditing}
+          keepAspectRatio={kind.keepAspectRatio}
           minWidth={minSide}
           minHeight={minSide}
           onResizeStart={checkpoint}

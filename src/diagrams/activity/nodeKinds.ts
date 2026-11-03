@@ -16,10 +16,13 @@ const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
   properties: [],
 };
 
+/** Figuras redondas o simétricas: se redimensionan conservando su proporción. */
+const round = { resizable: true, keepAspectRatio: true };
+
 export const activityNodeKinds: Record<string, NodeKind> = {
-  [A.initialNode]: { ...base, component: InitialNodeShape, defaultSize: { width: 30, height: 30 } },
-  [A.activityFinal]: { ...base, component: ActivityFinalShape, defaultSize: { width: 32, height: 32 } },
-  [A.flowFinal]: { ...base, component: FlowFinalShape, defaultSize: { width: 30, height: 30 } },
+  [A.initialNode]: { ...base, ...round, component: InitialNodeShape, defaultSize: { width: 30, height: 30 } },
+  [A.activityFinal]: { ...base, ...round, component: ActivityFinalShape, defaultSize: { width: 32, height: 32 } },
+  [A.flowFinal]: { ...base, ...round, component: FlowFinalShape, defaultSize: { width: 30, height: 30 } },
   [A.action]: {
     ...base,
     component: ActionShape,
@@ -31,12 +34,13 @@ export const activityNodeKinds: Record<string, NodeKind> = {
   // La decisión admite una pregunta, que se dibuja junto al rombo (no dentro, para que no crezca).
   [A.decision]: {
     ...base,
+    ...round,
     component: DiamondShape,
     defaultSize: { width: 44, height: 44 },
     hasLabel: true,
     labelCaption: 'Pregunta',
   },
-  [A.merge]: { ...base, component: DiamondShape, defaultSize: { width: 44, height: 44 } },
+  [A.merge]: { ...base, ...round, component: DiamondShape, defaultSize: { width: 44, height: 44 } },
   [A.fork]: { ...base, component: BarShape, defaultSize: { width: 140, height: 8 }, resizable: true },
   [A.join]: { ...base, component: BarShape, defaultSize: { width: 140, height: 8 }, resizable: true },
   [A.objectNode]: {

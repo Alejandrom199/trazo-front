@@ -112,6 +112,8 @@ export interface NodeKind {
   previewSize?: Size;
   /** Detalle secundario (p. ej. una nota): la vista compacta del lienzo lo oculta al alejarse. */
   secondaryDetail?: boolean;
+  /** Al redimensionarlo conserva su proporción (figuras redondas o simétricas, como un círculo o un rombo). */
+  keepAspectRatio?: boolean;
 }
 
 /** Lee si un nodo se pega a sus vecinos (imán). */
