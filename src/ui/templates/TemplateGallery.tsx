@@ -1,14 +1,13 @@
 import {
   faArrowLeft,
   faChevronRight,
-  faDiagramProject,
   faPlus,
   faShapes,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState, type ReactNode } from 'react';
-import { createDiagramFromTemplate, groupByUmlFamily, UML_FAMILIES, type Difficulty, type DiagramType, type Template, type UmlFamily } from '@/core/model';
+import { createDiagramFromTemplate, groupByUmlFamily, umlKindOf, type Difficulty, type DiagramType, type Template, type UmlFamily } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -143,44 +142,14 @@ export function TemplateGallery() {
           {view.step === 'saved' && <SavedDiagrams onOpened={() => setGalleryOpen(false)} />}
 
           {view.step === 'examples' && selectedModule && (
-            <section aria-label="Ejemplos por tipo de diagrama">
-              {/* Fija arriba al desplazarse: los tipos de diagrama siempre a mano. */}
-              <div
-                role="tablist"
-                aria-label="Tipo de diagrama"
-                className="sticky -top-5 z-10 -mx-4 -mt-5 flex flex-wrap gap-2.5 border-b border-line bg-surface px-4 pt-5 pb-4 md:-top-6 md:-mx-7 md:-mt-6 md:px-7 md:pt-6"
-              >
-                {groups.map((group) => (
-                  <div key={group.family} role="presentation" className="flex flex-wrap items-center gap-2.5">
-                    <span className="text-[11px] font-semibold tracking-wider text-ink-400 uppercase">{FAMILY_SHORT[group.family]}</span>
-                    {group.items.map((module) => {
-                      const active = module.diagramType === selectedModule.diagramType;
-                      return (
-                        <button
-                          key={module.diagramType}
-                          type="button"
-                          role="tab"
-                          aria-selected={active}
-                          onClick={() => setView({ step: 'examples', diagramType: module.diagramType })}
-                          className={`flex items-center gap-2.5 rounded-full border py-2.5 pr-3 pl-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
-                            active
-                              ? 'border-accent bg-accent-soft text-accent'
-                              : 'border-line bg-raised text-ink-900 hover:border-accent/45 hover:bg-accent-soft'
-                          }`}
-                        >
-                          <FontAwesomeIcon icon={faDiagramProject} className="text-xs" />
-                          <span className="text-sm font-medium">{shortDiagramName(module)}</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ${active ? 'bg-surface text-accent' : 'bg-surface text-ink-600'}`}>
-                            {module.templates.length}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+            <section aria-label="Ejemplos por tipo de diagrama" className="md:flex md:items-start md:gap-6">
+              <DiagramTypeNav
+                groups={groups}
+                selected={selectedModule.diagramType}
+                onSelect={(diagramType) => setView({ step: 'examples', diagramType })}
+              />
 
-              <div role="tabpanel" className="mt-5">
+              <div role="tabpanel" className="min-w-0 flex-1">
                 <h3 className="mb-3 text-sm font-semibold text-ink-900">Ejemplos de {shortDiagramName(selectedModule).toLowerCase()}</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                   {selectedModule.templates.map((template) => (
@@ -212,6 +181,76 @@ export function TemplateGallery() {
   );
 }
 
+function DiagramTypeNav({
+  groups,
+  selected,
+  onSelect,
+}: {
+  groups: { family: UmlFamily; items: DiagramModule[] }[];
+  selected: DiagramType;
+  onSelect: (diagramType: DiagramType) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Tipo de diagrama"
+      className="mb-5 flex flex-col gap-3 md:sticky md:top-0 md:mb-0 md:w-64 md:shrink-0 md:self-start"
+    >
+      {groups.map((group) => {
+        const interaction = group.items.filter((module) => umlKindOf(module.diagramType)?.interaction);
+        const primary = group.items.filter((module) => !umlKindOf(module.diagramType)?.interaction);
+        return (
+          <div key={group.family}>
+            <p className="mb-1 px-2.5 text-xs font-medium text-ink-400">{FAMILY_SHORT[group.family]}</p>
+            <TypeTabRow modules={primary} selected={selected} onSelect={onSelect} />
+            {interaction.length > 0 && (
+              <div className="mt-2">
+                <p className="mb-1 px-2.5 text-[11px] font-medium text-ink-400">Interacción</p>
+                <TypeTabRow modules={interaction} selected={selected} onSelect={onSelect} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TypeTabRow({
+  modules,
+  selected,
+  onSelect,
+}: {
+  modules: DiagramModule[];
+  selected: DiagramType;
+  onSelect: (diagramType: DiagramType) => void;
+}) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto md:flex-col md:gap-0.5 md:overflow-visible">
+      {modules.map((module) => {
+        const active = module.diagramType === selected;
+        const name = shortDiagramName(module);
+        return (
+          <button
+            key={module.diagramType}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            title={name}
+            onClick={() => onSelect(module.diagramType)}
+            className={`flex shrink-0 items-center justify-between gap-3 rounded-lg px-2.5 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 md:w-full ${
+              active ? 'bg-accent-soft font-medium text-accent' : 'text-ink-900 hover:bg-raised'
+            } max-md:border max-md:border-line`}
+          >
+            <span className="text-sm whitespace-nowrap md:leading-snug md:whitespace-normal">{name}</span>
+            <span className={`text-[11px] tabular-nums ${active ? 'text-accent' : 'text-ink-400'}`}>{module.templates.length}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function StartView({
   modules,
   onOpenBlank,
@@ -230,28 +269,25 @@ function StartView({
       <SavedDiagrams onOpened={onSavedOpened} limit={RECENT_LIMIT} onShowAll={onShowAllSaved} />
 
       <section aria-labelledby="blank-diagrams-title">
-        <h3 id="blank-diagrams-title" className="mb-3 text-sm font-semibold text-ink-900">
+        <h3 id="blank-diagrams-title" className="text-sm font-semibold text-ink-900">
           Crear en blanco
         </h3>
+        <p className="mt-1 text-xs text-ink-600">Abre un lienzo vacío del tipo que elijas.</p>
         {groupByUmlFamily(modules, (module) => module.diagramType).map((group) => (
-          <div key={group.family} className="mb-4 last:mb-0">
-            <p className="mb-2 text-xs text-ink-400">{UML_FAMILIES[group.family].name}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div key={group.family} className="mt-4">
+            <p className="mb-2 text-xs text-ink-400">{FAMILY_SHORT[group.family]}</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {group.items.map((module) => (
                 <button
                   key={module.diagramType}
                   type="button"
                   onClick={() => onOpenBlank(module)}
-                  className="group flex items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left hover:border-accent/45 hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  className="group flex h-full min-h-16 items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm font-medium text-ink-900 hover:border-accent/45 hover:bg-raised hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                 >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-ink-400 text-accent group-hover:border-accent">
-                    <FontAwesomeIcon icon={faPlus} />
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-dashed border-ink-400 text-accent group-hover:border-accent">
+                    <FontAwesomeIcon icon={faPlus} className="text-xs" />
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-ink-900 group-hover:text-accent">{shortDiagramName(module)}</span>
-                    <span className="mt-1 block text-xs text-ink-600">Lienzo vacío para construirlo desde cero.</span>
-                  </span>
-                  <FontAwesomeIcon icon={faChevronRight} className="text-xs text-ink-400 group-hover:text-accent" />
+                  <span className="min-w-0 leading-snug">{shortDiagramName(module)}</span>
                 </button>
               ))}
             </div>
