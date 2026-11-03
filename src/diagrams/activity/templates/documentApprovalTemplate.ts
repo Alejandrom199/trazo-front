@@ -19,7 +19,7 @@ function buildDocumentApprovalTemplate() {
   // Autor
   const start = t.node(A.initialNode, '', { ...author, y: 90 });
   const revise = t.node(A.merge, '', { ...author, y: 160 });
-  const write = t.node(A.action, 'Redactar documento', { ...author, y: 240 });
+  const write = t.node(A.action, 'Redactar documento', { ...author, y: 250 });
   const draft = t.node(A.objectNode, 'Documento [borrador]', { ...author, y: 340 }, { width: 160, height: 50 });
   const request = t.node(A.sendSignal, 'Solicitar aprobación', { ...author, y: 440 }, { width: 190, height: 56 });
   const verdictReceived = t.node(A.acceptEvent, 'Dictamen recibido', { ...author, y: 620 }, { width: 180, height: 56 });

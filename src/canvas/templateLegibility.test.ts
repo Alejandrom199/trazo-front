@@ -18,6 +18,10 @@ const cases = registry.list().flatMap((module) => module.templates.map((template
 /** Tamaño aproximado de un texto de flecha (12 px de alto, ~6 px por letra). */
 const textBox = (text: string, at: { x: number; y: number }): Rect => ({ x: at.x - (text.length * 6) / 2, y: at.y - 8, width: text.length * 6, height: 16 });
 
+/** Separación mínima entre dos nodos: menos que esto se lee como «pegados». */
+const MIN_GAP = 30;
+const inflate = (rect: Rect): Rect => ({ x: rect.x - MIN_GAP / 2, y: rect.y - MIN_GAP / 2, width: rect.width + MIN_GAP, height: rect.height + MIN_GAP });
+
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 function rectsOf(diagram: Diagram): Map<string, Rect> {
@@ -57,7 +61,7 @@ describe('plantillas legibles', () => {
     expect(shared).toEqual([]);
   });
 
-  it.each(cases)('$name: los nodos no se enciman (salvo contenedores y marcos)', ({ module, template }) => {
+  it.each(cases)('$name: los nodos dejan aire entre sí (al menos MIN_GAP px; salvo contenedores y marcos)', ({ module, template }) => {
     const { diagram } = template;
     const rects = rectsOf(diagram);
     const solid = diagram.nodes.filter((node) => {
@@ -65,7 +69,7 @@ describe('plantillas legibles', () => {
       return kind && !kind.isContainer && !kind.gripOnly && !kind.centerInContainer;
     });
     const clashes = solid.flatMap((a, i) =>
-      solid.slice(i + 1).filter((b) => overlaps(rects.get(a.id)!, rects.get(b.id)!)).map((b) => `${a.label || a.artifactType} / ${b.label || b.artifactType}`),
+      solid.slice(i + 1).filter((b) => overlaps(inflate(rects.get(a.id)!), inflate(rects.get(b.id)!))).map((b) => `${a.label || a.artifactType} / ${b.label || b.artifactType}`),
     );
     expect(clashes).toEqual([]);
   });

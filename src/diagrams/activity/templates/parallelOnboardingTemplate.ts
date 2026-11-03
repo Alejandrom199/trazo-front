@@ -9,17 +9,17 @@ function buildParallelOnboardingTemplate() {
   const t = createTemplateBuilder();
   const branchY = 290;
 
-  const start = t.node(A.initialNode, '', { x: 320, y: 40 });
-  const sign = t.node(A.action, 'Firmar contrato', { x: 320, y: 120 });
-  const split = t.node(A.fork, '', { x: 320, y: 200 }, { width: 600, height: 8 });
+  const start = t.node(A.initialNode, '', { x: 380, y: 40 });
+  const sign = t.node(A.action, 'Firmar contrato', { x: 380, y: 120 });
+  const split = t.node(A.fork, '', { x: 380, y: 200 }, { width: 720, height: 8 });
   const email = t.node(A.action, 'Crear cuenta de correo', { x: 80, y: branchY });
-  const laptop = t.node(A.action, 'Asignar equipo', { x: 240, y: branchY });
-  const training = t.node(A.action, 'Programar inducción', { x: 400, y: branchY });
-  const gift = t.node(A.action, 'Enviar regalo de bienvenida', { x: 560, y: branchY });
-  const sync = t.node(A.join, '', { x: 240, y: 380 }, { width: 440, height: 8 });
-  const giftDone = t.node(A.flowFinal, '', { x: 560, y: 380 });
-  const welcome = t.node(A.action, 'Dar la bienvenida', { x: 240, y: 460 });
-  const end = t.node(A.activityFinal, '', { x: 240, y: 550 });
+  const laptop = t.node(A.action, 'Asignar equipo', { x: 280, y: branchY });
+  const training = t.node(A.action, 'Programar inducción', { x: 480, y: branchY });
+  const gift = t.node(A.action, 'Enviar regalo de bienvenida', { x: 680, y: branchY });
+  const sync = t.node(A.join, '', { x: 280, y: 380 }, { width: 520, height: 8 });
+  const giftDone = t.node(A.flowFinal, '', { x: 680, y: 380 });
+  const welcome = t.node(A.action, 'Dar la bienvenida', { x: 280, y: 460 });
+  const end = t.node(A.activityFinal, '', { x: 280, y: 550 });
 
   t.flow(start, sign);
   t.flow(sign, split);

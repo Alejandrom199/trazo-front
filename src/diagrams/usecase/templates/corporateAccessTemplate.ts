@@ -14,7 +14,7 @@ const secondFactor = b.useCase('Confirmar segundo factor', { x: 390, y: 180 }, b
 const manageRoles = b.useCase('Administrar permisos', { x: 70, y: 330 }, boundary);
 const authorize = b.useCase('Autorizar cambio de rol', { x: 390, y: 320 }, boundary);
 const audit = b.useCase('Registrar evento de seguridad', { x: 390, y: 450 }, boundary);
-const note = b.note('El segundo factor se exige cuando el riesgo de acceso es alto.', { x: 1010, y: 255 });
+const note = b.note('El segundo factor se exige cuando el riesgo de acceso es alto.', { x: 1010, y: 290 });
 
 b.relation(employee, access);
 b.relation(administrator, employee, U.generalization);

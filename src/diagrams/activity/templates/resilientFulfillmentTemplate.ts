@@ -9,15 +9,15 @@ const integration = { [CANVAS_VIEW_ROLE_KEY]: 'integration' };
 const t = createTemplateBuilder();
 const HEIGHT = 1270;
 t.lane('Cliente', 0, 220, HEIGHT);
-t.lane('Comercio', 220, 450, HEIGHT);
-t.lane('Servicios externos', 670, 300, HEIGHT);
+t.lane('Comercio', 220, 520, HEIGHT);
+t.lane('Servicios externos', 740, 300, HEIGHT);
 
-const start = t.node(A.initialNode, '', { x: 405, y: 85 }, undefined, primary);
+const start = t.node(A.initialNode, '', { x: 405, y: 75 }, undefined, primary);
 const receive = t.node(A.action, 'Recibir pedido', { x: 405, y: 155 }, undefined, primary);
-const order = t.node(A.objectNode, 'Pedido [pendiente]', { x: 405, y: 235 }, { width: 165, height: 50 }, primary);
+const order = t.node(A.objectNode, 'Pedido [pendiente]', { x: 405, y: 245 }, { width: 165, height: 50 }, primary);
 const fork = t.node(A.fork, '', { x: 405, y: 310 }, { width: 250, height: 12 }, primary);
 const reserve = t.node(A.action, 'Reservar inventario', { x: 330, y: 390 }, undefined, primary);
-const authorize = t.node(A.action, 'Autorizar pago', { x: 820, y: 390 }, undefined, { ...integration, [LINKED_TEMPLATE_ID_KEY]: 'sequence.resilient-payment' });
+const authorize = t.node(A.action, 'Autorizar pago', { x: 890, y: 390 }, undefined, { ...integration, [LINKED_TEMPLATE_ID_KEY]: 'sequence.resilient-payment' });
 const join = t.node(A.join, '', { x: 405, y: 480 }, { width: 250, height: 12 }, primary);
 const approved = t.node(A.decision, '¿Pago aprobado?', { x: 405, y: 555 }, undefined, alternative);
 // Cada rama sale por un lado distinto del rombo: [aprobado] hacia abajo, [rechazado] a la derecha.
@@ -26,9 +26,9 @@ const dispatch = t.node(A.sendSignal, 'Solicitar despacho', { x: 405, y: 810 }, 
 const confirmation = t.node(A.acceptEvent, 'Entrega confirmada', { x: 110, y: 950 }, { width: 175, height: 56 }, integration);
 const close = t.node(A.action, 'Cerrar pedido', { x: 405, y: 1070 }, undefined, primary);
 const end = t.node(A.activityFinal, '', { x: 405, y: 1180 }, undefined, primary);
-const release = t.node(A.action, 'Liberar inventario', { x: 570, y: 555 }, undefined, alternative);
-const notifyFailure = t.node(A.sendSignal, 'Notificar rechazo', { x: 570, y: 690 }, { width: 175, height: 56 }, alternative);
-const failed = t.node(A.flowFinal, '', { x: 570, y: 810 }, undefined, alternative);
+const release = t.node(A.action, 'Liberar inventario', { x: 640, y: 555 }, undefined, alternative);
+const notifyFailure = t.node(A.sendSignal, 'Notificar rechazo', { x: 640, y: 690 }, { width: 175, height: 56 }, alternative);
+const failed = t.node(A.flowFinal, '', { x: 640, y: 810 }, undefined, alternative);
 
 t.flow(start, receive, null, primary);
 t.flow(receive, order, null, primary);
