@@ -78,7 +78,6 @@ export function DiagramCanvas() {
   const highlight = useHighlightStore((state) => state.highlight);
   useFitViewOnHighlight(highlight);
   const grid = useGridStore();
-  const viewMode = useCanvasViewStore((state) => state.mode);
   const detailMode = useCanvasViewStore((state) => state.detail);
   const focus = useCanvasViewStore((state) => state.focus);
   const canvasTool = useCanvasInteractionStore((state) => state.tool);
@@ -95,8 +94,8 @@ export function DiagramCanvas() {
     [highlight],
   );
   const presentation = useMemo(
-    () => diagram ? canvasPresentation(diagram, selection, viewMode, focus) : undefined,
-    [diagram, selection, viewMode, focus],
+    () => diagram ? canvasPresentation(diagram, selection, focus) : undefined,
+    [diagram, selection, focus],
   );
   const nodes = useMemo(
     () => (diagram && module ? toFlowNodes(diagram, module, selection, canvasHighlight, presentation) : []),

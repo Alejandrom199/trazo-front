@@ -1,13 +1,9 @@
-/** Metadatos opcionales de presentación. No cambian la semántica UML del elemento. */
-export const CANVAS_VIEW_ROLE_KEY = 'canvasViewRole';
+/**
+ * Metadatos opcionales de un elemento (en sus props). No cambian su semántica UML.
+ * linkedTemplateId: el ejemplo que detalla este elemento (p. ej. una acción
+ * «Autorizar pago» enlaza al diagrama de secuencia que la explica).
+ */
 export const LINKED_TEMPLATE_ID_KEY = 'linkedTemplateId';
-
-export type CanvasViewRole = 'primary' | 'alternative' | 'integration';
-
-export function canvasViewRole(props: Record<string, unknown>): CanvasViewRole | null {
-  const value = props[CANVAS_VIEW_ROLE_KEY];
-  return value === 'primary' || value === 'alternative' || value === 'integration' ? value : null;
-}
 
 export function linkedTemplateId(props: Record<string, unknown>): string | null {
   const value = props[LINKED_TEMPLATE_ID_KEY];

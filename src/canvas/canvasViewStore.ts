@@ -1,24 +1,25 @@
 import { create } from 'zustand';
 
-export type CanvasViewMode = 'all' | 'primary' | 'alternative' | 'integration';
+/**
+ * Cómo se ve el lienzo al alejarse:
+ *   auto: por debajo de cierto zoom se ocultan los textos de las flechas y se atenúan las notas.
+ *   full: siempre todo el detalle.  compact: siempre el detalle reducido.
+ */
 export type CanvasDetailMode = 'auto' | 'full' | 'compact';
 
 interface CanvasViewState {
-  mode: CanvasViewMode;
   detail: CanvasDetailMode;
+  /** Enfocar selección: atenúa lo que no está conectado con lo seleccionado. */
   focus: boolean;
-  setMode: (mode: CanvasViewMode) => void;
   setDetail: (detail: CanvasDetailMode) => void;
   setFocus: (focus: boolean) => void;
   reset: () => void;
 }
 
 export const useCanvasViewStore = create<CanvasViewState>()((set) => ({
-  mode: 'all',
   detail: 'auto',
   focus: false,
-  setMode: (mode) => set({ mode }),
   setDetail: (detail) => set({ detail }),
   setFocus: (focus) => set({ focus }),
-  reset: () => set({ mode: 'all', detail: 'auto', focus: false }),
+  reset: () => set({ detail: 'auto', focus: false }),
 }));
