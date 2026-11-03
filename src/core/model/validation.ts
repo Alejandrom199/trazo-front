@@ -10,6 +10,18 @@ export interface ValidationIssue {
   nodeIds: string[];
   edgeIds: string[];
   suggestion: string;
+  /** Corrección de un clic, si la regla sabe aplicarla (ver fixes.ts). */
+  fix?: IssueFix;
+}
+
+/**
+ * Corrección automática de un problema: una función pura que devuelve el
+ * diagrama corregido. `createId` da los ids de lo que agregue.
+ */
+export interface IssueFix {
+  /** Qué hace, en pocas palabras: «Agregar el estado inicial». */
+  label: string;
+  apply: (diagram: Diagram, createId: () => string) => Diagram;
 }
 
 /**

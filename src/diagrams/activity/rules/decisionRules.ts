@@ -1,3 +1,4 @@
+import { updateEdge, type Diagram } from '@/core/model';
 import { ActivityArtifact as A } from '../artifactTypes';
 import { defineRule } from './defineRule';
 import { nodesOfType, outgoingOf } from './flowGraph';
@@ -39,6 +40,12 @@ export const decisionGuardMissing = defineRule(
           suggestion: 'Haz doble clic sobre cada flecha y escribe su condición, p. ej. [pago aprobado] y [else].',
           nodeIds: [decision.id],
           edgeIds: unguarded.map((edge) => edge.id),
+          fix: {
+            label: 'Poner guardas en sus salidas',
+            // La última sin guarda queda como [else]; las demás, con una condición por escribir.
+            apply: (diagram: Diagram) =>
+              unguarded.reduce((current, edge, index) => updateEdge(current, edge.id, { guard: index === unguarded.length - 1 ? 'else' : 'condición' }), diagram),
+          },
         },
       ];
     }),

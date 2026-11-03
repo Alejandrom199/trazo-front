@@ -1,3 +1,4 @@
+import { anchorNoteFix } from '@/core/model';
 import { ActivityArtifact as A } from '../artifactTypes';
 import { defineRule } from './defineRule';
 import { describeNode, incomingOf, outgoingOf, reachableFrom, startNodeIds } from './flowGraph';
@@ -69,6 +70,7 @@ export const noteUnanchored = defineRule(
         message: 'Hay una nota que no está anclada a ningún elemento.',
         suggestion: 'Arrastra desde un punto de la nota hasta el elemento que comenta.',
         nodeIds: [node.id],
+        fix: anchorNoteFix(node.id, A.note, A.annotationLink),
       }));
   },
 );

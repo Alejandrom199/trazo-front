@@ -1,9 +1,10 @@
-import { faCheck, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faChevronDown, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useMemo, useState } from 'react';
 import { issueKey, validateDiagram, type Severity, type ValidationIssue, type ValidationRule } from '@/core/model';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { createId } from '@/core/utils/id';
 import { useHighlightStore } from '@/canvas/highlightStore';
 
 const SEVERITY_STYLE: Record<Severity, { singular: string; plural: string; dot: string; text: string }> = {
@@ -17,7 +18,9 @@ const ISSUE_PREFIX = 'issue:';
 /**
  * Panel de problemas, abajo al centro. Valida en vivo con las reglas del módulo
  * activo. Plegado muestra solo los contadores; desplegado, la lista. Al hacer
- * clic en un problema se seleccionan y resaltan sus elementos en el lienzo.
+ * clic en un problema se seleccionan y resaltan sus elementos en el lienzo; si la
+ * regla sabe corregirlo, «Arreglar» lo hace en un paso de deshacer y deja
+ * seleccionado lo que agregó, para que se vea la corrección.
  */
 export function ValidationPanel() {
   const module = useActiveModule();
@@ -51,6 +54,20 @@ export function ValidationPanel() {
     useDiagramStore.getState().setSelection({ nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
   }
 
+  function fixIssue(issue: ValidationIssue) {
+    const fix = issue.fix;
+    const store = useDiagramStore.getState();
+    const before = store.diagram;
+    if (!fix || !before) return;
+    store.applyChange((current) => fix.apply(current, createId));
+    const after = useDiagramStore.getState().diagram;
+    if (!after || after === before) return;
+    const known = { nodes: new Set(before.nodes.map((node) => node.id)), edges: new Set(before.edges.map((edge) => edge.id)) };
+    const added = { nodeIds: after.nodes.filter((node) => !known.nodes.has(node.id)).map((node) => node.id), edgeIds: after.edges.filter((edge) => !known.edges.has(edge.id)).map((edge) => edge.id) };
+    // Lo nuevo, o si solo se cambió algo existente, los elementos del problema.
+    store.setSelection(added.nodeIds.length + added.edgeIds.length > 0 ? added : { nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
+  }
+
   return (
     <div className="w-full min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
       {expanded && (
@@ -69,6 +86,7 @@ export function ValidationPanel() {
                 rule={ruleById.get(issue.ruleId)}
                 active={highlight?.sourceKey === ISSUE_PREFIX + issueKey(issue)}
                 onFocus={() => focusIssue(issue)}
+                onFix={() => fixIssue(issue)}
               />
             ))
           )}
@@ -115,9 +133,10 @@ interface IssueItemProps {
   rule: ValidationRule | undefined;
   active: boolean;
   onFocus: () => void;
+  onFix: () => void;
 }
 
-function IssueItem({ issue, rule, active, onFocus }: IssueItemProps) {
+function IssueItem({ issue, rule, active, onFocus, onFix }: IssueItemProps) {
   const [showWhy, setShowWhy] = useState(false);
   const style = SEVERITY_STYLE[issue.severity];
   const hasElements = issue.nodeIds.length + issue.edgeIds.length > 0;
@@ -137,6 +156,17 @@ function IssueItem({ issue, rule, active, onFocus }: IssueItemProps) {
             {issue.message}
           </button>
           <p className="mt-0.5 text-xs leading-relaxed text-ink-600">{issue.suggestion}</p>
+          {issue.fix && (
+            <button
+              type="button"
+              onClick={onFix}
+              title="Se puede deshacer con Ctrl+Z"
+              className="mt-1.5 mr-3 inline-flex items-center gap-1.5 rounded-md bg-accent-soft px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent hover:text-white"
+            >
+              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-[10px]" />
+              Arreglar: {issue.fix.label.charAt(0).toLowerCase() + issue.fix.label.slice(1)}
+            </button>
+          )}
           {rule && (
             <>
               <button

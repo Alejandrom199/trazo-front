@@ -107,3 +107,49 @@ describe('ejemplos de máquina de estados', () => {
     expect(stateRules.flatMap((rule) => rule.check(template.diagram)).map((issue) => issue.message)).toEqual([]);
   });
 });
+
+describe('correcciones de un clic', () => {
+  let next = 0;
+  const createId = () => `fix${++next}`;
+  const fixAll = (diagram: Diagram, ruleId: string) =>
+    stateRules
+      .flatMap((rule) => rule.check(diagram))
+      .filter((issue) => issue.ruleId === ruleId)
+      .reduce((current, issue) => issue.fix!.apply(current, createId), diagram);
+
+  it('Dada una máquina sin estado inicial, Entonces «Arreglar» lo agrega unido al primer estado', () => {
+    const fixed = fixAll(build((b) => void b.state('A', { x: 200, y: 0 })), 'state.missing-initial');
+    expect(issues(fixed)).not.toContain('state.missing-initial');
+    expect(fixed.edges).toHaveLength(1);
+  });
+
+  it('Dada una elección con salidas sin guarda, Entonces «Arreglar» pone [condición] y [else]', () => {
+    const diagram = build((b) => {
+      const a = b.state('A', { x: 100, y: 0 });
+      const choice = b.choice({ x: 300, y: 10 });
+      b.connect(b.initial({ x: 0, y: 0 }), a);
+      b.connect(a, choice, 'evaluar');
+      b.connect(choice, b.state('Sí', { x: 500, y: 0 }));
+      b.connect(choice, b.state('No', { x: 500, y: 200 }));
+    });
+    const fixed = fixAll(diagram, 'state.choice-guards');
+    expect(issues(fixed)).not.toContain('state.choice-guards');
+    expect(fixed.edges.slice(-2).map((edge) => edge.label)).toEqual(['[condición]', '[else]']);
+  });
+
+  it('Dada una nota suelta, Entonces «Arreglar» la ancla al elemento más cercano', () => {
+    const diagram = build((b) => {
+      b.connect(b.initial({ x: 0, y: 0 }), b.state('A', { x: 100, y: 0 }));
+      b.note('Ojo', { x: 100, y: 150 });
+    });
+    const fixed = fixAll(diagram, 'state.note-loose');
+    expect(issues(fixed)).not.toContain('state.note-loose');
+    expect(fixed.edges.at(-1)).toMatchObject({ artifactType: 'annotationLink', targetId: fixed.nodes[1]!.id });
+  });
+
+  it('Dado un estado sin salidas, Entonces «Arreglar» lo lleva a un estado final', () => {
+    const diagram = build((b) => void b.connect(b.initial({ x: 0, y: 0 }), b.state('A', { x: 100, y: 0 })));
+    const fixed = fixAll(diagram, 'state.dead-end');
+    expect(issues(fixed)).toEqual([]);
+  });
+});

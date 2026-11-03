@@ -1,5 +1,6 @@
-import type { Diagram, DiagramNode, ValidationIssue, ValidationRule } from '@/core/model';
+import { addNodeBeside, anchorNoteFix, connectNodes, nearestNode, relabelEdges, type Diagram, type DiagramNode, type ValidationIssue, type ValidationRule } from '@/core/model';
 import { StateArtifact as S, STATE_TYPES } from './artifactTypes';
+import { stateNodeKinds } from './nodeKinds';
 
 type RuleMeta = Omit<ValidationRule, 'diagramType' | 'check'>;
 type Found = Omit<ValidationIssue, 'ruleId' | 'severity' | 'nodeIds' | 'edgeIds'> & { nodeIds?: string[]; edgeIds?: string[] };
@@ -56,7 +57,7 @@ const missingInitial = rule(
   { id: 'state.missing-initial', severity: 'error', title: 'Falta el estado inicial', explanation: 'Sin estado inicial no se sabe en qué estado empieza la máquina.' },
   (diagram) =>
     diagram.nodes.some((node) => STATE_TYPES.has(node.artifactType)) && !ofType(diagram, S.initial).some((node) => node.parentId === null)
-      ? [{ message: 'La máquina no tiene estado inicial.', suggestion: 'Agrega un estado inicial (círculo negro) y únelo al primer estado.' }]
+      ? [{ message: 'La máquina no tiene estado inicial.', suggestion: 'Agrega un estado inicial (círculo negro) y únelo al primer estado.', fix: addInitialFix }]
       : [],
 );
 
@@ -78,7 +79,19 @@ const initialWithoutExit = rule(
   (diagram) =>
     ofType(diagram, S.initial)
       .filter((node) => outgoing(diagram, node.id).length === 0)
-      .map((node) => ({ message: 'Un estado inicial no lleva a ningún estado.', suggestion: 'Arrastra desde el círculo negro hasta el primer estado.', nodeIds: [node.id] })),
+      .map((node) => ({
+        message: 'Un estado inicial no lleva a ningún estado.',
+        suggestion: 'Arrastra desde el círculo negro hasta el primer estado.',
+        nodeIds: [node.id],
+        fix: {
+          label: 'Unirlo al estado más cercano',
+          apply: (current: Diagram, createId: () => string) => {
+            const start = current.nodes.find((candidate) => candidate.id === node.id);
+            const target = start && nearestNode(current, start, (candidate) => STATE_TYPES.has(candidate.artifactType) && candidate.parentId === start.parentId);
+            return start && target ? connectNodes(current, start.id, target.id, S.transition, createId) : current;
+          },
+        },
+      })),
 );
 
 /** Regla: se puede llegar a todos los estados desde el inicial. */
@@ -102,7 +115,20 @@ const deadEnd = rule(
     const canLeave = (node: DiagramNode | undefined): boolean => !!node && (outgoing(diagram, node.id).length > 0 || canLeave(byId.get(node.parentId ?? '')));
     return ofType(diagram, S.state)
       .filter((node) => !canLeave(node))
-      .map((node) => ({ message: `${name(node)} no tiene salidas.`, suggestion: '¿Qué evento lo hace cambiar? Agrega esa transición, o llévalo a un estado final si ahí termina.', nodeIds: [node.id] }));
+      .map((node) => ({
+        message: `${name(node)} no tiene salidas.`,
+        suggestion: '¿Qué evento lo hace cambiar? Agrega esa transición, o llévalo a un estado final si ahí termina.',
+        nodeIds: [node.id],
+        fix: {
+          label: 'Llevarlo a un estado final',
+          apply: (current: Diagram, createId: () => string) => {
+            const state = current.nodes.find((candidate) => candidate.id === node.id);
+            if (!state) return current;
+            const added = addNodeBeside(current, state, 'right', { artifactType: S.final, size: stateNodeKinds[S.final]!.defaultSize }, createId);
+            return connectNodes(added.diagram, state.id, added.id, S.transition, createId);
+          },
+        },
+      }));
   },
 );
 
@@ -115,7 +141,15 @@ const choiceGuards = rule(
       const unguarded = exits.filter((edge) => !/\[.+\]/.test(edge.label));
       if (exits.length < 2) return [{ message: 'Una elección tiene menos de dos salidas.', suggestion: 'Agrega una salida por cada resultado posible, p. ej. «[aprobado]» y «[rechazado]».', nodeIds: [node.id] }];
       return unguarded.length > 0
-        ? [{ message: 'Una salida de la elección no tiene guarda.', suggestion: 'Escribe la condición entre corchetes en cada salida; usa «[else]» para el resto de casos.', nodeIds: [node.id], edgeIds: unguarded.map((edge) => edge.id) }]
+        ? [
+            {
+              message: 'Una salida de la elección no tiene guarda.',
+              suggestion: 'Escribe la condición entre corchetes en cada salida; usa «[else]» para el resto de casos.',
+              nodeIds: [node.id],
+              edgeIds: unguarded.map((edge) => edge.id),
+              fix: { label: 'Poner guardas en sus salidas', apply: (current: Diagram) => relabelEdges(current, guardLabels(unguarded.map((edge) => edge.label))(unguarded.map((edge) => edge.id))) },
+            },
+          ]
         : [];
     }),
 );
@@ -151,8 +185,30 @@ const noteLoose = rule(
   (diagram) =>
     ofType(diagram, S.note)
       .filter((node) => !diagram.edges.some((edge) => edge.artifactType === S.annotationLink && (edge.sourceId === node.id || edge.targetId === node.id)))
-      .map((node) => ({ message: 'Hay una nota sin anclar.', suggestion: 'Únela al elemento que comenta.', nodeIds: [node.id] })),
+      .map((node) => ({ message: 'Hay una nota sin anclar.', suggestion: 'Únela al elemento que comenta.', nodeIds: [node.id], fix: anchorNoteFix(node.id, S.note, S.annotationLink) })),
 );
+
+/** Corrección: estado inicial a la izquierda del primer estado de primer nivel (el de más arriba a la izquierda). */
+const addInitialFix = {
+  label: 'Agregar el estado inicial',
+  apply: (diagram: Diagram, createId: () => string): Diagram => {
+    const first = diagram.nodes
+      .filter((node) => node.parentId === null && STATE_TYPES.has(node.artifactType))
+      .sort((a, b) => a.position.x + a.position.y - (b.position.x + b.position.y))[0];
+    if (!first) return diagram;
+    const added = addNodeBeside(diagram, first, 'left', { artifactType: S.initial, size: stateNodeKinds[S.initial]!.defaultSize }, createId);
+    return connectNodes(added.diagram, added.id, first.id, S.transition, createId);
+  },
+};
+
+/**
+ * Guardas para las salidas de una elección que no la tienen: lo escrito se pone
+ * entre corchetes; las vacías, «[condición]», y la última vacía, «[else]».
+ */
+function guardLabels(labels: string[]): (edgeIds: string[]) => Map<string, string> {
+  const lastEmpty = labels.map((label) => label.trim()).lastIndexOf('');
+  return (edgeIds) => new Map(edgeIds.map((id, index) => [id, labels[index]!.trim() ? `[${labels[index]!.trim()}]` : index === lastEmpty ? '[else]' : '[condición]']));
+}
 
 /** Todas las reglas, en el orden en que conviene leerlas. */
 export const stateRules: ValidationRule[] = [

@@ -1,4 +1,4 @@
-import { isInsideOf, type Diagram, type DiagramNode, type ValidationIssue, type ValidationRule } from '@/core/model';
+import { anchorNoteFix, isInsideOf, type Diagram, type DiagramNode, type ValidationIssue, type ValidationRule } from '@/core/model';
 import { DeploymentArtifact as D, HOST_TYPES, MACHINE_TYPES } from './artifactTypes';
 
 type RuleMeta = Omit<ValidationRule, 'diagramType' | 'check'>;
@@ -87,7 +87,7 @@ const noteLoose = rule(
   (diagram) =>
     diagram.nodes
       .filter((node) => node.artifactType === D.note && !diagram.edges.some((edge) => edge.artifactType === D.annotationLink && (edge.sourceId === node.id || edge.targetId === node.id)))
-      .map((node) => ({ message: 'Hay una nota sin anclar.', suggestion: 'Únela al elemento que comenta.', nodeIds: [node.id] })),
+      .map((node) => ({ message: 'Hay una nota sin anclar.', suggestion: 'Únela al elemento que comenta.', nodeIds: [node.id], fix: anchorNoteFix(node.id, D.note, D.annotationLink) })),
 );
 
 /** Todas las reglas, en el orden en que conviene leerlas. */

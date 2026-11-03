@@ -1,4 +1,4 @@
-import type { Diagram, ValidationIssue, ValidationRule } from '@/core/model';
+import { anchorNoteFix, type Diagram, type ValidationIssue, type ValidationRule } from '@/core/model';
 import { ComponentArtifact as C } from './artifactTypes';
 import { buildComponentModel, componentsInCycles, nameOf, type ComponentModel } from './componentModel';
 
@@ -94,7 +94,7 @@ const noteLoose = rule(
   (_model, diagram) =>
     diagram.nodes
       .filter((node) => node.artifactType === C.note && !diagram.edges.some((edge) => edge.artifactType === C.annotationLink && (edge.sourceId === node.id || edge.targetId === node.id)))
-      .map((node) => ({ message: 'Hay una nota sin anclar.', suggestion: 'Únela al elemento que comenta.', nodeIds: [node.id] })),
+      .map((node) => ({ message: 'Hay una nota sin anclar.', suggestion: 'Únela al elemento que comenta.', nodeIds: [node.id], fix: anchorNoteFix(node.id, C.note, C.annotationLink) })),
 );
 
 /** Todas las reglas, en el orden en que conviene leerlas. */
