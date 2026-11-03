@@ -9,6 +9,7 @@ import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { Field, FieldGroup, inputClass, LINE_OPTIONS, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from '@/ui/explanation/formFields';
 import { Panel } from '@/ui/layout/Panel';
 import { EdgeSample } from '@/ui/learn/HowToRead';
+import { ArrangeTools } from './ArrangeTools';
 import { commonValue, summarizeSelection, type SelectionGroup } from './selectionSummary';
 
 const MIXED = 'Varios';
@@ -55,6 +56,8 @@ export function SelectionPanel() {
         </section>
 
         {summary.nodes.length > 0 && <LockAll nodes={summary.nodes} />}
+
+        <ArrangeTools nodes={summary.nodes} module={module} />
 
         {summary.sameType ? (
           <section className="space-y-4 border-t border-line pt-4">
