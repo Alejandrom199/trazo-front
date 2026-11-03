@@ -1,6 +1,7 @@
 import type { Template } from '@/core/model';
 import { ComponentArtifact as C } from '../artifactTypes';
 import { createComponentTemplateBuilder } from './templateBuilder';
+import { libraryComponentTemplate } from './libraryTemplate';
 
 /**
  * Básico: tienda en línea. Una cadena de tres piezas en la que cada necesidad
@@ -223,4 +224,4 @@ const onlineBanking = (() => {
 })();
 
 /** Ordenadas de menor a mayor dificultad: así aparecen en la galería. */
-export const componentTemplates: Template[] = [blog, onlineStore, salesSubsystem, mobileBackend, gatewayServices, onlineBanking];
+export const componentTemplates: Template[] = [blog, onlineStore, libraryComponentTemplate, salesSubsystem, mobileBackend, gatewayServices, onlineBanking];

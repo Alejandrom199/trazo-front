@@ -1,6 +1,7 @@
 import type { Template } from '@/core/model';
 import { DeploymentArtifact as D } from '../artifactTypes';
 import { createDeploymentTemplateBuilder } from './templateBuilder';
+import { libraryDeploymentTemplate } from './libraryTemplate';
 
 /** Básico: un sitio en un servidor, visto desde el equipo del usuario. */
 const website = (() => {
@@ -139,4 +140,4 @@ const messageQueue = (() => {
 })();
 
 /** Ordenadas de menor a mayor dificultad: así aparecen en la galería. */
-export const deploymentTemplates: Template[] = [website, appWithDatabase, containers, mobileCloud, highAvailability, messageQueue];
+export const deploymentTemplates: Template[] = [website, appWithDatabase, libraryDeploymentTemplate, containers, mobileCloud, highAvailability, messageQueue];

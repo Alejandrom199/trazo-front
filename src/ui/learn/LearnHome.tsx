@@ -1,9 +1,20 @@
 import { faArrowRight, faDiagramProject, faRoute } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf } from '@/core/model';
+import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf, type DiagramType } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { navigate } from '@/ui/navigation/route';
 import { UmlMap } from './UmlMap';
+
+const LIBRARY_PROJECT_PRIORITY: Record<DiagramType, 'required' | 'optional'> = {
+  usecase: 'required',
+  activity: 'required',
+  sequence: 'required',
+  class: 'required',
+  state: 'optional',
+  component: 'optional',
+  deployment: 'optional',
+  package: 'optional',
+};
 
 /** Inicio de Aprender: el mapa de UML y una tarjeta por tipo de diagrama, agrupadas por familia. */
 export function LearnHome() {
@@ -29,9 +40,9 @@ export function LearnHome() {
           <FontAwesomeIcon icon={faRoute} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-lg font-semibold text-ink-900">Flow UML</span>
+          <span className="block text-lg font-semibold text-ink-900">Proyecto guiado: Biblioteca Digital</span>
           <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-ink-600">
-            Recorre las fases de ingeniería de software y descubre qué pregunta responde cada diagrama UML.
+            Construye un mismo sistema con varios diagramas y distingue cuáles son obligatorios y cuáles opcionales en cada fase.
           </span>
         </span>
         <span className="hidden items-center gap-1.5 text-sm font-medium text-accent sm:flex">
@@ -45,6 +56,9 @@ export function LearnHome() {
           UML los divide en dos familias: los de <strong className="font-medium text-ink-900">estructura</strong> describen de qué está
           hecho el sistema, y los de <strong className="font-medium text-ink-900">comportamiento</strong>, qué hace y cómo cambia. Los de
           interacción son comportamiento centrado en los mensajes.
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-ink-400">
+          Las etiquetas <strong className="font-medium text-success">Obligatorio</strong> y <strong className="font-medium text-ink-600">Opcional</strong> corresponden al proyecto Biblioteca Digital, no a una regla universal de UML.
         </p>
         <div className="mt-4">
           <UmlMap />
@@ -74,17 +88,23 @@ export function LearnHome() {
 
 function GuideCard({ module }: { module: DiagramModule }) {
   const isInteraction = umlKindOf(module.diagramType)?.interaction ?? false;
+  const priority = LIBRARY_PROJECT_PRIORITY[module.diagramType];
   return (
     <button
       type="button"
       onClick={() => navigate({ page: 'learn-diagram', diagramType: module.diagramType })}
       className="group flex flex-col rounded-xl border border-line bg-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-panel focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
     >
-      <span className="flex items-center justify-between">
+      <span className="flex items-start justify-between gap-3">
         <span className="bg-brand flex size-10 items-center justify-center rounded-lg text-white">
           <FontAwesomeIcon icon={faDiagramProject} />
         </span>
-        {isInteraction && <span className="rounded-full bg-raised px-2.5 py-0.5 text-[11px] font-medium text-ink-600">Interacción</span>}
+        <span className="flex flex-wrap justify-end gap-1.5">
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${priority === 'required' ? 'bg-success-soft text-success' : 'bg-raised text-ink-600'}`}>
+            {priority === 'required' ? 'Obligatorio' : 'Opcional'}
+          </span>
+          {isInteraction && <span className="rounded-full bg-raised px-2.5 py-0.5 text-[11px] font-medium text-ink-600">Interacción</span>}
+        </span>
       </span>
       <h3 className="mt-4 text-lg font-semibold text-ink-900">{module.displayName}</h3>
       <p className="mt-1.5 flex-1 text-sm leading-relaxed text-ink-600">{module.guide.summary}</p>
