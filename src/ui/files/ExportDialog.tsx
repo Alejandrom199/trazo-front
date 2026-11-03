@@ -6,7 +6,7 @@ import type { ImageBackground, ImageExportOptions, ImageFormat, ImageFrame } fro
 type Choices = Omit<ImageExportOptions, 'title'>;
 
 const STORAGE_KEY = 'trazo.exportOptions';
-const DEFAULTS: Choices = { format: 'png', background: 'light', frame: 'none', borderWidth: 1.5, borderRadius: 14, padding: 32 };
+const DEFAULTS: Choices = { format: 'png', background: 'light', frame: 'none', borderColor: null, borderWidth: 1.5, borderRadius: 14, padding: 32 };
 
 /** Medidas del marco que el usuario puede ajustar, con sus límites. */
 const MEASURES: { key: 'borderWidth' | 'borderRadius' | 'padding'; label: string; min: number; max: number; step: number }[] = [
@@ -14,6 +14,16 @@ const MEASURES: { key: 'borderWidth' | 'borderRadius' | 'padding'; label: string
   { key: 'borderRadius', label: 'Redondeo de las esquinas', min: 0, max: 48, step: 1 },
   { key: 'padding', label: 'Espacio alrededor del diagrama', min: 0, max: 120, step: 4 },
 ];
+
+/** Colores sugeridos para el borde; además se puede elegir cualquiera. */
+const BORDER_COLORS: { value: string; label: string }[] = [
+  { value: '#27272a', label: 'Negro' },
+  { value: '#7c3aed', label: 'Morado' },
+  { value: '#2563eb', label: 'Azul' },
+  { value: '#059669', label: 'Verde' },
+  { value: '#dc2626', label: 'Rojo' },
+];
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 const FORMATS: { value: ImageFormat; label: string; hint: string }[] = [
   { value: 'png', label: 'PNG', hint: 'Para documentos y presentaciones' },
@@ -35,7 +45,7 @@ function readChoices(): Choices {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
     if (saved && typeof saved === 'object') {
-      const { format, background, frame, ...measures } = saved as Partial<Choices>;
+      const { format, background, frame, borderColor, ...measures } = saved as Partial<Choices>;
       const measure = (key: (typeof MEASURES)[number]['key']) => {
         const value = measures[key];
         const limits = MEASURES.find((entry) => entry.key === key)!;
@@ -48,6 +58,7 @@ function readChoices(): Choices {
         format: FORMATS.some((option) => option.value === format) ? format! : DEFAULTS.format,
         background: BACKGROUNDS.some((option) => option.value === background) ? background! : DEFAULTS.background,
         frame: FRAMES.some((option) => option.value === frame) ? frame! : DEFAULTS.frame,
+        borderColor: typeof borderColor === 'string' && HEX_COLOR.test(borderColor) ? borderColor : DEFAULTS.borderColor,
       };
     }
   } catch {
@@ -102,6 +113,7 @@ export function ExportDialog({
           <Choice label="Marco" options={FRAMES} value={choices.frame} onChange={(frame) => set({ frame })} />
           {choices.frame !== 'none' && (
             <div className="space-y-2.5 rounded-lg bg-canvas px-3 py-3">
+              <BorderColorPicker value={choices.borderColor} onChange={(borderColor) => set({ borderColor })} />
               {MEASURES.map((measure) => (
                 <label key={measure.key} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1">
                   <span className="text-xs text-ink-600">{measure.label}</span>
@@ -179,6 +191,52 @@ function Choice<T extends string>({
   );
 }
 
+/** Color del borde: automático (gris del tema), uno sugerido o cualquiera con el selector del sistema. */
+function BorderColorPicker({ value, onChange }: { value: string | null; onChange: (color: string | null) => void }) {
+  const custom = value !== null && !BORDER_COLORS.some((color) => color.value === value);
+  const swatch = (selected: boolean) =>
+    `size-6 shrink-0 rounded-full border border-line transition-shadow ${selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-canvas' : 'hover:ring-2 hover:ring-line'}`;
+  return (
+    <div role="radiogroup" aria-label="Color del borde" className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5">
+      <span className="text-xs text-ink-600">Color del borde</span>
+      <span className="text-right text-xs text-ink-900">{value === null ? 'Automático' : (BORDER_COLORS.find((color) => color.value === value)?.label ?? value)}</span>
+      <div className="col-span-2 flex items-center gap-2">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={value === null}
+          title="Automático: gris del tema del fondo"
+          onClick={() => onChange(null)}
+          className={swatch(value === null)}
+          style={{ background: 'linear-gradient(135deg, #e4e4e7 50%, #52525b 50%)' }}
+        />
+        {BORDER_COLORS.map((color) => (
+          <button
+            key={color.value}
+            type="button"
+            role="radio"
+            aria-checked={value === color.value}
+            aria-label={color.label}
+            title={color.label}
+            onClick={() => onChange(color.value)}
+            className={swatch(value === color.value)}
+            style={{ background: color.value }}
+          />
+        ))}
+        <label title="Otro color" className={`${swatch(custom)} relative cursor-pointer overflow-hidden`} style={{ background: custom ? value! : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }}>
+          <input
+            type="color"
+            aria-label="Otro color"
+            value={value ?? '#27272a'}
+            onChange={(event) => onChange(event.target.value)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
 /** Miniatura de cómo saldrá: fondo (o cuadrícula de transparencia), marco y título. */
 function Preview({ choices, title }: { choices: Choices; title: string }) {
   const dark = choices.background === 'dark';
@@ -196,7 +254,7 @@ function Preview({ choices, title }: { choices: Choices; title: string }) {
         className="flex flex-col items-center gap-1.5"
         // La miniatura está a un cuarto de escala de la imagen real.
         style={{
-          border: `${framed ? Math.max(choices.borderWidth / 4, choices.borderWidth > 0 ? 1 : 0) : 0}px solid ${dark ? '#71717a' : '#a1a1aa'}`,
+          border: `${framed ? Math.max(choices.borderWidth / 4, choices.borderWidth > 0 ? 1 : 0) : 0}px solid ${choices.borderColor ?? (dark ? '#71717a' : '#a1a1aa')}`,
           borderRadius: choices.borderRadius / 4,
           padding: framed ? choices.padding / 4 : 12,
         }}

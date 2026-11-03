@@ -18,6 +18,8 @@ export interface ImageExportOptions {
   title: string;
   /** Medidas del marco, en píxeles (se ignoran sin marco). */
   borderWidth: number;
+  /** Color del borde (#rrggbb); null usa el gris del tema del fondo. */
+  borderColor: string | null;
   borderRadius: number;
   /** Espacio entre el borde y el diagrama. */
   padding: number;
@@ -63,7 +65,7 @@ export function useDiagramImageExport() {
       root.classList.add(EXPORTING_CLASS);
       try {
         await nextFrames(2);
-        const colors = themeColors();
+        const colors = { ...themeColors(), ...(options.borderColor ? { border: options.borderColor } : {}) };
         const bounds = withEdges(getNodesBounds(nodes), viewportElement);
         // Con marco, el aire alrededor del diagrama es el espacio interior que eligió el usuario.
         const margin = options.frame === 'none' ? MARGIN : options.padding;
