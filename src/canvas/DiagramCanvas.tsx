@@ -318,13 +318,16 @@ function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlo
   const diagram = store().diagram;
   const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   const moves: NodeMove[] = [];
+  // Al redimensionar desde la izquierda o arriba también cambia la posición; el imán
+  // no debe actuar ahí, o devolvería el borde a su vecino y crecería el lado opuesto.
+  const resizing = new Set(changes.flatMap((change) => (change.type === 'dimensions' && change.resizing ? [change.id] : [])));
   for (const change of changes) {
     if (change.type !== 'position' || !change.position) continue;
     const node = diagram?.nodes.find((candidate) => candidate.id === change.id);
     const kind = node && module.nodeKinds[node.artifactType];
     // Los que solo se deslizan en horizontal conservan su fila.
     const requested = kind?.dragAxis === 'x' && node ? { x: change.position.x, y: node.position.y } : change.position;
-    const snapsToNeighbors = diagram && node && kind && node.parentId === null && isMagnetic(kind);
+    const snapsToNeighbors = diagram && node && kind && node.parentId === null && isMagnetic(kind) && !resizing.has(change.id);
     const position = snapsToNeighbors
       ? snapContainerPosition(diagram, node.id, requested, node.size, isContainer)
       : requested;
