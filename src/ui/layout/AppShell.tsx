@@ -43,10 +43,9 @@ export function AppShell() {
                 <DiagramCanvas />
               </div>
 
-              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
-                <div className="pointer-events-auto">
-                  <CanvasSelectionToolbar />
-                </div>
+              {/* Arriba a la izquierda, bajo la barra del documento: abajo choca con el panel de problemas. */}
+              <div className="absolute top-[4.25rem] left-3 z-10">
+                <CanvasSelectionToolbar />
               </div>
 
               <div className="pointer-events-none absolute inset-x-3 top-3 z-20 *:pointer-events-auto">
