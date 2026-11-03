@@ -5,11 +5,11 @@ import { useCanvasInteractionStore, type CanvasTool } from '@/canvas/canvasInter
 import { useDiagramStore } from '@/core/store/diagramStore';
 
 const TOOLS: { id: CanvasTool; label: string; key: string; help: string; icon: typeof faArrowPointer }[] = [
-  { id: 'pointer', label: 'Puntero', key: 'V', help: 'Puntero (V): clic para seleccionar, arrastra para mover; sobre el fondo, un recuadro selecciona. Ctrl + arrastrar desplaza el lienzo', icon: faArrowPointer },
+  { id: 'pointer', label: 'Puntero', key: 'V', help: 'Puntero (V): clic para seleccionar, arrastra para mover; sobre el fondo, un recuadro selecciona. Alt + arrastrar desplaza el lienzo', icon: faArrowPointer },
   { id: 'lasso', label: 'Lápiz', key: 'L', help: 'Lápiz (L): dibuja a mano alzada el área que quieres seleccionar (Shift suma)', icon: faPencil },
 ];
 
-/** Herramientas del lienzo: puntero y lápiz de selección (también con V y L). Ctrl + arrastrar desplaza el lienzo. */
+/** Herramientas del lienzo: puntero y lápiz de selección (también con V y L). Alt + arrastrar desplaza el lienzo. */
 export function CanvasSelectionToolbar() {
   const tool = useCanvasInteractionStore((state) => state.tool);
   const setTool = useCanvasInteractionStore((state) => state.setTool);

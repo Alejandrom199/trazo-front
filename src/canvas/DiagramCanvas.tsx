@@ -82,7 +82,7 @@ export function DiagramCanvas() {
   const detailMode = useCanvasViewStore((state) => state.detail);
   const focus = useCanvasViewStore((state) => state.focus);
   const canvasTool = useCanvasInteractionStore((state) => state.tool);
-  const panKeyHeld = useKeyPress('Control');
+  const panKeyHeld = useKeyPress('Alt');
   const [zoom, setZoom] = useState(1);
   // Con cuadrícula visible, los nodos se ajustan a sus celdas; sin ella, a un paso fino.
   const snapStep = grid.visible ? grid.size : FREE_SNAP_STEP;
@@ -226,9 +226,9 @@ export function DiagramCanvas() {
         // entero dentro, así un carril no se selecciona por rozarlo); la rueda del medio desplaza.
         selectionOnDrag={canvasTool === 'pointer'}
         selectionMode={SelectionMode.Full}
-        // Mantener Ctrl y arrastrar desplaza la vista con cualquier herramienta.
+        // Mantener Alt y arrastrar desplaza la vista con cualquier herramienta.
         panOnDrag={[1]}
-        panActivationKeyCode="Control"
+        panActivationKeyCode="Alt"
         nodesDraggable={canvasTool === 'pointer'}
         nodesConnectable={canvasTool === 'pointer'}
         deleteKeyCode={['Delete', 'Backspace']}
@@ -258,7 +258,7 @@ export function DiagramCanvas() {
         ) : (
           <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
         )}
-        {/* Con Ctrl presionado el lápiz se aparta para dejar desplazar la vista. */}
+        {/* Con Alt presionado el lápiz se aparta para dejar desplazar la vista. */}
         {canvasTool === 'lasso' && !panKeyHeld && module && <LassoLayer module={module} />}
         <Controls position="bottom-left" showInteractive={false} />
         <LockBadges />
