@@ -12,7 +12,7 @@ export const useCaseNodeKinds: Record<string, NodeKind> = {
   [U.actor]: { ...base, component: ActorShape, defaultSize: { width: 90, height: 120 }, defaultLabel: 'Actor', hasLabel: true, resizable: true },
   [U.useCase]: { ...base, component: UseCaseShape, defaultSize: { width: 170, height: 72 }, defaultLabel: 'Nuevo caso de uso', hasLabel: true, resizable: true },
   [U.systemBoundary]: {
-    ...base, component: SystemBoundaryShape, defaultSize: { width: 620, height: 430 }, defaultLabel: 'Sistema',
+    ...base, component: SystemBoundaryShape, defaultSize: { width: 620, height: 430 }, previewSize: { width: 150, height: 100 }, defaultLabel: 'Sistema',
     hasLabel: true, resizable: true, isContainer: true, connectable: false, magnetic: false,
   },
   [U.note]: { ...base, component: NoteShape, defaultSize: { width: 170, height: 80 }, defaultLabel: 'Comentario', hasLabel: true, resizable: true, secondaryDetail: true },

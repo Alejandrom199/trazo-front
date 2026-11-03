@@ -137,7 +137,8 @@ export function DiagramGuidePage({ module, scrollRoot }: DiagramGuidePageProps) 
         </Section>
 
         <Section id="guia-prueba" title="Ponte a prueba" lead="Reconoce cada artefacto por su forma.">
-          <ArtifactQuiz module={module} />
+          {/* key: al cambiar de diagrama el cuestionario empieza de nuevo (su pregunta es de ese módulo). */}
+          <ArtifactQuiz key={module.diagramType} module={module} />
         </Section>
 
         {guide.workshop && (

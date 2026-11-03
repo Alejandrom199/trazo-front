@@ -23,7 +23,22 @@ export const AbstractClassShape = (props: ArtifactNodeProps) => <Classifier {...
 export const InterfaceShape = (props: ArtifactNodeProps) => <Classifier {...props} stereotype="interface" />;
 export const EnumerationShape = (props: ArtifactNodeProps) => <Classifier {...props} stereotype="enumeration" />;
 
+/** Alto de la pestaña del paquete; el cuerpo empieza justo debajo (no se sale del nodo). */
+const PACKAGE_TAB = 22;
+
+/** Paquete: carpeta con pestaña (proporcional, para que también quepa en su miniatura). */
 export function PackageShape({ selected, label }: ArtifactNodeProps) {
   const stroke = strokeFor(selected);
-  return <div className="relative size-full pt-5"><div className={`${CONTAINER_GRIP_CLASS} absolute top-0 left-0 h-6 min-w-24 border px-2 text-[11px] font-semibold leading-5 text-ink-900`} style={{ borderColor: stroke, background: SHAPE_FILL }}>{label}</div><div className="size-full" style={{ border: `${STROKE_WIDTH}px solid ${stroke}`, background: 'color-mix(in oklch, var(--color-shape-fill) 35%, transparent)' }} /></div>;
+  const tab = { height: PACKAGE_TAB, borderColor: stroke, background: SHAPE_FILL, borderWidth: STROKE_WIDTH };
+  return (
+    <div className="relative size-full">
+      <div className={`${CONTAINER_GRIP_CLASS} absolute top-0 left-0 max-w-[70%] min-w-[35%] truncate border border-b-0 px-2 text-[11px] font-semibold leading-5 text-ink-900`} style={tab}>
+        {label}
+      </div>
+      <div
+        className="absolute inset-x-0 bottom-0"
+        style={{ top: PACKAGE_TAB - STROKE_WIDTH, border: `${STROKE_WIDTH}px solid ${stroke}`, background: 'color-mix(in oklch, var(--color-shape-fill) 35%, transparent)' }}
+      />
+    </div>
+  );
 }

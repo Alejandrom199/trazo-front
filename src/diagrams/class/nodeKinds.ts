@@ -11,7 +11,7 @@ export const classNodeKinds: Record<string, NodeKind> = {
   [C.abstractClass]: { ...classifier, component: AbstractClassShape, defaultLabel: 'ClaseAbstracta\n--\n# atributo: Tipo\n--\n+ operaciónAbstracta()' },
   [C.interface]: { ...classifier, component: InterfaceShape, defaultLabel: 'Interfaz\n--\n\n--\n+ operación()' },
   [C.enumeration]: { ...classifier, component: EnumerationShape, defaultLabel: 'Estado\n--\nACTIVO\nINACTIVO\n--\n' },
-  [C.package]: { ...base, component: PackageShape, defaultSize: { width: 520, height: 360 }, defaultLabel: 'Paquete', labelCaption: 'Nombre', isContainer: true, connectable: false, magnetic: false, layer: 'back' },
+  [C.package]: { ...base, component: PackageShape, defaultSize: { width: 520, height: 360 }, previewSize: { width: 150, height: 100 }, defaultLabel: 'Paquete', labelCaption: 'Nombre', isContainer: true, connectable: false, magnetic: false, layer: 'back' },
   [C.note]: { ...base, component: NoteShape, defaultSize: { width: 180, height: 90 }, defaultLabel: 'Comentario', labelCaption: 'Texto', secondaryDetail: true },
 };
 
