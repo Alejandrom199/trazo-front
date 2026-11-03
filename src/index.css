@@ -219,9 +219,9 @@ select {
 
 /* Zoom semántico: en detalle compacto se conservan las figuras y el flujo,
    pero desaparecen los textos auxiliares y los puntos de edición. */
-.trazo-detail-compact .trazo-edge-label,
-.trazo-detail-compact .react-flow__handle,
-.trazo-detail-compact .react-flow__resize-control {
+/* Los tiradores de tamaño y los puntos de conexión NO se ocultan: solo aparecen al
+   seleccionar o al pasar el ratón, y sin ellos no se puede editar alejado. */
+.trazo-detail-compact .trazo-edge-label {
   display: none;
 }
 .trazo-detail-compact .trazo-secondary-detail {
