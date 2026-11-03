@@ -1,6 +1,5 @@
 import {
-  faAnglesLeft,
-  faAnglesRight,
+  faArrowRightLong,
   faBolt,
   faCircleDot,
   faCircleInfo,
@@ -18,7 +17,6 @@ import {
   faTableColumns,
   faTimeline,
   faUser,
-  faXmark,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -33,11 +31,9 @@ import { useActiveModule } from '@/canvas/useActiveModule';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
-import { searchArtifacts } from './artifactSearch';
-import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
 import { useUiStore } from '@/ui/uiStore';
 
-/** Icono de cada categoría en la paleta plegada; las que no estén aquí usan uno genérico. */
+/** Icono de cada categoría en la tira de herramientas; las que no estén aquí usan uno genérico. */
 const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
   'nodo de control': faCodeBranch,
   'nodo ejecutable': faBolt,
@@ -57,236 +53,127 @@ const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
 
 const TIP_SEEN_KEY = 'trazo.contextMenuTipSeen';
 
+/** Clave del desplegable de conexiones (no es una categoría de nodos). */
+const CONNECTORS = 'conexiones';
+type FlyoutKey = ArtifactCategory | typeof CONNECTORS;
+
 /**
- * Paleta de artefactos del módulo activo, agrupada por categoría y con buscador.
- * Clic (o arrastrar) agrega el artefacto al lienzo; el botón (i) abre su explicación.
- * Pasar el ratón muestra una pista corta. Plegada, queda un riel con un icono por
- * categoría (cada uno despliega sus artefactos) y una lupa que abre el buscador
- * del lienzo, el mismo del clic derecho.
+ * Herramientas de dibujo del módulo activo: una tira vertical que flota sobre el
+ * lienzo, con un icono por categoría y otro para las conexiones. Cada uno
+ * despliega sus artefactos con su figura, su nombre y la (i) que los explica;
+ * clic o arrastrar agrega el artefacto. La lupa abre el buscador del lienzo, el
+ * mismo del clic derecho. Así el lienzo conserva todo el ancho.
  */
 export function PalettePanel() {
   const module = useActiveModule();
-  const hint = usePaletteHint();
   const addAtCenter = useAddArtifactAtCenter();
   const [opened, setOpened] = useState<HintState | null>(null);
-  const [query, setQuery] = useState('');
-  const [flyout, setFlyout] = useState<{ category: ArtifactCategory; anchor: DOMRect } | null>(null);
+  const [flyout, setFlyout] = useState<{ key: FlyoutKey; anchor: DOMRect } | null>(null);
   const rememberArtifact = useUiStore((state) => state.rememberArtifact);
   const nextEdgeType = useCanvasInteractionStore((state) => state.nextEdgeType);
   const setNextEdgeType = useCanvasInteractionStore((state) => state.setNextEdgeType);
   useContextMenuTip();
-  const collapsed = useUiStore((state) => state.paletteCollapsed);
-  const setCollapsed = useUiStore((state) => state.setPaletteCollapsed);
-  const isNarrow = useMediaQuery(NARROW_QUERY);
   if (!module) return null;
 
   function toggleExplanation(artifact: ArtifactDefinition, anchor: DOMRect) {
-    hint.hide();
     setOpened(opened?.artifact.type === artifact.type ? null : { artifact, anchor });
   }
 
   const draggable = module.artifacts.filter((artifact) => module.nodeKinds[artifact.type]);
   const connectors = module.artifacts.filter((artifact) => module.edgeKinds[artifact.type]);
   const categories = ARTIFACT_CATEGORIES.filter(({ category }) => draggable.some((artifact) => artifact.category === category));
-  const searching = query.trim() !== '';
-  const results = searching ? searchArtifacts(draggable, query) : [];
+  const chosenConnector = connectors.find((artifact) => artifact.type === nextEdgeType);
 
   function add(artifactType: string) {
-    hint.hide();
     addAtCenter(artifactType);
     rememberArtifact(artifactType);
   }
 
-  /** La lupa del riel abre el buscador del lienzo junto a ella; lo elegido va al centro de la vista. */
+  /** La lupa abre el buscador del lienzo junto a ella; lo elegido va al centro de la vista. */
   function openSearch(anchor: DOMRect) {
     setFlyout(null);
     useContextMenuStore.getState().open({ target: { kind: 'pane' }, screen: { x: anchor.right + 8, y: anchor.top }, flow: null });
   }
 
-  if (collapsed) {
+  const toolButton = (key: FlyoutKey, title: string, icon: IconDefinition, active = false) => {
+    const isOpen = flyout?.key === key;
     return (
-      <aside aria-label="Artefactos" className="flex h-full w-14 shrink-0 flex-col items-center border-r border-line bg-surface">
-        <button
-          type="button"
-          onClick={() => setCollapsed(false)}
-          title="Mostrar artefactos"
-          aria-label="Mostrar artefactos"
-          aria-expanded={false}
-          className="mt-3 mb-2 flex size-8 items-center justify-center rounded-md text-xs text-ink-400 hover:bg-raised hover:text-ink-900"
-        >
-          <FontAwesomeIcon icon={faAnglesRight} />
-        </button>
-        <div className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1.5 pb-3">
-          {categories.map(({ category, shortTitle }) => {
-            const isOpen = flyout?.category === category;
-            return (
-              <button
-                key={category}
-                type="button"
-                data-palette-category
-                onClick={(event) => setFlyout(isOpen ? null : { category, anchor: event.currentTarget.getBoundingClientRect() })}
-                title={shortTitle}
-                aria-label={shortTitle}
-                aria-expanded={isOpen}
-                className={`flex size-10 items-center justify-center rounded-lg text-sm transition-colors ${
-                  isOpen ? 'bg-accent-soft text-accent' : 'text-ink-400 hover:bg-raised hover:text-ink-900'
-                }`}
-              >
-                <FontAwesomeIcon icon={CATEGORY_ICONS[category] ?? faShapes} />
-              </button>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          onClick={(event) => openSearch(event.currentTarget.getBoundingClientRect())}
-          title="Buscar artefacto (también con clic derecho en el lienzo)"
-          aria-label="Buscar artefacto"
-          className="mb-3 flex size-10 items-center justify-center rounded-lg text-sm text-ink-400 hover:bg-raised hover:text-ink-900"
-        >
-          <FontAwesomeIcon icon={faMagnifyingGlass} />
-        </button>
-        {flyout && (
-          <CategoryFlyout
-            title={categories.find((entry) => entry.category === flyout.category)?.shortTitle ?? ''}
-            anchor={flyout.anchor}
-            onClose={() => setFlyout(null)}
-          >
-            {draggable
-              .filter((artifact) => artifact.category === flyout.category)
-              .map((artifact) => {
-                const kind = module.nodeKinds[artifact.type];
-                return kind ? (
-                  <PaletteItem
-                    key={artifact.type}
-                    artifact={artifact}
-                    kind={kind}
-                    isOpen={opened?.artifact.type === artifact.type}
-                    onHover={undefined}
-                    onLeave={hint.hide}
-                    onAdd={() => {
-                      add(artifact.type);
-                      setFlyout(null);
-                    }}
-                    onDragEnd={() => setFlyout(null)}
-                    onInfo={toggleExplanation}
-                  />
-                ) : null;
-              })}
-          </CategoryFlyout>
-        )}
-        {opened && (
-          <ArtifactPopover
-            artifact={opened.artifact}
-            anchor={opened.anchor}
-            footer="Haz clic en el artefacto o arrástralo para agregarlo al lienzo."
-            keepOpenOn={isPaletteInfo}
-            onClose={() => setOpened(null)}
-          />
-        )}
-        {hint.current && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
-      </aside>
+      <button
+        key={key}
+        type="button"
+        data-palette-category
+        onClick={(event) => setFlyout(isOpen ? null : { key, anchor: event.currentTarget.getBoundingClientRect() })}
+        title={title}
+        aria-label={title}
+        aria-expanded={isOpen}
+        className={`flex size-9 items-center justify-center rounded-lg text-sm transition-colors ${
+          isOpen || active ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
+        }`}
+      >
+        <FontAwesomeIcon icon={icon} />
+      </button>
     );
-  }
+  };
 
   return (
-    <aside
-      aria-label="Artefactos"
-      className="flex h-full w-64 shrink-0 flex-col border-r border-line bg-surface max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-30 max-md:shadow-panel"
-    >
-      <header className="flex items-start gap-2 px-5 pt-5 pb-2">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-semibold text-ink-900">Artefactos</h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setOpened(null);
-            setCollapsed(true);
-          }}
-          title="Plegar artefactos"
-          aria-label="Plegar artefactos"
-          aria-expanded
-          className="-mr-2 flex size-8 shrink-0 items-center justify-center rounded-md text-xs text-ink-400 hover:bg-raised hover:text-ink-900"
-        >
-          <FontAwesomeIcon icon={faAnglesLeft} />
-        </button>
-      </header>
+    <aside aria-label="Artefactos" className="flex flex-col items-center gap-1 rounded-xl border border-line bg-surface/95 p-1 shadow-panel backdrop-blur">
+      {categories.map(({ category, shortTitle }) => toolButton(category, shortTitle, CATEGORY_ICONS[category] ?? faShapes))}
+      {connectors.length > 0 &&
+        toolButton(CONNECTORS, chosenConnector ? `Conexiones: ${chosenConnector.name}` : 'Conexiones', faArrowRightLong, chosenConnector !== undefined)}
+      <span className="my-0.5 h-px w-6 bg-line" aria-hidden />
+      <button
+        type="button"
+        onClick={(event) => openSearch(event.currentTarget.getBoundingClientRect())}
+        title="Buscar artefacto (también con clic derecho en el lienzo)"
+        aria-label="Buscar artefacto"
+        className="flex size-9 items-center justify-center rounded-lg text-sm text-ink-600 hover:bg-raised hover:text-ink-900"
+      >
+        <FontAwesomeIcon icon={faMagnifyingGlass} />
+      </button>
 
-      <div className="px-4 pt-1 pb-1">
-        <label className="flex items-center gap-2 rounded-lg border border-line bg-canvas px-2.5 py-1.5 focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/15">
-          <FontAwesomeIcon icon={faMagnifyingGlass} className="text-[11px] text-ink-400" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => event.key === 'Escape' && setQuery('')}
-            placeholder="Buscar artefacto…"
-            aria-label="Buscar artefacto"
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-ink-900 outline-none placeholder:text-ink-400"
-          />
-          {searching && (
-            <button type="button" onClick={() => setQuery('')} aria-label="Borrar búsqueda" className="text-[11px] text-ink-400 hover:text-ink-900">
-              <FontAwesomeIcon icon={faXmark} />
-            </button>
-          )}
-        </label>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
-        {searching && results.length === 0 && (
-          <p className="px-2 py-6 text-center text-sm text-ink-400">Ningún artefacto coincide con «{query.trim()}».</p>
-        )}
-        {(searching ? [{ category: 'resultados', shortTitle: 'Resultados' }] : categories).map(({ category, shortTitle: title }) => {
-          const items = searching ? results : draggable.filter((artifact) => artifact.category === category);
-          if (items.length === 0) return null;
-          return (
-            <section key={category} className="mt-3">
-              <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{title}</h3>
-              {items.map((artifact) => {
-                const kind = module.nodeKinds[artifact.type];
-                return kind ? (
-                  <PaletteItem
-                    key={artifact.type}
-                    artifact={artifact}
-                    kind={kind}
-                    isOpen={opened?.artifact.type === artifact.type}
-                    onHover={opened ? undefined : hint.show}
-                    onLeave={hint.hide}
-                    onAdd={() => {
-                      add(artifact.type);
-                      // En móvil la paleta flota sobre el lienzo: se pliega para ver lo agregado.
-                      if (isNarrow) setCollapsed(true);
-                    }}
-                    onInfo={toggleExplanation}
-                  />
-                ) : null;
-              })}
-            </section>
-          );
-        })}
-
-        {connectors.length > 0 && !searching && (
-          <section className="mt-3">
-            <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Conexiones</h3>
-            <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
-              Arrastra desde un punto de un nodo hasta otro. Elige aquí el tipo para las próximas flechas; si no eliges, se deduce solo.
-            </p>
-            {connectors.map((artifact) => (
-              <ConnectorItem
-                key={artifact.type}
-                artifact={artifact}
-                kind={module.edgeKinds[artifact.type]}
-                chosen={nextEdgeType === artifact.type}
-                isOpen={opened?.artifact.type === artifact.type}
-                onChoose={() => setNextEdgeType(nextEdgeType === artifact.type ? null : artifact.type)}
-                onInfo={toggleExplanation}
-              />
-            ))}
-          </section>
-        )}
-      </div>
-
-      {hint.current && !opened && <PaletteHint artifact={hint.current.artifact} anchor={hint.current.anchor} />}
+      {flyout && flyout.key !== CONNECTORS && (
+        <CategoryFlyout title={categories.find((entry) => entry.category === flyout.key)?.shortTitle ?? ''} anchor={flyout.anchor} onClose={() => setFlyout(null)}>
+          {draggable
+            .filter((artifact) => artifact.category === flyout.key)
+            .map((artifact) => {
+              const kind = module.nodeKinds[artifact.type];
+              return kind ? (
+                <PaletteItem
+                  key={artifact.type}
+                  artifact={artifact}
+                  kind={kind}
+                  isOpen={opened?.artifact.type === artifact.type}
+                  onHover={undefined}
+                  onLeave={() => undefined}
+                  onAdd={() => {
+                    add(artifact.type);
+                    setFlyout(null);
+                  }}
+                  onDragEnd={() => setFlyout(null)}
+                  onInfo={toggleExplanation}
+                />
+              ) : null;
+            })}
+        </CategoryFlyout>
+      )}
+      {flyout?.key === CONNECTORS && (
+        <CategoryFlyout title="Conexiones" anchor={flyout.anchor} onClose={() => setFlyout(null)}>
+          <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
+            Arrastra desde un punto de un nodo hasta otro. Elige aquí el tipo para las próximas flechas; si no eliges, se deduce solo.
+          </p>
+          {connectors.map((artifact) => (
+            <ConnectorItem
+              key={artifact.type}
+              artifact={artifact}
+              kind={module.edgeKinds[artifact.type]}
+              chosen={nextEdgeType === artifact.type}
+              isOpen={opened?.artifact.type === artifact.type}
+              onChoose={() => setNextEdgeType(nextEdgeType === artifact.type ? null : artifact.type)}
+              onInfo={toggleExplanation}
+            />
+          ))}
+        </CategoryFlyout>
+      )}
       {opened && (
         <ArtifactPopover
           artifact={opened.artifact}
@@ -303,47 +190,9 @@ export function PalettePanel() {
 /** Un clic en otra (i) de la paleta cambia de explicación (o la cierra) en vez de cerrarla desde fuera. */
 const isPaletteInfo = (target: HTMLElement) => target.closest('[data-palette-info]') !== null;
 
-/** Espera antes de mostrar la pista, para que no parpadee al recorrer la lista. */
-const HINT_DELAY_MS = 350;
-
 interface HintState {
   artifact: ArtifactDefinition;
   anchor: DOMRect;
-}
-
-function usePaletteHint() {
-  const [current, setCurrent] = useState<HintState | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  return {
-    current,
-    show: (artifact: ArtifactDefinition, anchor: DOMRect) => {
-      window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setCurrent({ artifact, anchor }), HINT_DELAY_MS);
-    },
-    hide: () => {
-      window.clearTimeout(timer.current);
-      setCurrent(null);
-    },
-  };
-}
-
-/** Explicación corta junto a la paleta: qué es y cómo se reconoce. */
-function PaletteHint({ artifact, anchor }: HintState) {
-  return (
-    <div
-      role="tooltip"
-      className="pointer-events-none fixed z-50 w-64 rounded-lg border border-line bg-surface px-3.5 py-3 shadow-panel"
-      style={{ left: anchor.right + 12, top: anchor.top - 4 }}
-    >
-      <p className="text-sm font-semibold text-ink-900">{artifact.name}</p>
-      <p className="mb-1.5 text-[11px] text-ink-400">Nombre UML: {artifact.umlName}</p>
-      <p className="text-xs leading-relaxed text-ink-600">{artifact.whatIs}</p>
-      <p className="mt-2 text-[11px] text-ink-400">Clic para agregarlo. La (i) explica por qué y cuándo usarlo.</p>
-    </div>
-  );
 }
 
 /** Caja de la miniatura en cada fila de la paleta. */

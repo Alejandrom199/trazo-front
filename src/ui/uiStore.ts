@@ -1,12 +1,9 @@
 import { create } from 'zustand';
 
 const THEME_KEY = 'trazo.theme';
-const PALETTE_COLLAPSED_KEY = 'trazo.paletteCollapsed';
 const RECENT_ARTIFACTS_KEY = 'trazo.recentArtifacts';
 /** Cuántos artefactos usados recientemente se recuerdan. */
 const MAX_RECENT_ARTIFACTS = 4;
-/** Por debajo de este ancho la paleta arranca plegada (si el usuario no eligió antes). */
-const NARROW_SCREEN = 1024;
 
 export type Theme = 'light' | 'dark';
 
@@ -22,9 +19,6 @@ interface UiState {
   /** Selector para crear, reabrir o explorar ejemplos: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
-  /** Paleta de artefactos plegada a una columna de miniaturas. */
-  paletteCollapsed: boolean;
-  setPaletteCollapsed: (collapsed: boolean) => void;
   /** Últimos artefactos agregados (más reciente primero); el menú del lienzo los ofrece primero. */
   recentArtifacts: string[];
   rememberArtifact: (artifactType: string) => void;
@@ -59,16 +53,6 @@ function applyTheme(theme: Theme): void {
   if (typeof document !== 'undefined') document.documentElement.dataset.theme = theme;
 }
 
-function readPaletteCollapsed(): boolean {
-  try {
-    const saved = localStorage.getItem(PALETTE_COLLAPSED_KEY);
-    if (saved === 'true' || saved === 'false') return saved === 'true';
-  } catch {
-    // Sin almacenamiento: se decide por el ancho de la pantalla.
-  }
-  return typeof window !== 'undefined' && window.innerWidth < NARROW_SCREEN;
-}
-
 function readRecentArtifacts(): string[] {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(RECENT_ARTIFACTS_KEY) ?? '[]');
@@ -95,15 +79,6 @@ export const useUiStore = create<UiState>()((set) => ({
   },
   galleryOpen: true,
   setGalleryOpen: (open) => set({ galleryOpen: open }),
-  paletteCollapsed: readPaletteCollapsed(),
-  setPaletteCollapsed: (collapsed) => {
-    try {
-      localStorage.setItem(PALETTE_COLLAPSED_KEY, String(collapsed));
-    } catch {
-      // Sin almacenamiento la preferencia dura solo esta sesión.
-    }
-    set({ paletteCollapsed: collapsed });
-  },
   recentArtifacts: readRecentArtifacts(),
   rememberArtifact: (artifactType) =>
     set((state) => {

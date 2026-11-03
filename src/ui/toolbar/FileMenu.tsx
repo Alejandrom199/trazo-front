@@ -1,13 +1,13 @@
-import { faFolderOpen } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faFolderOpen } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useDiagramImageExport, type ImageExportOptions } from '@/canvas/exportImage';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { ExportDialog } from '@/ui/files/ExportDialog';
 import { diagramFromJson, diagramToJson, downloadText, downloadUrl, toFileName } from '@/ui/files/fileTransfer';
-import { RailButton } from '@/ui/layout/RailButton';
 import { useUiStore } from '@/ui/uiStore';
 
-/** Menú "Archivo" del riel lateral: exportar JSON o imagen (con su diálogo) e importar JSON. Se abre hacia la derecha. */
+/** Menú "Archivo" de la barra superior: nuevo diagrama, exportar JSON o imagen (con su diálogo) e importar JSON. */
 export function FileMenu() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -16,6 +16,7 @@ export function FileMenu() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportImage = useDiagramImageExport();
   const showNotice = useUiStore((state) => state.showNotice);
+  const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
 
   useEffect(() => {
     if (!open) return;
@@ -70,19 +71,37 @@ export function FileMenu() {
 
   return (
     <div ref={menuRef} className="relative">
-      <RailButton
-        icon={faFolderOpen}
-        label={busy ? 'Exportando' : 'Archivo'}
-        active={open}
+      <button
+        type="button"
         onClick={() => setOpen(!open)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Archivo"
         disabled={busy}
-      />
+        className={`flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium transition-colors disabled:opacity-50 ${
+          open ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
+        }`}
+      >
+        <span className="sm:hidden">
+          <FontAwesomeIcon icon={faFolderOpen} className="text-xs" aria-hidden />
+        </span>
+        <span className="hidden items-center gap-1.5 sm:flex">
+          {busy ? 'Exportando…' : 'Archivo'}
+          <FontAwesomeIcon icon={faChevronDown} className="text-[9px]" />
+        </span>
+      </button>
 
       {open && (
-        <div role="menu" className="absolute top-0 left-full z-50 ml-2 w-60 rounded-lg border border-line bg-surface p-1 shadow-panel">
-          <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Archivo</p>
+        <div role="menu" className="absolute top-full left-0 z-50 mt-1.5 w-64 rounded-lg border border-line bg-surface p-1 shadow-panel">
+          <MenuItem
+            onClick={() => {
+              setOpen(false);
+              setGalleryOpen(true);
+            }}
+            label="Nuevo o abrir…"
+            hint="En blanco, tus diagramas o un ejemplo"
+          />
+          <div className="my-1 h-px bg-line" />
           <MenuItem onClick={exportJson} label="Exportar JSON" hint="Para respaldar o moverlo de equipo" />
           <MenuItem
             onClick={() => {
