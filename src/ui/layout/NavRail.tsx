@@ -1,8 +1,8 @@
-import { faBookOpen, faDiagramProject, faGraduationCap, faMoon, faPlus, faSun } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBookOpen, faGraduationCap, faMoon, faPlus, faSun } from '@fortawesome/free-solid-svg-icons';
 import { FileMenu } from '@/ui/toolbar/FileMenu';
 import { navigate, useRoute } from '@/ui/navigation/route';
 import { useUiStore } from '@/ui/uiStore';
+import { Logo } from '@/ui/brand/Logo';
 import { RailButton } from './RailButton';
 
 /**
@@ -26,12 +26,8 @@ export function NavRail() {
 
   return (
     <nav aria-label="Principal" className="flex w-14 shrink-0 flex-col items-center border-r border-line bg-surface py-3 md:w-[76px]">
-      <div
-        className="bg-brand mb-4 flex size-9 items-center justify-center rounded-xl text-base text-white shadow-panel md:size-10 md:text-lg"
-        title="Trazo"
-        aria-label="Trazo"
-      >
-        <FontAwesomeIcon icon={faDiagramProject} />
+      <div className="mb-4 size-9 overflow-hidden rounded-xl shadow-panel md:size-10" title="Trazo Diagram">
+        <Logo size={40} />
       </div>
 
       <div className="flex w-full flex-col gap-1">
