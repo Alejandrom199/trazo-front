@@ -27,10 +27,11 @@ export function ActorShape({ node, selected, label }: ArtifactNodeProps) {
   );
 }
 
+/** Límite del sistema: se agarra por todo su cuerpo (los casos de uso de dentro quedan encima). */
 export function SystemBoundaryShape({ selected, label }: ArtifactNodeProps) {
   return (
     <div
-      className="relative size-full"
+      className={`${CONTAINER_GRIP_CLASS} relative size-full`}
       style={{ border: `${STROKE_WIDTH}px solid ${strokeFor(selected)}`, background: 'color-mix(in oklch, var(--color-shape-fill) 35%, transparent)' }}
     >
       <div className={`${CONTAINER_GRIP_CLASS} absolute inset-x-0 top-0 flex h-9 items-center px-3 text-[13px] font-semibold text-ink-900`}>

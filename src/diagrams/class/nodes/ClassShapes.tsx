@@ -26,7 +26,10 @@ export const EnumerationShape = (props: ArtifactNodeProps) => <Classifier {...pr
 /** Alto de la pestaña del paquete; el cuerpo empieza justo debajo (no se sale del nodo). */
 const PACKAGE_TAB = 22;
 
-/** Paquete: carpeta con pestaña (proporcional, para que también quepa en su miniatura). */
+/**
+ * Paquete: carpeta con pestaña (proporcional, para que también quepa en su miniatura).
+ * Se agarra por todo su cuerpo: las clases de dentro y sus flechas quedan encima.
+ */
 export function PackageShape({ selected, label }: ArtifactNodeProps) {
   const stroke = strokeFor(selected);
   const tab = { height: PACKAGE_TAB, borderColor: stroke, background: SHAPE_FILL, borderWidth: STROKE_WIDTH };
@@ -36,7 +39,7 @@ export function PackageShape({ selected, label }: ArtifactNodeProps) {
         {label}
       </div>
       <div
-        className="absolute inset-x-0 bottom-0"
+        className={`${CONTAINER_GRIP_CLASS} absolute inset-x-0 bottom-0`}
         style={{ top: PACKAGE_TAB - STROKE_WIDTH, border: `${STROKE_WIDTH}px solid ${stroke}`, background: 'color-mix(in oklch, var(--color-shape-fill) 35%, transparent)' }}
       />
     </div>
