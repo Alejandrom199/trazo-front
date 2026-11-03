@@ -47,7 +47,8 @@ export function floatingEndpoints(source: Rect, target: Rect): EdgeEndpoints {
   }
 
   if (horizontalGap > verticalGap) {
-    const y = sharedCoordinate(source.y, source.height, target.y, target.height);
+    const isBar = isThin(source.height, source.width) || isThin(target.height, target.width);
+    const y = isBar ? sharedCoordinate(source.y, source.height, target.y, target.height) : null;
     return {
       sourceX: goesRight ? source.x + source.width : source.x,
       sourceY: y ?? sourceCenter.y,
@@ -58,7 +59,8 @@ export function floatingEndpoints(source: Rect, target: Rect): EdgeEndpoints {
     };
   }
 
-  const x = sharedCoordinate(source.x, source.width, target.x, target.width);
+  const isBar = isThin(source.width, source.height) || isThin(target.width, target.height);
+  const x = isBar ? sharedCoordinate(source.x, source.width, target.x, target.width) : null;
   return {
     sourceX: x ?? sourceCenter.x,
     sourceY: goesDown ? source.y + source.height : source.y,
@@ -69,18 +71,20 @@ export function floatingEndpoints(source: Rect, target: Rect): EdgeEndpoints {
   };
 }
 
-/** Un nodo cuenta como barra (fork, join) frente a otro si es al menos este tanto más ancho. */
-const BAR_RATIO = 2;
+/** Un nodo es una barra (fork, join) si es al menos este tanto más largo que grueso. */
+const BAR_RATIO = 4;
+
+/** Si un nodo de este largo y este grosor es una barra en esa dirección. */
+const isThin = (length: number, thickness: number) => length >= BAR_RATIO * thickness;
 
 /**
  * Coordenada común para una flecha recta hacia una barra: el centro del nodo
  * angosto, ajustado al tramo compartido. Así de una barra de fork ancha sale una
- * línea recta hacia cada acción, no todas desde su centro. Entre nodos de tamaño
- * parecido devuelve null: cada extremo va al centro de su nodo, para que la punta
- * no llegue corrida (p. ej. a un nodo final redondo).
+ * línea recta hacia cada acción, no todas desde su centro. Entre nodos que no son
+ * barras no se usa: cada extremo va al centro de su nodo, para que la punta no
+ * llegue corrida (p. ej. a un nodo final redondo).
  */
-function sharedCoordinate(startA: number, sizeA: number, startB: number, sizeB: number): number | null {
-  if (Math.max(sizeA, sizeB) < BAR_RATIO * Math.min(sizeA, sizeB)) return null;
+function sharedCoordinate(startA: number, sizeA: number, startB: number, sizeB: number): number {
   const overlapStart = Math.max(startA, startB);
   const overlapEnd = Math.min(startA + sizeA, startB + sizeB);
   const narrowerCenter = sizeA <= sizeB ? startA + sizeA / 2 : startB + sizeB / 2;
