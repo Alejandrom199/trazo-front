@@ -80,7 +80,7 @@ export function TemplateGallery() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-[2px] md:p-6"
+      className="motion-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-[2px] md:p-6"
       onMouseDown={(event) => event.target === event.currentTarget && setGalleryOpen(false)}
     >
       <div

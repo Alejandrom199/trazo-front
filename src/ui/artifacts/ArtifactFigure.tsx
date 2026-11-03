@@ -36,7 +36,7 @@ export function ArtifactFigure({ kind, artifactType, box, label }: ArtifactFigur
   const Shape = kind.component;
 
   return (
-    <div className="pointer-events-none flex shrink-0 items-center justify-center" style={box} aria-hidden>
+    <div className="trazo-figure pointer-events-none flex shrink-0 items-center justify-center" style={box} aria-hidden>
       <div style={{ width, height, flexShrink: 0 }}>
         <Shape node={figureNode} selected={false} label={kind.hasLabel && label ? label : null} />
       </div>

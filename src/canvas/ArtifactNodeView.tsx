@@ -55,7 +55,7 @@ export function ArtifactNodeView({ id, data, selected }: NodeProps<ArtifactFlowN
           handleClassName="!size-2 !rounded-full !border-accent !bg-surface"
         />
       )}
-      <div className="size-full" onDoubleClick={kind.hasLabel ? () => startEditing(id) : undefined}>
+      <div className="trazo-node-body size-full" onDoubleClick={kind.hasLabel ? () => startEditing(id) : undefined}>
         <Shape node={node} selected={selected} editing={isEditing} label={label} joints={data.joints} />
       </div>
       {kind.connectable &&
