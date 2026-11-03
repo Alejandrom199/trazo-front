@@ -1,12 +1,11 @@
-import { faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo } from 'react';
 import { ARTIFACT_CATEGORIES } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
-import { ArtifactExplanation } from '@/ui/explanation/ArtifactExplanation';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
-
+import { ArtifactBento } from './ArtifactBento';
 
 /** Id del ancla de un artefacto en la guía, para saltar a él desde otras secciones. */
 export const artifactAnchor = (type: string) => `guia-artefacto-${type}`;
@@ -22,8 +21,8 @@ interface ArtifactCatalogProps {
 
 /**
  * Todos los artefactos del diagrama, por categoría. Cada tarjeta muestra la figura
- * real y qué es; al abrirla, la ficha completa (la misma del editor) y un botón
- * para probarlo en el lienzo.
+ * real y qué es; al abrirla, la ficha completa en bloques y un botón para
+ * probarlo en el lienzo.
  */
 export function ArtifactCatalog({ module, expandedType, onToggle, onOpenRelated, onTry }: ArtifactCatalogProps) {
   const definitionsByType = useMemo(() => new Map(module.artifacts.map((artifact) => [artifact.type, artifact])), [module]);
@@ -63,7 +62,8 @@ export function ArtifactCatalog({ module, expandedType, onToggle, onOpenRelated,
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[15px] font-semibold text-ink-900">{artifact.name}</span>
-                        <span className="mt-0.5 line-clamp-2 block text-sm text-ink-600">{artifact.whatIs}</span>
+                        {/* Abierta, la ficha ya dice qué es: aquí no se repite. */}
+                        {!expanded && <span className="mt-0.5 line-clamp-2 block text-sm text-ink-600">{artifact.whatIs}</span>}
                       </span>
                       <FontAwesomeIcon
                         icon={faChevronDown}
@@ -72,24 +72,14 @@ export function ArtifactCatalog({ module, expandedType, onToggle, onOpenRelated,
                     </button>
 
                     {expanded && (
-                      <div className="border-t border-line">
-                        <ArtifactExplanation
+                      <div className="border-t border-line bg-canvas">
+                        <ArtifactBento
+                          module={module}
                           definition={artifact}
                           definitionsByType={definitionsByType}
                           onOpenRelated={onOpenRelated}
+                          onTry={kind ? () => onTry(artifact.type) : undefined}
                         />
-                        {kind && (
-                          <div className="px-4 pb-4">
-                            <button
-                              type="button"
-                              onClick={() => onTry(artifact.type)}
-                              className="bg-brand flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium text-white hover:opacity-90"
-                            >
-                              <FontAwesomeIcon icon={faPlus} className="text-xs" />
-                              Probarlo en el lienzo
-                            </button>
-                          </div>
-                        )}
                       </div>
                     )}
                   </article>
