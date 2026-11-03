@@ -2,6 +2,7 @@ import {
   faAnglesLeft,
   faAnglesRight,
   faBolt,
+  faCircleDot,
   faCircleInfo,
   faCodeBranch,
   faCube,
@@ -13,6 +14,7 @@ import {
   faPuzzlePiece,
   faServer,
   faShapes,
+  faSquare,
   faTableColumns,
   faTimeline,
   faUser,
@@ -49,6 +51,8 @@ const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
   interfaz: faPlug,
   infraestructura: faServer,
   'artefacto desplegable': faFileCode,
+  estado: faSquare,
+  pseudoestado: faCircleDot,
 };
 
 const TIP_SEEN_KEY = 'trazo.contextMenuTipSeen';

@@ -16,7 +16,9 @@ export type ArtifactCategory =
   | 'componente'
   | 'interfaz'
   | 'infraestructura'
-  | 'artefacto desplegable';
+  | 'artefacto desplegable'
+  | 'estado'
+  | 'pseudoestado';
 
 /**
  * Orden y nombres de las categorías: la paleta, el menú del lienzo y la página
@@ -33,6 +35,8 @@ export const ARTIFACT_CATEGORIES: readonly { category: ArtifactCategory; title: 
   { category: 'interfaz', title: 'Interfaces', shortTitle: 'Interfaces' },
   { category: 'infraestructura', title: 'Infraestructura', shortTitle: 'Infraestructura' },
   { category: 'artefacto desplegable', title: 'Artefactos desplegables', shortTitle: 'Desplegables' },
+  { category: 'estado', title: 'Estados', shortTitle: 'Estados' },
+  { category: 'pseudoestado', title: 'Pseudoestados', shortTitle: 'Pseudoestados' },
   { category: 'nodo de control', title: 'Nodos de control', shortTitle: 'Control' },
   { category: 'nodo ejecutable', title: 'Acciones', shortTitle: 'Acciones' },
   { category: 'nodo de objeto', title: 'Objetos', shortTitle: 'Objetos' },

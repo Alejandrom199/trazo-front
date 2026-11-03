@@ -41,7 +41,7 @@ export const UML_DIAGRAMS: UmlDiagramKind[] = [
   structure('Perfiles', 'Extensiones de UML con estereotipos propios de un dominio.'),
   behavior('Casos de uso', 'Qué puede hacer cada actor con el sistema.', 'usecase'),
   behavior('Actividades', 'El flujo de un proceso: pasos, decisiones y trabajo en paralelo.', 'activity'),
-  behavior('Máquina de estados', 'Los estados por los que pasa algo y qué lo hace cambiar.'),
+  behavior('Máquina de estados', 'Los estados por los que pasa algo y qué lo hace cambiar.', 'state'),
   interaction('Secuencia', 'Los mensajes entre participantes, en orden temporal.', 'sequence'),
   interaction('Comunicación', 'Los mismos mensajes, vistos como una red de enlaces numerados.'),
   interaction('Descripción general de la interacción', 'Un flujo de actividades cuyos pasos son interacciones.'),
