@@ -34,6 +34,11 @@ export interface ArtifactNodeProps {
    * p. ej., dibujar rectas las esquinas donde dos carriles se unen.
    */
   joints?: ContainerJoints;
+  /**
+   * Se dibuja como miniatura (paleta, Aprender): sin textos internos, que a ese
+   * tamaño no se leen; la figura usa símbolos en su lugar.
+   */
+  preview?: boolean;
 }
 
 /**

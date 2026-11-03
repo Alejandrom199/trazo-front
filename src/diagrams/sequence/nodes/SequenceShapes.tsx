@@ -102,11 +102,14 @@ const EDGE_GRIP = 6;
  * alt y par se dividen en dos regiones con una línea discontinua. Solo se agarra
  * por la pestaña, la guarda y el borde: dentro se pueden tocar los mensajes.
  */
-export function FragmentShape({ node, selected, label }: ArtifactNodeProps) {
+export function FragmentShape({ node, selected, label, preview }: ArtifactNodeProps) {
   const stroke = selected ? strokeFor(true) : MUTED_STROKE;
   const isSplit = SPLIT_FRAGMENT_TYPES.has(node.artifactType);
   const divider = readNumberProperty(node, fragmentDivider);
   const border = `${STROKE_WIDTH}px solid ${stroke}`;
+  // En la miniatura la pestaña es proporcional al marco (en el lienzo, de tamaño fijo).
+  const tabWidth = preview ? Math.min(TAB_WIDTH, node.size.width * 0.6) : TAB_WIDTH;
+  const tabHeight = preview ? Math.min(TAB_HEIGHT, node.size.height * 0.42) : TAB_HEIGHT;
   return (
     <div className="relative size-full rounded-sm" style={{ border }}>
       {(['top', 'bottom'] as const).map((side) => (
@@ -116,18 +119,23 @@ export function FragmentShape({ node, selected, label }: ArtifactNodeProps) {
         <div key={side} className={`${CONTAINER_GRIP_CLASS} absolute inset-y-0`} style={{ [side]: -EDGE_GRIP / 2, width: EDGE_GRIP }} />
       ))}
 
-      <svg width={TAB_WIDTH} height={TAB_HEIGHT} className={`${CONTAINER_GRIP_CLASS} absolute top-0 left-0 overflow-visible`}>
+      <svg width={tabWidth} height={tabHeight} className={`${CONTAINER_GRIP_CLASS} absolute top-0 left-0 overflow-visible`}>
         <path
-          d={`M0 0 H${TAB_WIDTH} V${TAB_HEIGHT - 7} L${TAB_WIDTH - 7} ${TAB_HEIGHT} H0 Z`}
+          d={`M0 0 H${tabWidth} V${tabHeight * 0.68} L${tabWidth - tabHeight * 0.32} ${tabHeight} H0 Z`}
           style={{ fill: 'var(--color-surface)', stroke }}
           strokeWidth={STROKE_WIDTH}
           strokeLinejoin="round"
         />
-        <text x={8} y={15} className="text-[12px] font-semibold" style={{ fill: 'var(--color-ink-900)' }}>
+        <text
+          x={preview ? 2.5 : 8}
+          y={preview ? tabHeight * 0.62 : 15}
+          className="font-semibold"
+          style={{ fill: 'var(--color-ink-900)', fontSize: preview ? 7.5 : 12 }}
+        >
           {FRAGMENT_OPERATOR[node.artifactType]}
         </text>
       </svg>
-      <div className={`${CONTAINER_GRIP_CLASS} absolute left-2 max-w-[70%] text-xs text-ink-900`} style={{ top: TAB_HEIGHT + 4 }}>
+      <div className={`${CONTAINER_GRIP_CLASS} absolute left-2 max-w-[70%] text-xs text-ink-900`} style={{ top: tabHeight + 4 }}>
         {node.label ? <>[{label}]</> : label}
       </div>
 
