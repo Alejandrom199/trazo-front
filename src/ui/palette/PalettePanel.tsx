@@ -8,6 +8,8 @@ import {
   faMagnifyingGlass,
   faNoteSticky,
   faObjectGroup,
+  faPlug,
+  faPuzzlePiece,
   faShapes,
   faTableColumns,
   faTimeline,
@@ -41,6 +43,8 @@ const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
   participante: faUser,
   ocurrencia: faTimeline,
   'fragmento combinado': faObjectGroup,
+  componente: faPuzzlePiece,
+  interfaz: faPlug,
 };
 
 const TIP_SEEN_KEY = 'trazo.contextMenuTipSeen';

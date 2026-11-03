@@ -4,7 +4,7 @@
  */
 
 /** Tipos de diagrama conocidos; algunos pueden estar planificados y aún no registrados. */
-export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class';
+export type DiagramType = 'activity' | 'sequence' | 'usecase' | 'class' | 'component';
 
 /**
  * Versión actual del formato guardado. Súbela cuando cambie la forma de Diagram

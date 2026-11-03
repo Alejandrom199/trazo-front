@@ -12,7 +12,9 @@ export type ArtifactCategory =
   | 'fragmento combinado'
   | 'mensaje'
   | 'caso de uso'
-  | 'clasificador';
+  | 'clasificador'
+  | 'componente'
+  | 'interfaz';
 
 /**
  * Orden y nombres de las categorías: la paleta, el menú del lienzo y la página
@@ -25,6 +27,8 @@ export const ARTIFACT_CATEGORIES: readonly { category: ArtifactCategory; title: 
   { category: 'mensaje', title: 'Mensajes', shortTitle: 'Mensajes' },
   { category: 'caso de uso', title: 'Casos de uso', shortTitle: 'Casos de uso' },
   { category: 'clasificador', title: 'Clasificadores', shortTitle: 'Clasificadores' },
+  { category: 'componente', title: 'Componentes', shortTitle: 'Componentes' },
+  { category: 'interfaz', title: 'Interfaces', shortTitle: 'Interfaces' },
   { category: 'nodo de control', title: 'Nodos de control', shortTitle: 'Control' },
   { category: 'nodo ejecutable', title: 'Acciones', shortTitle: 'Acciones' },
   { category: 'nodo de objeto', title: 'Objetos', shortTitle: 'Objetos' },
