@@ -1,6 +1,7 @@
 import type { DiagramRegistry } from '@/core/registry';
 import { activityModule } from './activity';
 import { componentModule } from './component';
+import { deploymentModule } from './deployment';
 import { sequenceModule } from './sequence';
 import { useCaseModule } from './usecase';
 import { classModule } from './class';
@@ -12,4 +13,5 @@ export function registerDiagramModules(registry: DiagramRegistry): void {
   registry.register(useCaseModule);
   registry.register(classModule);
   registry.register(componentModule);
+  registry.register(deploymentModule);
 }

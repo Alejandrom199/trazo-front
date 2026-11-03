@@ -5,11 +5,13 @@ import {
   faCircleInfo,
   faCodeBranch,
   faCube,
+  faFileCode,
   faMagnifyingGlass,
   faNoteSticky,
   faObjectGroup,
   faPlug,
   faPuzzlePiece,
+  faServer,
   faShapes,
   faTableColumns,
   faTimeline,
@@ -45,6 +47,8 @@ const CATEGORY_ICONS: Partial<Record<ArtifactCategory, IconDefinition>> = {
   'fragmento combinado': faObjectGroup,
   componente: faPuzzlePiece,
   interfaz: faPlug,
+  infraestructura: faServer,
+  'artefacto desplegable': faFileCode,
 };
 
 const TIP_SEEN_KEY = 'trazo.contextMenuTipSeen';
