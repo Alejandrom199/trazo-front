@@ -359,3 +359,20 @@ button:not(:disabled):active,
   animation: none !important;
   transition: none !important;
 }
+
+/* Bordes de redimensionar: la línea mide 1 px y casi no se podía agarrar. Una franja
+   invisible de unos 10 px en pantalla (compensada con el zoom) permite tirar desde
+   cualquier punto del borde, no solo desde las esquinas. */
+.react-flow__resize-control.line::before {
+  content: '';
+  position: absolute;
+  inset: calc(-5px / var(--trazo-zoom, 1));
+}
+/* Por encima del contenido del nodo (para agarrar también desde dentro del borde),
+   pero por debajo de los puntos de conexión del centro de cada lado. */
+.react-flow__resize-control.line {
+  z-index: 1;
+}
+.react-flow__node .react-flow__handle {
+  z-index: 2;
+}

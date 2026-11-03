@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -8,6 +8,7 @@ import {
   ReactFlow,
   SelectionMode,
   useKeyPress,
+  useStore,
   useReactFlow,
   type Connection,
   type EdgeChange,
@@ -88,7 +89,8 @@ export function DiagramCanvas() {
   const focus = useCanvasViewStore((state) => state.focus);
   const canvasTool = useCanvasInteractionStore((state) => state.tool);
   const panKeyHeld = useKeyPress('Alt');
-  const [zoom, setZoom] = useState(1);
+  // Zoom actual de la vista (también tras encuadrar al abrir, no solo al desplazarse).
+  const zoom = useStore((state) => state.transform[2]);
   // Con cuadrícula visible, los nodos se ajustan a sus celdas; sin ella, a un paso fino.
   const snapStep = grid.visible ? grid.size : FREE_SNAP_STEP;
 
@@ -197,7 +199,13 @@ export function DiagramCanvas() {
   );
 
   return (
-    <div className={`relative size-full ${(detailMode === 'compact' || (detailMode === 'auto' && zoom < 0.62)) ? 'trazo-detail-compact' : ''}`} onDragOver={onDragOver} onDrop={onDrop}>
+    <div
+      className={`relative size-full ${(detailMode === 'compact' || (detailMode === 'auto' && zoom < 0.62)) ? 'trazo-detail-compact' : ''}`}
+      // El CSS lo usa para que lo que se agarra (p. ej. los bordes de redimensionar) mida lo mismo en pantalla a cualquier zoom.
+      style={{ '--trazo-zoom': zoom } as CSSProperties}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       <ReactFlow<ArtifactFlowNode, FlowEdge>
         nodes={nodes}
         edges={edges}
@@ -220,7 +228,6 @@ export function DiagramCanvas() {
           clearElementClick();
           useContextMenuStore.getState().close();
         }}
-        onMove={(_event, viewport) => setZoom(viewport.zoom)}
         onPaneContextMenu={(event) => openContextMenu(event, { kind: 'pane' }, screenToFlowPosition)}
         onNodeContextMenu={(event, node) => openContextMenu(event, { kind: 'node', id: node.id }, screenToFlowPosition)}
         onEdgeContextMenu={(event, edge) => openContextMenu(event, { kind: 'edge', id: edge.id }, screenToFlowPosition)}
