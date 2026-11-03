@@ -77,6 +77,7 @@ export const activityNodeKinds: Record<string, NodeKind> = {
   },
   [A.note]: {
     ...base,
+    secondaryDetail: true,
     component: NoteShape,
     defaultSize: { width: 170, height: 80 },
     defaultLabel: 'Comentario',
@@ -88,5 +89,5 @@ export const activityNodeKinds: Record<string, NodeKind> = {
 export const activityEdgeKinds: Record<string, EdgeKind> = {
   [A.controlFlow]: { dashed: false, arrow: 'filled', text: 'guard' },
   [A.objectFlow]: { dashed: false, arrow: 'filled', text: 'guard' },
-  [A.annotationLink]: { dashed: true, arrow: null, text: null },
+  [A.annotationLink]: { dashed: true, arrow: null, text: null, secondaryDetail: true },
 };

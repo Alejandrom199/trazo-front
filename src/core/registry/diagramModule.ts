@@ -105,6 +105,8 @@ export interface NodeKind {
    * por defecto es muy alargado y su miniatura no se reconocería.
    */
   previewSize?: Size;
+  /** Detalle secundario (p. ej. una nota): la vista compacta del lienzo lo oculta al alejarse. */
+  secondaryDetail?: boolean;
 }
 
 /** Lee si un nodo se pega a sus vecinos (imán). */
@@ -138,6 +140,8 @@ export interface EdgeKind {
   layout?: 'horizontal';
   /** Otros tipos de conexión a los que el usuario puede cambiarla en sus propiedades. */
   switchableTo?: string[];
+  /** Detalle secundario (p. ej. una nota): la vista compacta del lienzo lo oculta al alejarse. */
+  secondaryDetail?: boolean;
 }
 
 /** Un paso de "cómo leer este diagrama", con los artefactos que intervienen. */

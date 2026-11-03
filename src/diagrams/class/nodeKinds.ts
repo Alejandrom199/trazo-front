@@ -12,7 +12,7 @@ export const classNodeKinds: Record<string, NodeKind> = {
   [C.interface]: { ...classifier, component: InterfaceShape, defaultLabel: 'Interfaz\n--\n\n--\n+ operación()' },
   [C.enumeration]: { ...classifier, component: EnumerationShape, defaultLabel: 'Estado\n--\nACTIVO\nINACTIVO\n--\n' },
   [C.package]: { ...base, component: PackageShape, defaultSize: { width: 520, height: 360 }, defaultLabel: 'Paquete', labelCaption: 'Nombre', isContainer: true, connectable: false, magnetic: false, layer: 'back' },
-  [C.note]: { ...base, component: NoteShape, defaultSize: { width: 180, height: 90 }, defaultLabel: 'Comentario', labelCaption: 'Texto' },
+  [C.note]: { ...base, component: NoteShape, defaultSize: { width: 180, height: 90 }, defaultLabel: 'Comentario', labelCaption: 'Texto', secondaryDetail: true },
 };
 
 const switchableTo = [...CLASS_RELATION_TYPES];
@@ -23,5 +23,5 @@ export const classEdgeKinds: Record<string, EdgeKind> = {
   [C.generalization]: { dashed: false, arrow: 'open', text: null, switchableTo },
   [C.realization]: { dashed: true, arrow: 'open', text: null, switchableTo },
   [C.dependency]: { dashed: true, arrow: 'open', text: 'label', textCaption: 'Uso', switchableTo },
-  [C.annotationLink]: { dashed: true, arrow: null, text: null },
+  [C.annotationLink]: { dashed: true, arrow: null, text: null, secondaryDetail: true },
 };

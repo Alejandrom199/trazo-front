@@ -65,6 +65,7 @@ export const sequenceNodeKinds: Record<string, NodeKind> = {
   [S.parFragment]: { ...splitFragment, component: FragmentShape, labelCaption: 'Descripción (opcional)' },
   [S.note]: {
     ...base,
+    secondaryDetail: true,
     component: NoteShape,
     defaultSize: { width: 170, height: 80 },
     defaultLabel: 'Comentario',
@@ -89,5 +90,5 @@ export const sequenceEdgeKinds: Record<string, EdgeKind> = {
   [S.asyncMessage]: message('open', false),
   [S.replyMessage]: message('open', true),
   [S.createMessage]: message('open', true),
-  [S.annotationLink]: { dashed: true, arrow: null, text: null },
+  [S.annotationLink]: { dashed: true, arrow: null, text: null, secondaryDetail: true },
 };

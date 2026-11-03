@@ -15,7 +15,7 @@ export const useCaseNodeKinds: Record<string, NodeKind> = {
     ...base, component: SystemBoundaryShape, defaultSize: { width: 620, height: 430 }, defaultLabel: 'Sistema',
     hasLabel: true, resizable: true, isContainer: true, connectable: false, magnetic: false,
   },
-  [U.note]: { ...base, component: NoteShape, defaultSize: { width: 170, height: 80 }, defaultLabel: 'Comentario', hasLabel: true, resizable: true },
+  [U.note]: { ...base, component: NoteShape, defaultSize: { width: 170, height: 80 }, defaultLabel: 'Comentario', hasLabel: true, resizable: true, secondaryDetail: true },
 };
 
 const dependency = (): EdgeKind => ({
@@ -27,5 +27,5 @@ export const useCaseEdgeKinds: Record<string, EdgeKind> = {
   [U.include]: dependency(),
   [U.extend]: dependency(),
   [U.generalization]: { dashed: false, arrow: 'open', text: null },
-  [U.annotationLink]: { dashed: true, arrow: null, text: null },
+  [U.annotationLink]: { dashed: true, arrow: null, text: null, secondaryDetail: true },
 };
