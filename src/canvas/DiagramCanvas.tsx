@@ -204,8 +204,9 @@ export function DiagramCanvas() {
         isValidConnection={isValidConnection}
         onDelete={onDelete}
         onEdgeDoubleClick={(_event, edge) => store().startEditingEdge(edge.id)}
-        onNodeClick={(event, node) => publishNodeClick(event, node.id)}
-        onEdgeClick={(event, edge) => publishEdgeClick(event, edge.id)}
+        // Con la mano solo se navega: un clic no abre el popup de nada.
+        onNodeClick={(event, node) => canvasTool !== 'hand' && publishNodeClick(event, node.id)}
+        onEdgeClick={(event, edge) => canvasTool !== 'hand' && publishEdgeClick(event, edge.id)}
         onMoveStart={(event) => {
           if (!event) return;
           clearElementClick();
@@ -226,10 +227,11 @@ export function DiagramCanvas() {
         selectionOnDrag={canvasTool === 'pointer'}
         selectionMode={SelectionMode.Full}
         // Mantener Alt y arrastrar desplaza la vista con cualquier herramienta.
-        panOnDrag={[1]}
+        panOnDrag={canvasTool === 'hand' ? true : [1]}
         panActivationKeyCode="Alt"
         nodesDraggable={canvasTool === 'pointer'}
         nodesConnectable={canvasTool === 'pointer'}
+        elementsSelectable={canvasTool !== 'hand'}
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
