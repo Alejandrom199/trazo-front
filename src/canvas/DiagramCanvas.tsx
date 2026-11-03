@@ -34,7 +34,6 @@ import { centerInParent, placeArtifact } from './placeArtifact';
 import { canvasPresentation } from './canvasView';
 import { useCanvasViewStore } from './canvasViewStore';
 import { useCanvasInteractionStore } from './canvasInteractionStore';
-import { CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
@@ -254,12 +253,6 @@ export function DiagramCanvas() {
         <Controls position="bottom-left" showInteractive={false} />
         <LockBadges />
       </ReactFlow>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
-        <div className="pointer-events-auto">
-          <CanvasSelectionToolbar />
-        </div>
-      </div>
 
       {notice && (
         <div

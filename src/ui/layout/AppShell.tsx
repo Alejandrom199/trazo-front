@@ -8,6 +8,7 @@ import { useRoute } from '@/ui/navigation/route';
 import { NarrationPanel } from '@/ui/narration/NarrationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
 import { TemplateGallery } from '@/ui/templates/TemplateGallery';
+import { CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
 import { TopBar } from '@/ui/toolbar/TopBar';
 import { useUiStore } from '@/ui/uiStore';
 import { ValidationPanel } from '@/ui/validation/ValidationPanel';
@@ -36,6 +37,12 @@ export function AppShell() {
             <main className="relative min-w-0 flex-1 overflow-hidden">
               <div className="absolute inset-0">
                 <DiagramCanvas />
+              </div>
+
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
+                <div className="pointer-events-auto">
+                  <CanvasSelectionToolbar />
+                </div>
               </div>
 
               <div className="pointer-events-none absolute inset-x-3 top-3 z-20 *:pointer-events-auto">
