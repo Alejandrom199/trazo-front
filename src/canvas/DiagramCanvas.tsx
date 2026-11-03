@@ -29,6 +29,7 @@ import { useContextMenuStore, type ContextMenuTarget } from './contextMenuStore'
 import { useElementClickStore } from './elementClickStore';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
+import { LassoLayer } from './LassoLayer';
 import { LockBadges } from './LockBadges';
 import { centerInParent, placeArtifact } from './placeArtifact';
 import { canvasPresentation } from './canvasView';
@@ -96,7 +97,7 @@ export function DiagramCanvas() {
     [diagram, selection, viewMode, focus],
   );
   const nodes = useMemo(
-    () => (diagram && module ? toFlowNodes(diagram, module, selection, canvasHighlight, presentation, canvasTool !== 'marquee') : []),
+    () => (diagram && module ? toFlowNodes(diagram, module, selection, canvasHighlight, presentation) : []),
     [diagram, module, selection, canvasHighlight, presentation, canvasTool],
   );
   const edges = useMemo(
@@ -202,8 +203,9 @@ export function DiagramCanvas() {
         isValidConnection={isValidConnection}
         onDelete={onDelete}
         onEdgeDoubleClick={(_event, edge) => store().startEditingEdge(edge.id)}
-        onNodeClick={(event, node) => publishNodeClick(event, node.id)}
-        onEdgeClick={(event, edge) => publishEdgeClick(event, edge.id)}
+        // Con la mano solo se navega: un clic no abre el popup de nada.
+        onNodeClick={(event, node) => canvasTool !== 'hand' && publishNodeClick(event, node.id)}
+        onEdgeClick={(event, edge) => canvasTool !== 'hand' && publishEdgeClick(event, edge.id)}
         onMoveStart={(event) => {
           if (!event) return;
           clearElementClick();
@@ -219,10 +221,14 @@ export function DiagramCanvas() {
         }}
         multiSelectionKeyCode="Shift"
         selectionKeyCode={null}
-        selectionOnDrag={canvasTool === 'marquee'}
-        selectionMode={SelectionMode.Partial}
-        panOnDrag={canvasTool === 'move'}
-        nodesDraggable={canvasTool === 'move'}
+        // Puntero: arrastrar sobre el fondo traza un recuadro (solo cuenta lo que queda
+        // entero dentro, así un carril no se selecciona por rozarlo); la rueda del medio desplaza.
+        selectionOnDrag={canvasTool === 'pointer'}
+        selectionMode={SelectionMode.Full}
+        panOnDrag={canvasTool === 'hand' ? true : [1]}
+        nodesDraggable={canvasTool === 'pointer'}
+        nodesConnectable={canvasTool === 'pointer'}
+        elementsSelectable={canvasTool !== 'hand'}
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
@@ -250,6 +256,7 @@ export function DiagramCanvas() {
         ) : (
           <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
         )}
+        {canvasTool === 'lasso' && module && <LassoLayer module={module} />}
         <Controls position="bottom-left" showInteractive={false} />
         <LockBadges />
       </ReactFlow>

@@ -41,7 +41,6 @@ export function toFlowNodes(
   selection: ElementIds,
   highlight: CanvasHighlight = NO_HIGHLIGHT,
   presentation?: CanvasPresentation,
-  selectContainers = true,
 ): ArtifactFlowNode[] {
   const selected = new Set(selection.nodeIds);
   const undeletable = protectedNodeIds(diagram);
@@ -62,7 +61,6 @@ export function toFlowNodes(
       height: node.size.height,
       parentId: node.parentId ?? undefined,
       selected: selected.has(node.id),
-      selectable: selectContainers || !isContainer(node),
       connectable: module.nodeKinds[node.artifactType]?.connectable ?? false,
       // Bloqueado: React Flow no lo deja arrastrar; ni a él ni a su carril, borrar con Supr.
       draggable: !node.locked,
