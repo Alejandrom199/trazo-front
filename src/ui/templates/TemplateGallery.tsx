@@ -26,8 +26,12 @@ const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   avanzado: 'bg-danger-soft text-danger',
 };
 
+/** Cuántos diagramas propios se ven en el inicio; el resto, con «Ver todos». */
+const RECENT_LIMIT = 4;
+
 type GalleryView =
   | { step: 'start' }
+  | { step: 'saved' }
   | { step: 'examples'; diagramType: DiagramType };
 
 /** Nombre corto para opciones donde el contexto ya deja claro que es un diagrama. */
@@ -62,11 +66,11 @@ export function TemplateGallery() {
   if (!isOpen) return null;
 
   const selectedModule = view.step === 'examples' ? diagramRegistry.get(view.diagramType) : null;
-  const title = view.step === 'start' ? 'Nuevo diagrama' : 'Ejemplos';
-  const subtitle =
-    view.step === 'start'
-      ? 'Empieza en blanco, retoma un trabajo o explora un ejemplo cuando lo necesites.'
-      : 'Elige un tipo y abre una copia editable para practicar.';
+  const { title, subtitle } = {
+    start: { title: 'Nuevo diagrama', subtitle: 'Empieza en blanco, retoma un trabajo o explora un ejemplo cuando lo necesites.' },
+    saved: { title: 'Tus diagramas', subtitle: 'Todo lo que guardaste en este navegador, del más reciente al más antiguo.' },
+    examples: { title: 'Ejemplos', subtitle: 'Elige un tipo y abre una copia editable para practicar.' },
+  }[view.step];
 
   function openBlank(module: DiagramModule) {
     useDiagramStore.getState().newDiagram({ diagramType: module.diagramType, name: 'Diagrama sin título' });
@@ -132,8 +136,11 @@ export function TemplateGallery() {
                 if (firstModule) setView({ step: 'examples', diagramType: firstModule.diagramType });
               }}
               onSavedOpened={() => setGalleryOpen(false)}
+              onShowAllSaved={() => setView({ step: 'saved' })}
             />
           )}
+
+          {view.step === 'saved' && <SavedDiagrams onOpened={() => setGalleryOpen(false)} />}
 
           {view.step === 'examples' && selectedModule && (
             <section aria-label="Ejemplos por tipo de diagrama">
@@ -210,15 +217,17 @@ function StartView({
   onOpenBlank,
   onShowExamples,
   onSavedOpened,
+  onShowAllSaved,
 }: {
   modules: DiagramModule[];
   onOpenBlank: (module: DiagramModule) => void;
   onShowExamples: () => void;
   onSavedOpened: () => void;
+  onShowAllSaved: () => void;
 }) {
   return (
     <>
-      <SavedDiagrams onOpened={onSavedOpened} />
+      <SavedDiagrams onOpened={onSavedOpened} limit={RECENT_LIMIT} onShowAll={onShowAllSaved} />
 
       <section aria-labelledby="blank-diagrams-title">
         <h3 id="blank-diagrams-title" className="mb-3 text-sm font-semibold text-ink-900">

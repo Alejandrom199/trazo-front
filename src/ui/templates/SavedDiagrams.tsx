@@ -1,4 +1,4 @@
-import { faTrashCan } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faMagnifyingGlass, faTrashCan } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState } from 'react';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
@@ -9,24 +9,43 @@ import { TemplatePreview } from './TemplatePreview';
 const PREVIEW = { width: 220, height: 110 };
 const dateFormat = new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' });
 
-/** "Tus diagramas": los guardados en este navegador, para reabrirlos o borrarlos. */
-export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
+interface SavedDiagramsProps {
+  onOpened: () => void;
+  /**
+   * En el inicio de «Nuevo» se muestran solo los más recientes y «Ver todos»
+   * lleva a la vista completa (con buscador): así, con muchos guardados, crear en
+   * blanco y los ejemplos no quedan al fondo.
+   */
+  limit?: number;
+  onShowAll?: () => void;
+}
+
+/** "Tus diagramas": los guardados en este navegador (los más recientes primero), para reabrirlos o borrarlos. */
+export function SavedDiagrams({ onOpened, limit, onShowAll }: SavedDiagramsProps) {
   const repository = usePersistenceStore((state) => state.repository);
   const summaries = usePersistenceStore((state) => state.summaries);
   const refresh = usePersistenceStore((state) => state.refresh);
   const openId = useDiagramStore((state) => state.diagram?.id);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const showsAll = limit === undefined;
 
-  // Se cargan completos solo para dibujar la miniatura; los ilegibles se omiten.
+  const matching = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    return text ? summaries.filter((summary) => (summary.name || 'Sin título').toLowerCase().includes(text)) : summaries;
+  }, [summaries, query]);
+  const visible = showsAll ? matching : matching.slice(0, limit);
+
+  // Se cargan completos solo los visibles, para dibujar su miniatura; los ilegibles se omiten.
   const saved = useMemo(
     () =>
-      summaries
+      visible
         .map((summary) => ({ summary, diagram: repository?.load(summary.id) ?? null }))
         .filter((entry) => entry.diagram && diagramRegistry.has(entry.diagram.diagramType)),
-    [summaries, repository],
+    [visible, repository],
   );
 
-  if (!repository || saved.length === 0) return null;
+  if (!repository || summaries.length === 0) return null;
 
   function remove(id: string) {
     repository?.remove(id);
@@ -38,7 +57,31 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
 
   return (
     <section className="mb-7">
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">Tus diagramas</h3>
+      <div className="mb-3 flex items-center gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">
+          Tus diagramas <span className="font-normal normal-case tracking-normal">({summaries.length})</span>
+        </h3>
+        {!showsAll && summaries.length > limit && onShowAll && (
+          <button type="button" onClick={onShowAll} className="ml-auto flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
+            Ver todos
+            <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
+          </button>
+        )}
+      </div>
+      {showsAll && (
+        <label className="mb-4 flex items-center gap-2 rounded-lg border border-line bg-canvas px-3 py-2 focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/15">
+          <FontAwesomeIcon icon={faMagnifyingGlass} className="text-xs text-ink-400" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar por nombre…"
+            aria-label="Buscar en tus diagramas"
+            className="min-w-0 flex-1 bg-transparent text-sm text-ink-900 outline-none placeholder:text-ink-400"
+          />
+        </label>
+      )}
+      {showsAll && saved.length === 0 && <p className="text-sm text-ink-600">Ningún diagrama se llama así.</p>}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
         {saved.map(({ summary, diagram }) => {
           const module = diagramRegistry.get(diagram!.diagramType);
