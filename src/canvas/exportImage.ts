@@ -16,7 +16,15 @@ export interface ImageExportOptions {
   frame: ImageFrame;
   /** Texto del encabezado con el marco «titled». */
   title: string;
+  /** Medidas del marco, en píxeles (se ignoran sin marco). */
+  borderWidth: number;
+  borderRadius: number;
+  /** Espacio entre el borde y el diagrama. */
+  padding: number;
 }
+
+/** Clase que apaga las animaciones mientras se captura (ver index.css). */
+const EXPORTING_CLASS = 'trazo-exporting';
 
 /** Margen alrededor del diagrama en la imagen. */
 const MARGIN = 40;
@@ -52,21 +60,25 @@ export function useDiagramImageExport() {
       const root = document.documentElement;
       const previousTheme = root.dataset.theme;
       root.dataset.theme = options.background === 'dark' ? 'dark' : 'light';
+      root.classList.add(EXPORTING_CLASS);
       try {
         await nextFrames(2);
         const colors = themeColors();
         const bounds = getNodesBounds(nodes);
-        const width = Math.ceil(bounds.width + MARGIN * 2);
-        const height = Math.ceil(bounds.height + MARGIN * 2);
+        // Con marco, el aire alrededor del diagrama es el espacio interior que eligió el usuario.
+        const margin = options.frame === 'none' ? MARGIN : options.padding;
+        const width = Math.ceil(bounds.width + margin * 2);
+        const height = Math.ceil(bounds.height + margin * 2);
         const capture = {
-          backgroundColor: options.background === 'transparent' ? undefined : colors.background,
+          // Con marco, el fondo lo pone el marco (redondeado); la captura va sin fondo para no asomar por las esquinas.
+          backgroundColor: options.background === 'transparent' || options.frame !== 'none' ? undefined : colors.background,
           width,
           height,
           pixelRatio: PIXEL_RATIO,
           style: {
             width: `${width}px`,
             height: `${height}px`,
-            transform: `translate(${MARGIN - bounds.x}px, ${MARGIN - bounds.y}px) scale(1)`,
+            transform: `translate(${margin - bounds.x}px, ${margin - bounds.y}px) scale(1)`,
           },
           filter: isExportable,
         };
@@ -75,6 +87,7 @@ export function useDiagramImageExport() {
         const frame = frameLayout(width, height, options);
         return options.format === 'png' ? framePng(image, frame, colors) : frameSvg(image, frame, colors);
       } finally {
+        root.classList.remove(EXPORTING_CLASS);
         if (previousTheme) root.dataset.theme = previousTheme;
         else delete root.dataset.theme;
       }
@@ -98,24 +111,28 @@ function themeColors(): ThemeColors {
 interface FrameLayout {
   width: number;
   height: number;
+  /** Rectángulo del borde (por el centro del trazo). */
+  border: { x: number; y: number; width: number; height: number; radius: number; strokeWidth: number };
   /** Dónde va el diagrama dentro de la imagen enmarcada. */
   image: { x: number; y: number; width: number; height: number };
-  title: string | null;
+  title: { text: string; x: number; y: number } | null;
   transparent: boolean;
 }
 
-const FRAME_INSET = 12;
-const FRAME_RADIUS = 14;
 const TITLE_HEIGHT = 44;
+/** Aire mínimo entre el borde y el límite de la imagen, para que el trazo no se corte. */
+const OUTER_GAP = 2;
 
-function frameLayout(width: number, height: number, options: ImageExportOptions): FrameLayout {
-  const title = options.frame === 'titled' ? options.title.trim() || 'Diagrama' : null;
-  const header = title ? TITLE_HEIGHT : 0;
+export function frameLayout(width: number, height: number, options: ImageExportOptions): FrameLayout {
+  const strokeWidth = Math.max(0, options.borderWidth);
+  const outer = strokeWidth / 2 + OUTER_GAP;
+  const header = options.frame === 'titled' ? TITLE_HEIGHT : 0;
+  const total = { width: width + outer * 2, height: height + outer * 2 + header };
   return {
-    width: width + FRAME_INSET * 2,
-    height: height + FRAME_INSET * 2 + header,
-    image: { x: FRAME_INSET, y: FRAME_INSET + header, width, height },
-    title,
+    ...total,
+    border: { x: outer, y: outer, width: total.width - outer * 2, height: total.height - outer * 2, radius: Math.max(0, options.borderRadius), strokeWidth },
+    image: { x: outer, y: outer + header, width, height },
+    title: options.frame === 'titled' ? { text: options.title.trim() || 'Diagrama', x: outer + Math.max(options.padding, 16), y: outer + header / 2 + 4 } : null,
     transparent: options.background === 'transparent',
   };
 }
@@ -124,41 +141,45 @@ function frameLayout(width: number, height: number, options: ImageExportOptions)
 async function framePng(dataUrl: string, frame: FrameLayout, colors: ThemeColors): Promise<string> {
   const image = await loadImage(dataUrl);
   const canvas = document.createElement('canvas');
-  canvas.width = frame.width * PIXEL_RATIO;
-  canvas.height = frame.height * PIXEL_RATIO;
+  canvas.width = Math.ceil(frame.width * PIXEL_RATIO);
+  canvas.height = Math.ceil(frame.height * PIXEL_RATIO);
   const context = canvas.getContext('2d');
   if (!context) throw new Error('El navegador no permite dibujar la imagen.');
   context.scale(PIXEL_RATIO, PIXEL_RATIO);
 
-  const half = FRAME_INSET / 2;
+  const { border } = frame;
   context.beginPath();
-  context.roundRect(half, half, frame.width - FRAME_INSET, frame.height - FRAME_INSET, FRAME_RADIUS);
+  context.roundRect(border.x, border.y, border.width, border.height, border.radius);
   if (!frame.transparent) {
     context.fillStyle = colors.background;
     context.fill();
   }
-  context.lineWidth = 1.5;
-  context.strokeStyle = colors.border;
-  context.stroke();
+  context.drawImage(image, frame.image.x, frame.image.y, frame.image.width, frame.image.height);
+  if (border.strokeWidth > 0) {
+    context.lineWidth = border.strokeWidth;
+    context.strokeStyle = colors.border;
+    context.stroke();
+  }
   if (frame.title) {
     context.fillStyle = colors.text;
     context.font = '600 16px Inter, system-ui, sans-serif';
     context.textBaseline = 'middle';
-    context.fillText(frame.title, FRAME_INSET + 16, FRAME_INSET + TITLE_HEIGHT / 2 + 2);
+    context.fillText(frame.title.text, frame.title.x, frame.title.y);
   }
-  context.drawImage(image, frame.image.x, frame.image.y, frame.image.width, frame.image.height);
   return canvas.toDataURL('image/png');
 }
 
 /** SVG enmarcado: el SVG capturado va como imagen dentro de otro con fondo, borde y título. */
 function frameSvg(dataUrl: string, frame: FrameLayout, colors: ThemeColors): string {
-  const half = FRAME_INSET / 2;
-  const rect = `<rect x="${half}" y="${half}" width="${frame.width - FRAME_INSET}" height="${frame.height - FRAME_INSET}" rx="${FRAME_RADIUS}" fill="${frame.transparent ? 'none' : colors.background}" stroke="${colors.border}" stroke-width="1.5"/>`;
+  const { border } = frame;
+  const box = `x="${border.x}" y="${border.y}" width="${border.width}" height="${border.height}" rx="${border.radius}"`;
+  const background = frame.transparent ? '' : `<rect ${box} fill="${colors.background}"/>`;
+  const stroke = border.strokeWidth > 0 ? `<rect ${box} fill="none" stroke="${colors.border}" stroke-width="${border.strokeWidth}"/>` : '';
   const title = frame.title
-    ? `<text x="${FRAME_INSET + 16}" y="${FRAME_INSET + TITLE_HEIGHT / 2 + 2}" dominant-baseline="middle" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="600" fill="${colors.text}">${escapeXml(frame.title)}</text>`
+    ? `<text x="${frame.title.x}" y="${frame.title.y}" dominant-baseline="middle" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="600" fill="${colors.text}">${escapeXml(frame.title.text)}</text>`
     : '';
   const { x, y, width, height } = frame.image;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${frame.width}" height="${frame.height}" viewBox="0 0 ${frame.width} ${frame.height}">${rect}${title}<image x="${x}" y="${y}" width="${width}" height="${height}" href="${escapeXml(dataUrl)}"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${frame.width}" height="${frame.height}" viewBox="0 0 ${frame.width} ${frame.height}">${background}<image x="${x}" y="${y}" width="${width}" height="${height}" href="${escapeXml(dataUrl)}"/>${stroke}${title}</svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 

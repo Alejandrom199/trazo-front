@@ -6,7 +6,14 @@ import type { ImageBackground, ImageExportOptions, ImageFormat, ImageFrame } fro
 type Choices = Omit<ImageExportOptions, 'title'>;
 
 const STORAGE_KEY = 'trazo.exportOptions';
-const DEFAULTS: Choices = { format: 'png', background: 'light', frame: 'none' };
+const DEFAULTS: Choices = { format: 'png', background: 'light', frame: 'none', borderWidth: 1.5, borderRadius: 14, padding: 32 };
+
+/** Medidas del marco que el usuario puede ajustar, con sus límites. */
+const MEASURES: { key: 'borderWidth' | 'borderRadius' | 'padding'; label: string; min: number; max: number; step: number }[] = [
+  { key: 'borderWidth', label: 'Grosor del borde', min: 0, max: 12, step: 0.5 },
+  { key: 'borderRadius', label: 'Redondeo de las esquinas', min: 0, max: 48, step: 1 },
+  { key: 'padding', label: 'Espacio alrededor del diagrama', min: 0, max: 120, step: 4 },
+];
 
 const FORMATS: { value: ImageFormat; label: string; hint: string }[] = [
   { value: 'png', label: 'PNG', hint: 'Para documentos y presentaciones' },
@@ -28,8 +35,16 @@ function readChoices(): Choices {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
     if (saved && typeof saved === 'object') {
-      const { format, background, frame } = saved as Partial<Choices>;
+      const { format, background, frame, ...measures } = saved as Partial<Choices>;
+      const measure = (key: (typeof MEASURES)[number]['key']) => {
+        const value = measures[key];
+        const limits = MEASURES.find((entry) => entry.key === key)!;
+        return typeof value === 'number' && value >= limits.min && value <= limits.max ? value : DEFAULTS[key];
+      };
       return {
+        borderWidth: measure('borderWidth'),
+        borderRadius: measure('borderRadius'),
+        padding: measure('padding'),
         format: FORMATS.some((option) => option.value === format) ? format! : DEFAULTS.format,
         background: BACKGROUNDS.some((option) => option.value === background) ? background! : DEFAULTS.background,
         frame: FRAMES.some((option) => option.value === frame) ? frame! : DEFAULTS.frame,
@@ -85,6 +100,25 @@ export function ExportDialog({
           <Choice label="Formato" options={FORMATS} value={choices.format} onChange={(format) => set({ format })} />
           <Choice label="Fondo" options={BACKGROUNDS} value={choices.background} onChange={(background) => set({ background })} />
           <Choice label="Marco" options={FRAMES} value={choices.frame} onChange={(frame) => set({ frame })} />
+          {choices.frame !== 'none' && (
+            <div className="space-y-2.5 rounded-lg bg-canvas px-3 py-3">
+              {MEASURES.map((measure) => (
+                <label key={measure.key} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1">
+                  <span className="text-xs text-ink-600">{measure.label}</span>
+                  <span className="text-right text-xs tabular-nums text-ink-900">{choices[measure.key]} px</span>
+                  <input
+                    type="range"
+                    min={measure.min}
+                    max={measure.max}
+                    step={measure.step}
+                    value={choices[measure.key]}
+                    onChange={(event) => set({ [measure.key]: Number(event.target.value) })}
+                    className="col-span-2 accent-[var(--color-accent)]"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
           <p className="text-[11px] text-ink-400">Los candados, la selección y los puntos de edición no salen en la imagen.</p>
         </div>
 
@@ -159,8 +193,13 @@ function Preview({ choices, title }: { choices: Choices; title: string }) {
   return (
     <div className="flex h-32 items-center justify-center rounded-lg border border-line" style={{ background }} aria-hidden>
       <div
-        className="flex flex-col items-center gap-1.5 px-5 py-3"
-        style={{ border: framed ? `1.5px solid ${dark ? '#71717a' : '#a1a1aa'}` : '1.5px solid transparent', borderRadius: 12 }}
+        className="flex flex-col items-center gap-1.5"
+        // La miniatura está a la mitad de escala que la imagen real.
+        style={{
+          border: `${framed ? choices.borderWidth / 2 : 0}px solid ${dark ? '#71717a' : '#a1a1aa'}`,
+          borderRadius: choices.borderRadius / 2,
+          padding: framed ? choices.padding / 2 : 12,
+        }}
       >
         {choices.frame === 'titled' && (
           <span className="max-w-48 self-start truncate text-[10px] font-semibold" style={{ color: ink }}>
