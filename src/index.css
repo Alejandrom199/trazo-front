@@ -226,10 +226,11 @@ select {
    pero desaparecen los textos auxiliares y los puntos de edición. */
 /* Los tiradores de tamaño y los puntos de conexión NO se ocultan: solo aparecen al
    seleccionar o al pasar el ratón, y sin ellos no se puede editar alejado. */
-.trazo-detail-compact .trazo-edge-label {
+/* La imagen exportada siempre sale con todo el detalle, aunque se exporte alejado. */
+:root:not(.trazo-exporting) .trazo-detail-compact .trazo-edge-label {
   display: none;
 }
-.trazo-detail-compact .trazo-secondary-detail {
+:root:not(.trazo-exporting) .trazo-detail-compact .trazo-secondary-detail {
   opacity: 0;
   pointer-events: none;
 }

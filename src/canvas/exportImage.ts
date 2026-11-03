@@ -41,7 +41,7 @@ const isExportable = (element: HTMLElement) =>
 
 /**
  * Exporta TODO el diagrama (no solo lo visible) como PNG o SVG, recortado al
- * rectángulo que ocupan los nodos. Etapas: limpiar selección y resaltados →
+ * rectángulo que ocupan los nodos y las flechas. Etapas: limpiar selección y resaltados →
  * poner el tema del fondo elegido → capturar → restaurar el tema → enmarcar.
  * Devuelve la imagen como data URL; descargarla es cosa de quien llama.
  */
@@ -64,7 +64,7 @@ export function useDiagramImageExport() {
       try {
         await nextFrames(2);
         const colors = themeColors();
-        const bounds = getNodesBounds(nodes);
+        const bounds = withEdges(getNodesBounds(nodes), viewportElement);
         // Con marco, el aire alrededor del diagrama es el espacio interior que eligió el usuario.
         const margin = options.frame === 'none' ? MARGIN : options.padding;
         const width = Math.ceil(bounds.width + margin * 2);
@@ -94,6 +94,32 @@ export function useDiagramImageExport() {
     },
     [getNodes, getNodesBounds],
   );
+}
+
+type Bounds = { x: number; y: number; width: number; height: number };
+
+/**
+ * Amplía el recuadro de los nodos con lo que dibujan las flechas: un vértice o un
+ * texto puede quedar fuera de todos los nodos (p. ej. una flecha que rodea el
+ * diagrama) y, sin esto, la imagen la cortaba. Mide en pantalla y lo pasa a
+ * coordenadas del diagrama con la posición y el zoom del viewport.
+ */
+function withEdges(bounds: Bounds, viewportElement: HTMLElement): Bounds {
+  const origin = viewportElement.getBoundingClientRect();
+  const zoom = new DOMMatrixReadOnly(getComputedStyle(viewportElement).transform).a || 1;
+  let left = bounds.x;
+  let top = bounds.y;
+  let right = bounds.x + bounds.width;
+  let bottom = bounds.y + bounds.height;
+  for (const element of viewportElement.querySelectorAll('.react-flow__edge-path, .trazo-edge-label')) {
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) continue;
+    left = Math.min(left, (rect.left - origin.left) / zoom);
+    top = Math.min(top, (rect.top - origin.top) / zoom);
+    right = Math.max(right, (rect.right - origin.left) / zoom);
+    bottom = Math.max(bottom, (rect.bottom - origin.top) / zoom);
+  }
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 interface ThemeColors {
