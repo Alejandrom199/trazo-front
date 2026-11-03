@@ -14,6 +14,12 @@ const LIBRARY_PROJECT_PRIORITY: Record<DiagramType, 'required' | 'optional'> = {
   component: 'optional',
   deployment: 'optional',
   package: 'optional',
+  object: 'optional',
+  profile: 'optional',
+  composite: 'optional',
+  communication: 'optional',
+  interactionOverview: 'optional',
+  timing: 'optional',
 };
 
 /** Inicio de Aprender: el mapa de UML y una tarjeta por tipo de diagrama, agrupadas por familia. */

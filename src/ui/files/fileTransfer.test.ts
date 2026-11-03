@@ -35,7 +35,7 @@ describe('diagramFromJson', () => {
   });
 
   it('Dado un tipo de diagrama desconocido, Entonces lo rechaza', () => {
-    const foreign = { ...createEmptyDiagram({ diagramType: 'activity', name: 'x' }), diagramType: 'timing' };
+    const foreign = { ...createEmptyDiagram({ diagramType: 'activity', name: 'x' }), diagramType: 'future-diagram' };
 
     expect(diagramFromJson(JSON.stringify(foreign))).toMatchObject({ ok: false });
   });

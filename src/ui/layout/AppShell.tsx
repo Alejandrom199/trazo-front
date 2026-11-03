@@ -15,6 +15,7 @@ import { ArtifactsToggle, CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSele
 import { LayersControl } from '@/ui/layers/LayersControl';
 import { useUiStore } from '@/ui/uiStore';
 import { ValidationPanel } from '@/ui/validation/ValidationPanel';
+import { ProjectPanel } from '@/ui/projects/ProjectPanel';
 import { AppHeader } from './AppHeader';
 
 /**
@@ -83,6 +84,7 @@ export function AppShell() {
             <CanvasArtifactPopover />
             <CanvasContextMenu />
             <TemplateGallery />
+            <ProjectPanel />
           </>
         )}
         <TooltipLayer />

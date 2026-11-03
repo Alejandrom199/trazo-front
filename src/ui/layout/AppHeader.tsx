@@ -1,8 +1,9 @@
-import { faBookOpen, faGraduationCap, faMoon, faPenRuler, faRotateLeft, faRotateRight, faSun, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { faBookOpen, faFolderOpen, faGraduationCap, faMoon, faPenRuler, faRotateLeft, faRotateRight, faSun, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { usePersistenceStore, type SaveStatus } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { useProjectStore } from '@/core/store/projectStore';
 import { Logo } from '@/ui/brand/Logo';
 import { navigate, useRoute } from '@/ui/navigation/route';
 import { CanvasViewControl } from '@/ui/toolbar/CanvasViewControl';
@@ -26,6 +27,7 @@ export function AppHeader() {
         <Logo size={32} />
       </div>
       {inEditor && <FileMenu />}
+      {inEditor && <ProjectBadge />}
       {inEditor && <DocumentTitle />}
       {!inEditor && <span className="hidden text-sm font-semibold text-ink-900 sm:inline">Trazo Diagram</span>}
 
@@ -47,6 +49,19 @@ export function AppHeader() {
         <ThemeToggle />
       </div>
     </header>
+  );
+}
+
+function ProjectBadge() {
+  const project = useProjectStore((state) => state.project);
+  const setProjectOpen = useUiStore((state) => state.setProjectOpen);
+  if (!project) return null;
+  return (
+    <button type="button" onClick={() => setProjectOpen(true)} title="Abrir proyecto" className="hidden max-w-48 items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/15 md:flex">
+      <FontAwesomeIcon icon={faFolderOpen} className="text-[11px]" />
+      <span className="truncate">{project.name}</span>
+      <span className="rounded-full bg-surface px-1.5 text-[10px]">{project.diagramIds.length}</span>
+    </button>
   );
 }
 

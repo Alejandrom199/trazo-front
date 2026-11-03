@@ -3,6 +3,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useDiagramImageExport, type ImageExportOptions } from '@/canvas/exportImage';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { useProjectStore } from '@/core/store/projectStore';
+import { usePersistenceStore } from '@/core/persistence/persistenceStore';
+import { projectFromJson, projectToJson } from '@/core/persistence/projectFormat';
+import { diagramRegistry } from '@/core/registry';
+import { createId } from '@/core/utils/id';
 import { ExportDialog } from '@/ui/files/ExportDialog';
 import { diagramFromJson, diagramToJson, downloadText, downloadUrl, toFileName } from '@/ui/files/fileTransfer';
 import { useUiStore } from '@/ui/uiStore';
@@ -14,9 +19,12 @@ export function FileMenu() {
   const [exporting, setExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const projectInputRef = useRef<HTMLInputElement>(null);
   const exportImage = useDiagramImageExport();
   const showNotice = useUiStore((state) => state.showNotice);
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
+  const setProjectOpen = useUiStore((state) => state.setProjectOpen);
+  const project = useProjectStore((state) => state.project);
 
   useEffect(() => {
     if (!open) return;
@@ -69,6 +77,41 @@ export function FileMenu() {
     showNotice(`Se importó «${result.diagram.name}» como un diagrama nuevo.`);
   }
 
+  function exportProject() {
+    const active = useProjectStore.getState().project;
+    if (!active) return showNotice('Primero crea o importa un proyecto.');
+    const current = currentDiagram();
+    const { repository, refresh } = usePersistenceStore.getState();
+    if (current && repository) repository.save(current);
+    refresh();
+    const diagrams = active.diagramIds
+      .map((id) => (current?.id === id ? current : repository?.load(id)))
+      .filter((diagram) => diagram !== null && diagram !== undefined);
+    if (diagrams.length === 0) return showNotice('El proyecto todavía no tiene diagramas guardados.');
+    downloadText(projectToJson(active, diagrams), `${toFileName(active.name)}.trazo-project`, 'application/json');
+    setOpen(false);
+  }
+
+  async function importProject(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setOpen(false);
+    const parsed = projectFromJson(await file.text());
+    if (!parsed.ok) return showNotice(`No se pudo importar «${file.name}»: ${parsed.error}`);
+    const unsupported = parsed.project.diagrams.find((diagram) => !diagramRegistry.has(diagram.diagramType));
+    if (unsupported) return showNotice(`Trazo no conoce el tipo de diagrama «${unsupported.diagramType}».`);
+    const persistence = usePersistenceStore.getState();
+    if (!persistence.repository) return showNotice('Este navegador no permite guardar un proyecto con varios diagramas.');
+    const now = new Date().toISOString();
+    const diagrams = parsed.project.diagrams.map((diagram) => ({ ...diagram, id: createId(), updatedAt: now }));
+    for (const diagram of diagrams) persistence.repository.save(diagram);
+    persistence.refresh();
+    useProjectStore.getState().openProject({ id: createId(), name: parsed.project.name, diagramIds: diagrams.map((diagram) => diagram.id), createdAt: now, updatedAt: now });
+    useDiagramStore.getState().openDiagram(diagrams[0]!);
+    showNotice(`Se importó el proyecto «${parsed.project.name}» con ${diagrams.length} diagramas.`);
+  }
+
   return (
     <div ref={menuRef} className="relative">
       <button
@@ -101,8 +144,10 @@ export function FileMenu() {
             label="Nuevo o abrir…"
             hint="En blanco, tus diagramas o un ejemplo"
           />
+          <MenuItem onClick={() => { setOpen(false); setProjectOpen(true); }} label={project ? `Proyecto: ${project.name}` : 'Nuevo proyecto…'} hint={project ? `${project.diagramIds.length} diagramas; administrar y cambiar entre ellos` : 'Agrupa varios diagramas en un solo trabajo'} />
           <div className="my-1 h-px bg-line" />
           <MenuItem onClick={exportJson} label="Exportar JSON" hint="Para respaldar o moverlo de equipo" />
+          <MenuItem onClick={exportProject} label="Exportar proyecto…" hint="Un archivo .trazo-project con todos sus diagramas" />
           <MenuItem
             onClick={() => {
               setOpen(false);
@@ -113,12 +158,14 @@ export function FileMenu() {
           />
           <div className="my-1 h-px bg-line" />
           <MenuItem onClick={() => fileInputRef.current?.click()} label="Importar JSON…" hint="Abre un diagrama exportado" />
+          <MenuItem onClick={() => projectInputRef.current?.click()} label="Importar proyecto…" hint="Abre todos los diagramas de un archivo de Trazo" />
         </div>
       )}
       {exporting && (
         <ExportDialog title={currentDiagram()?.name ?? ''} onCancel={() => setExporting(false)} onExport={(options) => void exportAs(options)} />
       )}
       <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={importJson} />
+      <input ref={projectInputRef} type="file" accept="application/json,.trazo-project" className="hidden" onChange={importProject} />
     </div>
   );
 }

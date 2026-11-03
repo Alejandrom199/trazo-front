@@ -20,6 +20,9 @@ interface UiState {
   /** Selector para crear, reabrir o explorar ejemplos: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
+  /** Gestor del proyecto activo y sus diagramas. */
+  projectOpen: boolean;
+  setProjectOpen: (open: boolean) => void;
   /** Tira de herramientas de artefactos sobre el lienzo: visible hasta que el usuario la oculte (botón o tecla A). */
   artifactToolsVisible: boolean;
   setArtifactToolsVisible: (visible: boolean) => void;
@@ -91,6 +94,8 @@ export const useUiStore = create<UiState>()((set) => ({
   },
   galleryOpen: true,
   setGalleryOpen: (open) => set({ galleryOpen: open }),
+  projectOpen: false,
+  setProjectOpen: (open) => set({ projectOpen: open }),
   artifactToolsVisible: readArtifactToolsVisible(),
   setArtifactToolsVisible: (visible) => {
     try {

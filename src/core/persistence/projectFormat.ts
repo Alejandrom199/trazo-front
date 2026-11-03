@@ -1,0 +1,69 @@
+import {
+  PROJECT_FILE_FORMAT,
+  PROJECT_SCHEMA_VERSION,
+  type Diagram,
+  type DiagramProject,
+  type DiagramProjectFile,
+} from '@/core/model';
+import { parseDiagram } from './diagramFormat';
+
+export type ProjectParseResult = { ok: true; project: DiagramProjectFile } | { ok: false; error: string };
+
+export function projectToJson(project: DiagramProject, diagrams: Diagram[]): string {
+  const file: DiagramProjectFile = {
+    format: PROJECT_FILE_FORMAT,
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    id: project.id,
+    name: project.name,
+    diagrams,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+  };
+  return JSON.stringify(file, null, 2);
+}
+
+export function projectFromJson(text: string): ProjectParseResult {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, error: 'El archivo no es un JSON válido.' };
+  }
+  if (!isRecord(raw) || raw.format !== PROJECT_FILE_FORMAT) {
+    return { ok: false, error: 'El archivo no es un proyecto de Trazo.' };
+  }
+  if (raw.schemaVersion !== PROJECT_SCHEMA_VERSION) {
+    return { ok: false, error: 'El proyecto usa una versión que esta versión de Trazo no puede abrir.' };
+  }
+  if (typeof raw.id !== 'string' || typeof raw.name !== 'string' || !raw.name.trim()) {
+    return { ok: false, error: 'El proyecto no tiene un nombre válido.' };
+  }
+  if (!Array.isArray(raw.diagrams) || raw.diagrams.length === 0) {
+    return { ok: false, error: 'El proyecto no contiene diagramas.' };
+  }
+  const diagrams: Diagram[] = [];
+  for (const candidate of raw.diagrams) {
+    const parsed = parseDiagram(candidate);
+    if (!parsed.ok) return { ok: false, error: `Uno de los diagramas es inválido: ${parsed.error}` };
+    diagrams.push(parsed.diagram);
+  }
+  if (new Set(diagrams.map((diagram) => diagram.id)).size !== diagrams.length) {
+    return { ok: false, error: 'El proyecto contiene diagramas con el mismo id.' };
+  }
+  return {
+    ok: true,
+    project: {
+      format: PROJECT_FILE_FORMAT,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      id: raw.id,
+      name: raw.name.trim(),
+      diagrams,
+      createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date(0).toISOString(),
+      updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date(0).toISOString(),
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}

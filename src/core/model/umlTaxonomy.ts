@@ -35,17 +35,17 @@ export const UML_DIAGRAMS: UmlDiagramKind[] = [
   structure('Clases', 'Clases, atributos, operaciones y sus relaciones.', 'class'),
   structure('Componentes', 'Piezas del software y las interfaces por las que se conectan.', 'component'),
   structure('Despliegue', 'En qué máquinas se instala cada artefacto y cómo se comunican.', 'deployment'),
-  structure('Objetos', 'Una foto de instancias concretas en un momento dado.'),
+  structure('Objetos', 'Una foto de instancias concretas en un momento dado.', 'object'),
   structure('Paquetes', 'Cómo se organiza el modelo en grupos y sus dependencias.', 'package'),
-  structure('Estructura compuesta', 'Las partes internas de una clase o componente y cómo colaboran.'),
-  structure('Perfiles', 'Extensiones de UML con estereotipos propios de un dominio.'),
+  structure('Estructura compuesta', 'Las partes internas de una clase o componente y cómo colaboran.', 'composite'),
+  structure('Perfiles', 'Extensiones de UML con estereotipos propios de un dominio.', 'profile'),
   behavior('Casos de uso', 'Qué puede hacer cada actor con el sistema.', 'usecase'),
   behavior('Actividades', 'El flujo de un proceso: pasos, decisiones y trabajo en paralelo.', 'activity'),
   behavior('Máquina de estados', 'Los estados por los que pasa algo y qué lo hace cambiar.', 'state'),
   interaction('Secuencia', 'Los mensajes entre participantes, en orden temporal.', 'sequence'),
-  interaction('Comunicación', 'Los mismos mensajes, vistos como una red de enlaces numerados.'),
-  interaction('Descripción general de la interacción', 'Un flujo de actividades cuyos pasos son interacciones.'),
-  interaction('Tiempos', 'Cómo cambian los estados a lo largo de un eje de tiempo exacto.'),
+  interaction('Comunicación', 'Los mismos mensajes, vistos como una red de enlaces numerados.', 'communication'),
+  interaction('Descripción general de la interacción', 'Un flujo de actividades cuyos pasos son interacciones.', 'interactionOverview'),
+  interaction('Tiempos', 'Cómo cambian los estados a lo largo de un eje de tiempo exacto.', 'timing'),
 ];
 
 export function umlKindOf(diagramType: DiagramType): UmlDiagramKind | undefined {

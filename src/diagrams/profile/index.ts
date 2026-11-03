@@ -1,0 +1,28 @@
+import { createSimpleModule } from '@/diagrams/shared/simpleModule';
+
+const P = { profile: 'profile', stereotype: 'stereotype', metaclass: 'metaclass', extension: 'extension', reference: 'profileReference' } as const;
+
+export const profileModule = createSimpleModule({
+  diagramType: 'profile', displayName: 'Diagrama de perfiles', defaultEdge: P.extension,
+  nodes: [
+    { type: P.profile, name: 'Perfil', umlName: 'Profile', category: 'agrupación', visual: 'profile', defaultLabel: 'Perfil', size: { width: 360, height: 230 }, notation: 'Paquete rotulado «profile».', whatIs: 'Un paquete que reúne extensiones UML para un dominio.', whatFor: 'Definir un vocabulario de modelado propio sin cambiar UML.', example: 'Perfil API REST', container: true },
+    { type: P.stereotype, name: 'Estereotipo', umlName: 'Stereotype', category: 'clasificador', visual: 'stereotype', defaultLabel: 'Estereotipo', size: { width: 170, height: 70 }, notation: 'Clase rotulada «stereotype».', whatIs: 'Una especialización que añade significado y propiedades.', whatFor: 'Marcar elementos UML con conceptos del dominio.', example: '«endpoint»' },
+    { type: P.metaclass, name: 'Metaclase', umlName: 'Metaclass', category: 'clasificador', visual: 'box', defaultLabel: 'Metaclase', size: { width: 170, height: 70 }, notation: 'Clase del metamodelo UML.', whatIs: 'El tipo UML que puede recibir un estereotipo.', whatFor: 'Indicar qué elementos UML extiende el perfil.', example: 'Component' },
+  ],
+  edges: [
+    { type: P.extension, name: 'Extensión', umlName: 'Extension', notation: 'Flecha de extensión desde el estereotipo a la metaclase.', whatIs: 'Relaciona un estereotipo con la metaclase que amplía.', whatFor: 'Restringir dónde puede aplicarse el estereotipo.', example: '«service» extiende Component', dashed: true, arrow: 'hollow' },
+    { type: P.reference, name: 'Referencia', umlName: 'Dependency', notation: 'Dependencia discontinua.', whatIs: 'Relaciona elementos del perfil.', whatFor: 'Mostrar dependencias entre conceptos del perfil.', example: '«endpoint» depende de «service»', dashed: true },
+  ],
+  guide: { summary: 'Un perfil adapta UML a un dominio mediante estereotipos, valores etiquetados y restricciones.', purposes: ['Crear un vocabulario UML para una organización o tecnología.', 'Definir dónde puede aplicarse cada estereotipo.'], whenToUse: ['Cuando UML necesita conceptos de un dominio concreto.', 'Para normalizar modelos entre equipos.'], whenNotToUse: ['Para reemplazar clases normales del dominio.', 'Si una simple nota comunica lo mismo.'], keyIdea: { title: 'Extender sin modificar UML', text: 'Un estereotipo añade significado a una metaclase existente; no inventa un UML incompatible.' }, howToRead: [{ title: 'Ubica el perfil', text: 'El paquete «profile» contiene el vocabulario.', artifactTypes: [P.profile] }, { title: 'Lee los estereotipos', text: 'Cada estereotipo nombra una extensión del dominio.', artifactTypes: [P.stereotype] }, { title: 'Sigue las extensiones', text: 'La flecha indica sobre qué metaclase puede aplicarse.', artifactTypes: [P.extension, P.metaclass] }] },
+  templates: [{ id: 'profile.rest-api', name: 'Perfil para API REST', description: 'Un perfil pequeño define «resource» y «endpoint» sobre componentes y operaciones.', difficulty: 'básico', learningGoals: [P.profile, P.stereotype, P.metaclass, P.extension], nodes: [
+    { id: 'p1', type: P.profile, label: 'API REST', position: { x: 0, y: 0 }, size: { width: 520, height: 300 } }, { id: 'p2', type: P.stereotype, label: 'resource', position: { x: 35, y: 90 }, parentId: 'p1' }, { id: 'p3', type: P.stereotype, label: 'endpoint', position: { x: 290, y: 90 }, parentId: 'p1' }, { id: 'p4', type: P.metaclass, label: 'Component', position: { x: 650, y: 40 } }, { id: 'p5', type: P.metaclass, label: 'Operation', position: { x: 650, y: 210 } },
+  ], edges: [{ id: 'e1', type: P.extension, sourceId: 'p2', targetId: 'p4' }, { id: 'e2', type: P.extension, sourceId: 'p3', targetId: 'p5' }, { id: 'e3', type: P.reference, sourceId: 'p3', targetId: 'p2', label: 'pertenece a' }] }],
+  scenarios: [
+    { id: 'profile.rest-api', name: 'Perfil para API REST', description: 'Define recursos y endpoints sobre componentes y operaciones.', difficulty: 'básico' },
+    { id: 'profile.persistence', name: 'Perfil de persistencia', description: 'Distingue entidades y repositorios en modelos de datos.', difficulty: 'básico', nodeLabels: { p1: 'Persistencia', p2: 'entity', p3: 'repository', p4: 'Class', p5: 'Interface' }, edgeLabels: { e3: 'gestiona' } },
+    { id: 'profile-cloud', name: 'Perfil de nube', description: 'Extiende componentes y nodos con conceptos de servicio y región.', difficulty: 'intermedio', nodeLabels: { p1: 'Cloud', p2: 'managedService', p3: 'region', p4: 'Component', p5: 'Node' }, edgeLabels: { e3: 'se despliega en' } },
+    { id: 'profile-security', name: 'Perfil de seguridad', description: 'Marca recursos protegidos y operaciones auditadas.', difficulty: 'intermedio', nodeLabels: { p1: 'Seguridad', p2: 'protected', p3: 'audited', p4: 'Class', p5: 'Operation' }, edgeLabels: { e3: 'requiere' } },
+    { id: 'profile-realtime', name: 'Perfil de tiempo real', description: 'Añade restricciones temporales a operaciones y señales.', difficulty: 'avanzado', nodeLabels: { p1: 'Tiempo real', p2: 'deadline', p3: 'periodic', p4: 'Operation', p5: 'Signal' }, edgeLabels: { e3: 'coordina' } },
+    { id: 'profile-medical', name: 'Perfil clínico', description: 'Normaliza estereotipos de datos sensibles y decisiones clínicas.', difficulty: 'avanzado', nodeLabels: { p1: 'Salud', p2: 'clinicalRecord', p3: 'consentRequired', p4: 'Class', p5: 'UseCase' }, edgeLabels: { e3: 'protege' } },
+  ],
+});
