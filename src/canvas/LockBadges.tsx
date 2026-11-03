@@ -19,26 +19,29 @@ export function LockBadges() {
 
   return (
     <ViewportPortal>
-      {diagram.nodes
-        .filter((node) => node.locked)
-        .map((node) => {
-          const origin = absolutePosition(diagram, node);
-          return (
-            <span
-              key={node.id}
-              title="Bloqueado: no se puede mover ni borrar"
-              className="absolute flex items-center justify-center rounded-full border border-line bg-surface text-[9px] text-ink-600 shadow-panel"
-              style={{
-                width: BADGE,
-                height: BADGE,
-                transform: `translate(${origin.x + node.size.width - BADGE / 2}px, ${origin.y - BADGE / 2}px)`,
-                zIndex: 1000,
-              }}
-            >
-              <FontAwesomeIcon icon={faLock} />
-            </span>
-          );
-        })}
+      {/* data-export-ignore: los candados son de edición; no salen al exportar la imagen. */}
+      <div data-export-ignore>
+        {diagram.nodes
+          .filter((node) => node.locked)
+          .map((node) => {
+            const origin = absolutePosition(diagram, node);
+            return (
+              <span
+                key={node.id}
+                title="Bloqueado: no se puede mover ni borrar"
+                className="absolute flex items-center justify-center rounded-full border border-line bg-surface text-[9px] text-ink-600 shadow-panel"
+                style={{
+                  width: BADGE,
+                  height: BADGE,
+                  transform: `translate(${origin.x + node.size.width - BADGE / 2}px, ${origin.y - BADGE / 2}px)`,
+                  zIndex: 1000,
+                }}
+              >
+                <FontAwesomeIcon icon={faLock} />
+              </span>
+            );
+          })}
+      </div>
     </ViewportPortal>
   );
 }

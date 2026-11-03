@@ -1,15 +1,17 @@
 import { faFolderOpen } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { useDiagramImageExport, type ImageFormat } from '@/canvas/exportImage';
+import { useDiagramImageExport, type ImageExportOptions } from '@/canvas/exportImage';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { ExportDialog } from '@/ui/files/ExportDialog';
 import { diagramFromJson, diagramToJson, downloadText, downloadUrl, toFileName } from '@/ui/files/fileTransfer';
 import { RailButton } from '@/ui/layout/RailButton';
 import { useUiStore } from '@/ui/uiStore';
 
-/** Menú "Archivo" del riel lateral: exportar JSON/PNG/SVG e importar JSON. Se abre hacia la derecha. */
+/** Menú "Archivo" del riel lateral: exportar JSON o imagen (con su diálogo) e importar JSON. Se abre hacia la derecha. */
 export function FileMenu() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportImage = useDiagramImageExport();
@@ -40,14 +42,14 @@ export function FileMenu() {
     setOpen(false);
   }
 
-  async function exportAs(format: ImageFormat) {
+  async function exportAs(options: ImageExportOptions) {
     const diagram = currentDiagram();
     if (!diagram) return;
-    setOpen(false);
+    setExporting(false);
     setBusy(true);
     try {
-      const url = await exportImage(format);
-      downloadUrl(url, `${toFileName(diagram.name)}.${format}`);
+      const url = await exportImage(options);
+      downloadUrl(url, `${toFileName(diagram.name)}.${options.format}`);
     } catch (error) {
       showNotice(error instanceof Error && error.message ? `No se pudo exportar: ${error.message}` : 'No se pudo exportar la imagen.');
     } finally {
@@ -82,11 +84,20 @@ export function FileMenu() {
         <div role="menu" className="absolute top-0 left-full z-50 ml-2 w-60 rounded-lg border border-line bg-surface p-1 shadow-panel">
           <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Archivo</p>
           <MenuItem onClick={exportJson} label="Exportar JSON" hint="Para respaldar o moverlo de equipo" />
-          <MenuItem onClick={() => void exportAs('png')} label="Exportar PNG" hint="Imagen para documentos" />
-          <MenuItem onClick={() => void exportAs('svg')} label="Exportar SVG" hint="Imagen escalable" />
+          <MenuItem
+            onClick={() => {
+              setOpen(false);
+              setExporting(true);
+            }}
+            label="Exportar imagen…"
+            hint="PNG o SVG, con fondo claro, oscuro o transparente"
+          />
           <div className="my-1 h-px bg-line" />
           <MenuItem onClick={() => fileInputRef.current?.click()} label="Importar JSON…" hint="Abre un diagrama exportado" />
         </div>
+      )}
+      {exporting && (
+        <ExportDialog title={currentDiagram()?.name ?? ''} onCancel={() => setExporting(false)} onExport={(options) => void exportAs(options)} />
       )}
       <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={importJson} />
     </div>
