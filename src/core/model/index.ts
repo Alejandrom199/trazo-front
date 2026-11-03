@@ -13,3 +13,4 @@ export * from './edgeLabel';
 export * from './arrange';
 export * from './clipboard';
 export * from './layers';
+export * from './umlTaxonomy';

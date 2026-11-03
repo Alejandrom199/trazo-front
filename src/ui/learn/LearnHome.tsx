@@ -1,35 +1,13 @@
-import { faArrowRight, faDiagramProject, faLayerGroup, faPeopleArrows, faRoute, faSitemap, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faDiagramProject, faRoute } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import type { DiagramType } from '@/core/model';
-import { diagramRegistry } from '@/core/registry';
+import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf } from '@/core/model';
+import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { navigate } from '@/ui/navigation/route';
+import { UmlMap } from './UmlMap';
 
-/** Tipos de diagrama del plan que todavía no tienen módulo: se muestran como "próximamente". */
-const PLANNED: { diagramType: DiagramType; name: string; summary: string; icon: IconDefinition }[] = [
-  {
-    diagramType: 'sequence',
-    name: 'Diagrama de secuencia',
-    summary: 'Los mensajes que intercambian los participantes de una interacción, en orden temporal.',
-    icon: faPeopleArrows,
-  },
-  {
-    diagramType: 'usecase',
-    name: 'Diagrama de casos de uso',
-    summary: 'Qué puede hacer cada actor con el sistema, sin entrar en cómo lo hace.',
-    icon: faSitemap,
-  },
-  {
-    diagramType: 'class',
-    name: 'Diagrama de clases',
-    summary: 'La estructura del sistema: clases, atributos, operaciones y cómo se relacionan.',
-    icon: faLayerGroup,
-  },
-];
-
-/** Inicio de Aprender: una tarjeta por tipo de diagrama. */
+/** Inicio de Aprender: el mapa de UML y una tarjeta por tipo de diagrama, agrupadas por familia. */
 export function LearnHome() {
-  const available = diagramRegistry.list();
-  const planned = PLANNED.filter((entry) => !diagramRegistry.has(entry.diagramType));
+  const groups = groupByUmlFamily(diagramRegistry.list(), (module) => module.diagramType);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 md:px-10 md:py-12">
@@ -61,40 +39,62 @@ export function LearnHome() {
         </span>
       </button>
 
-      <div className="mt-8 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-        {available.map((module) => (
-          <button
-            key={module.diagramType}
-            type="button"
-            onClick={() => navigate({ page: 'learn-diagram', diagramType: module.diagramType })}
-            className="group flex flex-col rounded-xl border border-line bg-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-panel focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
-          >
-            <span className="bg-brand flex size-10 items-center justify-center rounded-lg text-white">
-              <FontAwesomeIcon icon={faDiagramProject} />
-            </span>
-            <h2 className="mt-4 text-lg font-semibold text-ink-900">{module.displayName}</h2>
-            <p className="mt-1.5 flex-1 text-sm leading-relaxed text-ink-600">{module.guide.summary}</p>
-            <p className="mt-4 text-xs text-ink-400">
-              {module.artifacts.length} artefactos, {module.templates.length} ejemplos y {module.rules.length} reglas
-            </p>
-            <span className="mt-3 flex items-center gap-1.5 text-sm font-medium text-accent">
-              Empezar la guía
-              <FontAwesomeIcon icon={faArrowRight} className="text-xs transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </button>
-        ))}
+      <section className="mt-10" aria-labelledby="uml-map-title">
+        <h2 id="uml-map-title" className="text-xl font-semibold text-ink-900">Los diagramas de UML</h2>
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-600">
+          UML los divide en dos familias: los de <strong className="font-medium text-ink-900">estructura</strong> describen de qué está
+          hecho el sistema, y los de <strong className="font-medium text-ink-900">comportamiento</strong>, qué hace y cómo cambia. Los de
+          interacción son comportamiento centrado en los mensajes.
+        </p>
+        <div className="mt-4">
+          <UmlMap />
+        </div>
+      </section>
 
-        {planned.map((entry) => (
-          <div key={entry.diagramType} className="flex flex-col rounded-xl border border-dashed border-line p-5" aria-disabled>
-            <span className="flex size-10 items-center justify-center rounded-lg bg-raised text-ink-400">
-              <FontAwesomeIcon icon={entry.icon} />
-            </span>
-            <h2 className="mt-4 text-lg font-semibold text-ink-600">{entry.name}</h2>
-            <p className="mt-1.5 flex-1 text-sm leading-relaxed text-ink-400">{entry.summary}</p>
-            <span className="mt-4 w-fit rounded-full bg-raised px-2.5 py-0.5 text-xs font-medium text-ink-400">Próximamente</span>
-          </div>
-        ))}
-      </div>
+      {groups.map(({ family, items }) => {
+        const upcoming = UML_DIAGRAMS.filter((kind) => kind.family === family && !(kind.diagramType && diagramRegistry.has(kind.diagramType)));
+        return (
+          <section key={family} className="mt-10" aria-labelledby={`family-${family}`}>
+            <h2 id={`family-${family}`} className="text-xl font-semibold text-ink-900">{UML_FAMILIES[family].name}</h2>
+            <p className="mt-1.5 text-sm text-ink-600">{UML_FAMILIES[family].question}</p>
+            <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+              {items.map((module) => (
+                <GuideCard key={module.diagramType} module={module} />
+              ))}
+            </div>
+            {upcoming.length > 0 && (
+              <p className="mt-3 text-xs text-ink-400">Próximamente: {upcoming.map((kind) => kind.name).join(', ')}.</p>
+            )}
+          </section>
+        );
+      })}
     </div>
+  );
+}
+
+function GuideCard({ module }: { module: DiagramModule }) {
+  const isInteraction = umlKindOf(module.diagramType)?.interaction ?? false;
+  return (
+    <button
+      type="button"
+      onClick={() => navigate({ page: 'learn-diagram', diagramType: module.diagramType })}
+      className="group flex flex-col rounded-xl border border-line bg-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-panel focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
+    >
+      <span className="flex items-center justify-between">
+        <span className="bg-brand flex size-10 items-center justify-center rounded-lg text-white">
+          <FontAwesomeIcon icon={faDiagramProject} />
+        </span>
+        {isInteraction && <span className="rounded-full bg-raised px-2.5 py-0.5 text-[11px] font-medium text-ink-600">Interacción</span>}
+      </span>
+      <h3 className="mt-4 text-lg font-semibold text-ink-900">{module.displayName}</h3>
+      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-ink-600">{module.guide.summary}</p>
+      <p className="mt-4 text-xs text-ink-400">
+        {module.artifacts.length} artefactos, {module.templates.length} ejemplos y {module.rules.length} reglas
+      </p>
+      <span className="mt-3 flex items-center gap-1.5 text-sm font-medium text-accent">
+        Empezar la guía
+        <FontAwesomeIcon icon={faArrowRight} className="text-xs transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </button>
   );
 }

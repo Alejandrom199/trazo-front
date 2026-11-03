@@ -8,7 +8,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState, type ReactNode } from 'react';
-import { createDiagramFromTemplate, type Difficulty, type DiagramType, type Template } from '@/core/model';
+import { createDiagramFromTemplate, groupByUmlFamily, UML_FAMILIES, type Difficulty, type DiagramType, type Template, type UmlFamily } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -17,6 +17,8 @@ import { SavedDiagrams } from './SavedDiagrams';
 import { TemplatePreview } from './TemplatePreview';
 
 const PREVIEW = { width: 300, height: 150 };
+
+const FAMILY_SHORT: Record<UmlFamily, string> = { structure: 'Estructura', behavior: 'Comportamiento' };
 
 const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   básico: 'bg-success-soft text-success',
@@ -43,7 +45,9 @@ export function TemplateGallery() {
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
   const persistenceAvailable = usePersistenceStore((state) => state.repository !== null);
   const [view, setView] = useState<GalleryView>({ step: 'start' });
-  const modules = diagramRegistry.list();
+  // Agrupados como UML: estructura y comportamiento.
+  const groups = groupByUmlFamily(diagramRegistry.list(), (module) => module.diagramType);
+  const modules = groups.flatMap((group) => group.items);
 
   useEffect(() => {
     if (!isOpen) {
@@ -139,29 +143,34 @@ export function TemplateGallery() {
                 aria-label="Tipo de diagrama"
                 className="sticky -top-5 z-10 -mx-4 -mt-5 flex flex-wrap gap-2.5 border-b border-line bg-surface px-4 pt-5 pb-4 md:-top-6 md:-mx-7 md:-mt-6 md:px-7 md:pt-6"
               >
-                {modules.map((module) => {
-                  const active = module.diagramType === selectedModule.diagramType;
-                  return (
-                    <button
-                      key={module.diagramType}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setView({ step: 'examples', diagramType: module.diagramType })}
-                      className={`flex items-center gap-2.5 rounded-full border py-2.5 pr-3 pl-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
-                        active
-                          ? 'border-accent bg-accent-soft text-accent'
-                          : 'border-line bg-raised text-ink-900 hover:border-accent/45 hover:bg-accent-soft'
-                      }`}
-                    >
-                      <FontAwesomeIcon icon={faDiagramProject} className="text-xs" />
-                      <span className="text-sm font-medium">{shortDiagramName(module)}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ${active ? 'bg-surface text-accent' : 'bg-surface text-ink-600'}`}>
-                        {module.templates.length}
-                      </span>
-                    </button>
-                  );
-                })}
+                {groups.map((group) => (
+                  <div key={group.family} role="presentation" className="flex flex-wrap items-center gap-2.5">
+                    <span className="text-[11px] font-semibold tracking-wider text-ink-400 uppercase">{FAMILY_SHORT[group.family]}</span>
+                    {group.items.map((module) => {
+                      const active = module.diagramType === selectedModule.diagramType;
+                      return (
+                        <button
+                          key={module.diagramType}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setView({ step: 'examples', diagramType: module.diagramType })}
+                          className={`flex items-center gap-2.5 rounded-full border py-2.5 pr-3 pl-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                            active
+                              ? 'border-accent bg-accent-soft text-accent'
+                              : 'border-line bg-raised text-ink-900 hover:border-accent/45 hover:bg-accent-soft'
+                          }`}
+                        >
+                          <FontAwesomeIcon icon={faDiagramProject} className="text-xs" />
+                          <span className="text-sm font-medium">{shortDiagramName(module)}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ${active ? 'bg-surface text-accent' : 'bg-surface text-ink-600'}`}>
+                            {module.templates.length}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
 
               <div role="tabpanel" className="mt-5">
@@ -215,25 +224,30 @@ function StartView({
         <h3 id="blank-diagrams-title" className="mb-3 text-sm font-semibold text-ink-900">
           Crear en blanco
         </h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {modules.map((module) => (
-            <button
-              key={module.diagramType}
-              type="button"
-              onClick={() => onOpenBlank(module)}
-              className="group flex items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left hover:border-accent/45 hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-            >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-ink-400 text-accent group-hover:border-accent">
-                <FontAwesomeIcon icon={faPlus} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink-900 group-hover:text-accent">{shortDiagramName(module)}</span>
-                <span className="mt-1 block text-xs text-ink-600">Lienzo vacío para construirlo desde cero.</span>
-              </span>
-              <FontAwesomeIcon icon={faChevronRight} className="text-xs text-ink-400 group-hover:text-accent" />
-            </button>
-          ))}
-        </div>
+        {groupByUmlFamily(modules, (module) => module.diagramType).map((group) => (
+          <div key={group.family} className="mb-4 last:mb-0">
+            <p className="mb-2 text-xs text-ink-400">{UML_FAMILIES[group.family].name}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {group.items.map((module) => (
+                <button
+                  key={module.diagramType}
+                  type="button"
+                  onClick={() => onOpenBlank(module)}
+                  className="group flex items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left hover:border-accent/45 hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-ink-400 text-accent group-hover:border-accent">
+                    <FontAwesomeIcon icon={faPlus} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-ink-900 group-hover:text-accent">{shortDiagramName(module)}</span>
+                    <span className="mt-1 block text-xs text-ink-600">Lienzo vacío para construirlo desde cero.</span>
+                  </span>
+                  <FontAwesomeIcon icon={faChevronRight} className="text-xs text-ink-400 group-hover:text-accent" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
 
       <section className="mt-6 border-t border-line pt-5" aria-labelledby="examples-entry-title">
