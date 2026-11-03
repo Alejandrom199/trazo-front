@@ -120,13 +120,18 @@ const choiceGuards = rule(
     }),
 );
 
-/** Regla (informativa): las transiciones suelen decir qué evento las dispara. */
+/**
+ * Regla (informativa): las transiciones suelen decir qué evento las dispara.
+ * No se avisa al llegar a un estado final: terminar al acabar lo que se hacía
+ * (transición de finalización) es lo habitual.
+ */
 const transitionWithoutEvent = rule(
   { id: 'state.transition-without-event', severity: 'info', title: 'Transición sin evento', explanation: 'Sin evento, una transición ocurre en cuanto el estado termina lo que hace (transición de finalización). Es válido, pero casi siempre falta el evento.' },
   (diagram) => {
     const silentSources = new Set(diagram.nodes.filter((node) => node.artifactType === S.initial || node.artifactType === S.choice || node.artifactType === S.history).map((node) => node.id));
+    const finals = new Set(ofType(diagram, S.final).map((node) => node.id));
     return transitions(diagram)
-      .filter((edge) => !silentSources.has(edge.sourceId) && !edge.label.trim())
+      .filter((edge) => !silentSources.has(edge.sourceId) && !finals.has(edge.targetId) && !edge.label.trim())
       .map((edge) => ({ message: 'Hay una transición sin evento.', suggestion: 'Haz doble clic sobre la flecha y escribe qué la dispara: «pagar», «cancelar», «tras 15 días».', edgeIds: [edge.id] }));
   },
 );

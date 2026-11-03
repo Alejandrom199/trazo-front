@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Diagram } from '@/core/model';
 import { resolveStateConnection } from './connections';
 import { stateRules } from './rules';
+import { stateTemplates } from './templates';
 import { createStateTemplateBuilder } from './templates/templateBuilder';
 
 const issues = (diagram: Diagram) => stateRules.flatMap((rule) => rule.check(diagram)).map((issue) => issue.ruleId);
@@ -80,12 +81,29 @@ describe('reglas de la máquina de estados', () => {
     expect(issues(diagram)).toContain('state.choice-guards');
   });
 
-  it('Dada una transición sin evento que no sale de un pseudoestado, Entonces lo informa', () => {
+  it('Dada una transición sin evento entre dos estados, Entonces lo informa', () => {
+    const diagram = build((b) => {
+      const a = b.state('A', { x: 100, y: 0 });
+      const other = b.state('B', { x: 400, y: 0 });
+      b.connect(b.initial({ x: 0, y: 0 }), a);
+      b.connect(a, other);
+      b.connect(other, b.final({ x: 700, y: 0 }), 'cerrar');
+    });
+    expect(issues(diagram)).toEqual(['state.transition-without-event']);
+  });
+
+  it('Dada una transición sin evento hacia el estado final, Entonces no avisa (es de finalización)', () => {
     const diagram = build((b) => {
       const a = b.state('A', { x: 100, y: 0 });
       b.connect(b.initial({ x: 0, y: 0 }), a);
       b.connect(a, b.final({ x: 400, y: 0 }));
     });
-    expect(issues(diagram)).toEqual(['state.transition-without-event']);
+    expect(issues(diagram)).toEqual([]);
+  });
+});
+
+describe('ejemplos de máquina de estados', () => {
+  it.each(stateTemplates)('$name: no tiene problemas', (template) => {
+    expect(stateRules.flatMap((rule) => rule.check(template.diagram)).map((issue) => issue.message)).toEqual([]);
   });
 });
