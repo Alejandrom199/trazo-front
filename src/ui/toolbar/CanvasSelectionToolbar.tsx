@@ -12,16 +12,14 @@ const TOOLS: { id: CanvasTool; label: string; key: string; help: string; icon: t
 ];
 
 /**
- * Herramientas del lienzo: mano, puntero y lápiz de selección (también con H, V y L),
- * y el botón que muestra u oculta los artefactos (también con A). Alt + arrastrar
+ * Herramientas del lienzo: mano, puntero y lápiz de selección (también con H, V y L).
+ * La tecla A muestra u oculta los artefactos (ver ArtifactsToggle). Alt + arrastrar
  * desplaza el lienzo con cualquiera.
  */
 export function CanvasSelectionToolbar() {
   const tool = useCanvasInteractionStore((state) => state.tool);
   const setTool = useCanvasInteractionStore((state) => state.setTool);
   const selected = useDiagramStore((state) => state.selection.nodeIds.length + state.selection.edgeIds.length);
-  const artifactsVisible = useUiStore((state) => state.artifactToolsVisible);
-  const setArtifactsVisible = useUiStore((state) => state.setArtifactToolsVisible);
   useToolShortcuts(setTool, toggleArtifacts);
 
   return (
@@ -42,26 +40,33 @@ export function CanvasSelectionToolbar() {
           <FontAwesomeIcon icon={item.icon} />
         </button>
       ))}
-      <span className="mx-0.5 h-5 w-px bg-line" aria-hidden />
-      <button
-        type="button"
-        aria-label="Artefactos"
-        aria-pressed={artifactsVisible}
-        aria-keyshortcuts="A"
-        title={artifactsVisible ? 'Ocultar artefactos (A)' : 'Mostrar artefactos (A)'}
-        onClick={() => setArtifactsVisible(!artifactsVisible)}
-        className={`flex size-9 items-center justify-center rounded-lg text-[13px] transition-colors ${
-          artifactsVisible ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
-        }`}
-      >
-        <FontAwesomeIcon icon={faShapes} />
-      </button>
       {selected > 1 && (
         <span className="mx-1 border-l border-line pl-3 pr-2 text-xs text-ink-600" aria-live="polite">
           {selected} seleccionados
         </span>
       )}
     </div>
+  );
+}
+
+/** Botón propio, al final de la fila de herramientas: muestra u oculta la tira de artefactos (también con A). */
+export function ArtifactsToggle() {
+  const visible = useUiStore((state) => state.artifactToolsVisible);
+  return (
+    <button
+      type="button"
+      aria-label="Artefactos"
+      aria-pressed={visible}
+      aria-keyshortcuts="A"
+      title={visible ? 'Ocultar artefactos (A)' : 'Mostrar artefactos (A)'}
+      onClick={toggleArtifacts}
+      className={`glass-panel relative flex h-11 items-center gap-2 rounded-xl px-3.5 text-[13px] transition-colors ${
+        visible ? 'text-accent' : 'text-ink-600 hover:text-ink-900'
+      }`}
+    >
+      <FontAwesomeIcon icon={faShapes} />
+      Artefactos
+    </button>
   );
 }
 

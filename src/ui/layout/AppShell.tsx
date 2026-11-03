@@ -10,7 +10,8 @@ import { NarrationPanel } from '@/ui/narration/NarrationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
 import { SelectionPanel } from '@/ui/selection/SelectionPanel';
 import { TemplateGallery } from '@/ui/templates/TemplateGallery';
-import { CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
+import { TooltipLayer } from '@/ui/tooltip/TooltipLayer';
+import { ArtifactsToggle, CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
 import { LayersControl } from '@/ui/layers/LayersControl';
 import { useUiStore } from '@/ui/uiStore';
 import { ValidationPanel } from '@/ui/validation/ValidationPanel';
@@ -46,6 +47,7 @@ export function AppShell() {
               <div className="absolute top-3 left-3 z-10 flex items-start gap-2">
                 <CanvasSelectionToolbar />
                 <LayersControl />
+                <ArtifactsToggle />
               </div>
 
               {/* Herramientas de dibujo, bajo las de selección (se ocultan con su botón o la tecla A). */}
@@ -83,6 +85,7 @@ export function AppShell() {
             <TemplateGallery />
           </>
         )}
+        <TooltipLayer />
       </div>
     </ReactFlowProvider>
   );
