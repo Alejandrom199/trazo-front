@@ -246,6 +246,9 @@ export function DiagramCanvas() {
         connectionLineStyle={{ stroke: 'var(--color-accent)', strokeWidth: 1.5 }}
         connectionRadius={28}
         elevateNodesOnSelect={false}
+        // La flecha seleccionada se dibuja sobre los nodos: si un vértice la lleva por
+        // detrás de uno, se ve todo su recorrido mientras se edita.
+        elevateEdgesOnSelect
         snapToGrid
         snapGrid={[snapStep, snapStep]}
         minZoom={0.25}
