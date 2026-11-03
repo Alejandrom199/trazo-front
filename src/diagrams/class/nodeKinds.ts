@@ -4,7 +4,8 @@ import { ClassArtifact as C, CLASS_RELATION_TYPES } from './artifactTypes';
 import { AbstractClassShape, ClassShape, EnumerationShape, InterfaceShape, PackageShape } from './nodes/ClassShapes';
 
 const base: Omit<NodeKind, 'component' | 'defaultSize'> = { defaultLabel: '', defaultProps: {}, hasLabel: true, labelCaption: 'Nombre, atributos y operaciones', resizable: true, isContainer: false, connectable: true, properties: [] };
-const classifier = { ...base, defaultSize: { width: 210, height: 150 } };
+// La miniatura es más cuadrada que el nodo: así sus compartimentos se distinguen en la paleta.
+const classifier = { ...base, defaultSize: { width: 210, height: 150 }, previewSize: { width: 56, height: 46 } };
 
 export const classNodeKinds: Record<string, NodeKind> = {
   [C.class]: { ...classifier, component: ClassShape, defaultLabel: 'Clase\n--\n+ atributo: Tipo\n--\n+ operación(): Tipo' },

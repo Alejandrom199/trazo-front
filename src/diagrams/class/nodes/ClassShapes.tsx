@@ -27,7 +27,7 @@ function Classifier({ node, selected, editing, label, preview, stereotype, abstr
 function ClassifierIcon({ selected, stereotype, abstract }: { selected: boolean; stereotype?: string; abstract: boolean }) {
   const stroke = strokeFor(selected);
   const bar = (width: string, dashed = false) => (
-    <span className="block h-0 rounded-full" style={{ width, borderTop: `2px ${dashed ? 'dotted' : 'solid'} ${stroke}`, opacity: 0.55 }} />
+    <span className="block h-0 rounded-full" style={{ width, borderTop: `1.5px ${dashed ? 'dashed' : 'solid'} ${stroke}`, opacity: 0.5 }} />
   );
   const isEnum = stereotype === 'enumeration';
   return (
@@ -63,17 +63,19 @@ const PACKAGE_TAB = 22;
  * Paquete: carpeta con pestaña (proporcional, para que también quepa en su miniatura).
  * Se agarra por todo su cuerpo: las clases de dentro y sus flechas quedan encima.
  */
-export function PackageShape({ selected, label }: ArtifactNodeProps) {
+export function PackageShape({ node, selected, label, preview }: ArtifactNodeProps) {
   const stroke = strokeFor(selected);
-  const tab = { height: PACKAGE_TAB, borderColor: stroke, background: SHAPE_FILL, borderWidth: STROKE_WIDTH };
+  // En la miniatura la pestaña es proporcional: con su alto fijo apenas quedaba cuerpo.
+  const tabHeight = preview ? Math.round(node.size.height * 0.28) : PACKAGE_TAB;
+  const tab = { height: tabHeight, borderColor: stroke, background: SHAPE_FILL, borderWidth: STROKE_WIDTH };
   return (
     <div className="relative size-full">
-      <div className={`${CONTAINER_GRIP_CLASS} absolute top-0 left-0 max-w-[70%] min-w-[35%] truncate border border-b-0 px-2 text-[11px] font-semibold leading-5 text-ink-900`} style={tab}>
+      <div className={`${CONTAINER_GRIP_CLASS} absolute top-0 left-0 max-w-[70%] ${preview ? 'w-[40%]' : 'min-w-[35%]'} truncate border border-b-0 px-2 text-[11px] font-semibold leading-5 text-ink-900`} style={tab}>
         {label}
       </div>
       <div
         className={`${CONTAINER_GRIP_CLASS} absolute inset-x-0 bottom-0`}
-        style={{ top: PACKAGE_TAB - STROKE_WIDTH, border: `${STROKE_WIDTH}px solid ${stroke}`, background: 'color-mix(in oklch, var(--color-shape-fill) 35%, transparent)' }}
+        style={{ top: tabHeight - STROKE_WIDTH, border: `${STROKE_WIDTH}px solid ${stroke}`, background: 'color-mix(in oklch, var(--color-shape-fill) 35%, transparent)' }}
       />
     </div>
   );

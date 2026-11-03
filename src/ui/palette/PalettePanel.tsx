@@ -339,7 +339,7 @@ function PaletteHint({ artifact, anchor }: HintState) {
 }
 
 /** Caja de la miniatura en cada fila de la paleta. */
-const PREVIEW = { width: 40, height: 26 };
+const PREVIEW = { width: 44, height: 30 };
 
 interface PaletteItemProps {
   artifact: ArtifactDefinition;
