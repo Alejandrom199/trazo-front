@@ -26,6 +26,7 @@ import { AppHeader } from './AppHeader';
 export function AppShell() {
   const narrationOpen = useUiStore((state) => state.narrationOpen);
   const notice = useUiStore((state) => state.notice);
+  const artifactToolsVisible = useUiStore((state) => state.artifactToolsVisible);
   const route = useRoute();
   // Con varios elementos seleccionados, el panel derecho muestra qué hay seleccionado.
   const multipleSelected = useDiagramStore((state) => state.selection.nodeIds.length + state.selection.edgeIds.length > 1);
@@ -47,10 +48,12 @@ export function AppShell() {
                 <LayersControl />
               </div>
 
-              {/* Herramientas de dibujo, bajo las de selección. */}
-              <div className="absolute top-[4.25rem] left-3 z-10">
-                <PalettePanel />
-              </div>
+              {/* Herramientas de dibujo, bajo las de selección (se ocultan con su botón o la tecla A). */}
+              {artifactToolsVisible && (
+                <div className="absolute top-[4.25rem] left-3 z-10">
+                  <PalettePanel />
+                </div>
+              )}
 
               <div className="pointer-events-none absolute top-3 right-3 bottom-3 left-3 flex flex-col items-end *:pointer-events-auto md:left-auto">
                 {narrationOpen ? <NarrationPanel /> : multipleSelected ? <SelectionPanel /> : <ExplanationPanel />}

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 const THEME_KEY = 'trazo.theme';
 const RECENT_ARTIFACTS_KEY = 'trazo.recentArtifacts';
+const ARTIFACT_TOOLS_KEY = 'trazo.artifactToolsVisible';
 /** Cuántos artefactos usados recientemente se recuerdan. */
 const MAX_RECENT_ARTIFACTS = 4;
 
@@ -19,6 +20,9 @@ interface UiState {
   /** Selector para crear, reabrir o explorar ejemplos: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
   setGalleryOpen: (open: boolean) => void;
+  /** Tira de herramientas de artefactos sobre el lienzo: visible hasta que el usuario la oculte (botón o tecla A). */
+  artifactToolsVisible: boolean;
+  setArtifactToolsVisible: (visible: boolean) => void;
   /** Últimos artefactos agregados (más reciente primero); el menú del lienzo los ofrece primero. */
   recentArtifacts: string[];
   rememberArtifact: (artifactType: string) => void;
@@ -53,6 +57,14 @@ function applyTheme(theme: Theme): void {
   if (typeof document !== 'undefined') document.documentElement.dataset.theme = theme;
 }
 
+function readArtifactToolsVisible(): boolean {
+  try {
+    return localStorage.getItem(ARTIFACT_TOOLS_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
 function readRecentArtifacts(): string[] {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(RECENT_ARTIFACTS_KEY) ?? '[]');
@@ -79,6 +91,15 @@ export const useUiStore = create<UiState>()((set) => ({
   },
   galleryOpen: true,
   setGalleryOpen: (open) => set({ galleryOpen: open }),
+  artifactToolsVisible: readArtifactToolsVisible(),
+  setArtifactToolsVisible: (visible) => {
+    try {
+      localStorage.setItem(ARTIFACT_TOOLS_KEY, String(visible));
+    } catch {
+      // Sin almacenamiento la preferencia dura solo esta sesión.
+    }
+    set({ artifactToolsVisible: visible });
+  },
   recentArtifacts: readRecentArtifacts(),
   rememberArtifact: (artifactType) =>
     set((state) => {
