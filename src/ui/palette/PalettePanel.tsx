@@ -102,33 +102,37 @@ export function PalettePanel() {
         key={key}
         type="button"
         data-palette-category
-        onClick={(event) => setFlyout(isOpen ? null : { key, anchor: event.currentTarget.getBoundingClientRect() })}
-        title={title}
-        aria-label={title}
+        onClick={(event) => setFlyout(isOpen ? null : { key, anchor: event.currentTarget.closest('aside')!.getBoundingClientRect() })}
         aria-expanded={isOpen}
-        className={`flex size-9 items-center justify-center rounded-lg text-sm transition-colors ${
-          isOpen || active ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
+        className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] transition-colors ${
+          isOpen || active ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
         }`}
       >
-        <FontAwesomeIcon icon={icon} />
+        <span className="flex w-4 shrink-0 justify-center text-xs">
+          <FontAwesomeIcon icon={icon} />
+        </span>
+        <span className="min-w-0 flex-1 truncate">{title}</span>
       </button>
     );
   };
 
   return (
-    <aside aria-label="Artefactos" className="flex flex-col items-center gap-1 rounded-xl border border-line bg-surface/95 p-1 shadow-panel backdrop-blur">
+    // Sin backdrop-filter: haría que los desplegables (position: fixed) se ubiquen respecto a la tira y no a la pantalla.
+    <aside aria-label="Artefactos" className="flex w-40 flex-col gap-0.5 rounded-xl border border-line bg-surface p-1 shadow-panel">
       {categories.map(({ category, shortTitle }) => toolButton(category, shortTitle, CATEGORY_ICONS[category] ?? faShapes))}
       {connectors.length > 0 &&
-        toolButton(CONNECTORS, chosenConnector ? `Conexiones: ${chosenConnector.name}` : 'Conexiones', faArrowRightLong, chosenConnector !== undefined)}
-      <span className="my-0.5 h-px w-6 bg-line" aria-hidden />
+        toolButton(CONNECTORS, chosenConnector ? chosenConnector.name : 'Conexiones', faArrowRightLong, chosenConnector !== undefined)}
+      <span className="mx-2 my-0.5 h-px bg-line" aria-hidden />
       <button
         type="button"
-        onClick={(event) => openSearch(event.currentTarget.getBoundingClientRect())}
-        title="Buscar artefacto (también con clic derecho en el lienzo)"
-        aria-label="Buscar artefacto"
-        className="flex size-9 items-center justify-center rounded-lg text-sm text-ink-600 hover:bg-raised hover:text-ink-900"
+        onClick={(event) => openSearch(event.currentTarget.closest('aside')!.getBoundingClientRect())}
+        title="También con clic derecho en el lienzo"
+        className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] text-ink-600 hover:bg-raised hover:text-ink-900"
       >
-        <FontAwesomeIcon icon={faMagnifyingGlass} />
+        <span className="flex w-4 shrink-0 justify-center text-xs">
+          <FontAwesomeIcon icon={faMagnifyingGlass} />
+        </span>
+        Buscar
       </button>
 
       {flyout && flyout.key !== CONNECTORS && (
@@ -242,7 +246,6 @@ function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave
         compact ? 'w-full justify-center py-2' : 'gap-3 px-2 py-1.5'
       } ${isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'}`}
     >
-      {isOpen && <span className="bg-brand absolute top-1 bottom-1 -left-3 w-[3px] rounded-r-full" aria-hidden />}
       <ArtifactFigure kind={kind} artifactType={artifact.type} box={PREVIEW} />
       {!compact && <span className="min-w-0 flex-1 truncate">{artifact.name}</span>}
       {!compact && (
@@ -301,7 +304,7 @@ function CategoryFlyout({ title, anchor, onClose, children }: { title: string; a
       role="group"
       aria-label={title}
       className="glass-panel fixed z-40 w-60 rounded-xl p-1.5"
-      style={{ left: anchor.right + 10, top: Math.max(12, Math.min(anchor.top - 8, window.innerHeight - 360)) }}
+      style={{ left: anchor.right + 8, top: Math.max(12, Math.min(anchor.top, window.innerHeight - 360)) }}
     >
       <h3 className="px-2 pt-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{title}</h3>
       {children}
