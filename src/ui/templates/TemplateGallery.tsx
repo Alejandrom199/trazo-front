@@ -133,7 +133,12 @@ export function TemplateGallery() {
 
           {view.step === 'examples' && selectedModule && (
             <section aria-label="Ejemplos por tipo de diagrama">
-              <div role="tablist" aria-label="Tipo de diagrama" className="flex flex-wrap gap-2.5">
+              {/* Fija arriba al desplazarse: los tipos de diagrama siempre a mano. */}
+              <div
+                role="tablist"
+                aria-label="Tipo de diagrama"
+                className="sticky -top-5 z-10 -mx-4 -mt-5 flex flex-wrap gap-2.5 border-b border-line bg-surface px-4 pt-5 pb-4 md:-top-6 md:-mx-7 md:-mt-6 md:px-7 md:pt-6"
+              >
                 {modules.map((module) => {
                   const active = module.diagramType === selectedModule.diagramType;
                   return (
@@ -159,7 +164,7 @@ export function TemplateGallery() {
                 })}
               </div>
 
-              <div role="tabpanel" className="mt-5 border-t border-line pt-5">
+              <div role="tabpanel" className="mt-5">
                 <h3 className="mb-3 text-sm font-semibold text-ink-900">Ejemplos de {shortDiagramName(selectedModule).toLowerCase()}</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                   {selectedModule.templates.map((template) => (
