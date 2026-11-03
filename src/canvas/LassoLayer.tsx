@@ -71,7 +71,8 @@ export function LassoLayer({ module }: { module: DiagramModule }) {
         <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
           <polygon
             points={path}
-            style={{ fill: 'var(--color-accent-soft)', stroke: 'var(--color-accent)' }}
+            // Relleno muy translúcido: se ve lo que se está encerrando.
+            style={{ fill: 'color-mix(in oklch, var(--color-accent) 12%, transparent)', stroke: 'var(--color-accent)' }}
             strokeWidth={1.5}
             strokeDasharray="5 4"
             strokeLinejoin="round"
