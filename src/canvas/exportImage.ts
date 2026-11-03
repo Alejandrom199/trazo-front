@@ -104,7 +104,7 @@ interface ThemeColors {
 
 function themeColors(): ThemeColors {
   const read = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-  return { background: read('--color-canvas', 'white'), border: read('--color-shape-muted', '#888'), text: read('--color-ink-900', '#111') };
+  return { background: read('--color-board', 'white'), border: read('--color-shape-muted', '#888'), text: read('--color-ink-900', '#111') };
 }
 
 /** Medidas del marco, en puntos (sin la densidad del PNG). */

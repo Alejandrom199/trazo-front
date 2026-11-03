@@ -24,6 +24,8 @@
   --font-mono: var(--font-sans);
 
   --color-canvas: oklch(97.6% 0.003 300);
+  /* Área de dibujo: blanca en el tema claro, para que el diagrama se vea como en papel. */
+  --color-board: oklch(100% 0 0);
   --color-surface: oklch(100% 0 0);
   --color-raised: oklch(98.2% 0.003 300);
   --color-line: oklch(91.8% 0.005 300);
@@ -60,6 +62,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
   --color-canvas: oklch(16.9% 0.004 286);
+  --color-board: oklch(16.9% 0.004 286);
   --color-surface: oklch(19.4% 0.006 301);
   --color-raised: oklch(22.5% 0.008 302);
   --color-line: oklch(29% 0.012 304);

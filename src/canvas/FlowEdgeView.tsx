@@ -130,7 +130,7 @@ function EdgeText({ edge, textKind, at, above, isEditing, onDragStart }: EdgeTex
       className={`trazo-edge-label nodrag nopan pointer-events-auto absolute rounded-md px-1.5 py-0.5 text-xs whitespace-nowrap ${
         isEditing ? '' : 'cursor-move '
       }${
-        above ? 'text-ink-900' : 'bg-canvas text-ink-600'
+        above ? 'text-ink-900' : 'bg-board text-ink-600'
       }`}
       // zIndex: las flechas entre nodos de un carril se elevan sobre él; el texto debe quedar encima de ellas.
       style={{

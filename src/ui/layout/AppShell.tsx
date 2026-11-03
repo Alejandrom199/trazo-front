@@ -38,7 +38,7 @@ export function AppShell() {
           <div className="relative flex min-w-0 flex-1">
             <PalettePanel />
 
-            <main className="relative min-w-0 flex-1 overflow-hidden">
+            <main className="relative min-w-0 flex-1 overflow-hidden bg-board">
               <div className="absolute inset-0">
                 <DiagramCanvas />
               </div>

@@ -191,14 +191,14 @@ function Preview({ choices, title }: { choices: Choices; title: string }) {
         : '#fafafa';
   const framed = choices.frame !== 'none';
   return (
-    <div className="flex h-32 items-center justify-center rounded-lg border border-line" style={{ background }} aria-hidden>
+    <div className="flex h-32 items-center justify-center overflow-hidden rounded-lg border border-line" style={{ background }} aria-hidden>
       <div
         className="flex flex-col items-center gap-1.5"
-        // La miniatura está a la mitad de escala que la imagen real.
+        // La miniatura está a un cuarto de escala de la imagen real.
         style={{
-          border: `${framed ? choices.borderWidth / 2 : 0}px solid ${dark ? '#71717a' : '#a1a1aa'}`,
-          borderRadius: choices.borderRadius / 2,
-          padding: framed ? choices.padding / 2 : 12,
+          border: `${framed ? Math.max(choices.borderWidth / 4, choices.borderWidth > 0 ? 1 : 0) : 0}px solid ${dark ? '#71717a' : '#a1a1aa'}`,
+          borderRadius: choices.borderRadius / 4,
+          padding: framed ? choices.padding / 4 : 12,
         }}
       >
         {choices.frame === 'titled' && (
