@@ -34,6 +34,7 @@ import { useHighlightStore, type Highlight } from './highlightStore';
 import { GuideLines, useGuidesStore } from './GuideLines';
 import { snapToGuides, type Guide } from './alignmentGuides';
 import { useClipboardShortcuts } from './clipboardActions';
+import { useLayerShortcuts } from './layerActions';
 import { LassoLayer } from './LassoLayer';
 import { LockBadges } from './LockBadges';
 import { centerInParent, placeArtifact } from './placeArtifact';
@@ -78,6 +79,7 @@ export function DiagramCanvas() {
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
   useClipboardShortcuts(module);
+  useLayerShortcuts(module);
   // El conector elegido en la paleta es de este tipo de diagrama: al cambiar de tipo se olvida.
   useEffect(() => useCanvasInteractionStore.getState().setNextEdgeType(null), [module?.diagramType]);
   useFitViewOnOpen(diagram?.id);

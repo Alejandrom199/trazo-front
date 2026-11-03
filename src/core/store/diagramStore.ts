@@ -72,6 +72,8 @@ interface DiagramState {
   /** Cambia varias flechas a la vez (selección múltiple): un solo paso de deshacer. */
   updateEdges: (changes: { id: string; patch: EdgePatch }[]) => void;
   removeElements: (ids: ElementIds) => void;
+  /** Cambia el orden de los nodos (capas: qué se dibuja encima). Un paso de deshacer. */
+  reorderNodes: (reorder: (nodes: DiagramNode[]) => DiagramNode[]) => void;
 
   undo: () => void;
   redo: () => void;
@@ -193,6 +195,11 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
             .reduce((current, { id, patch }) => updateEdge(current, id, patch), diagram),
         true,
       ),
+    reorderNodes: (reorder) =>
+      apply((diagram) => {
+        const nodes = reorder(diagram.nodes);
+        return nodes === diagram.nodes ? diagram : { ...diagram, nodes };
+      }, true),
     removeElements: (ids) => {
       apply((diagram) => removeElements(diagram, ids), true);
       set({ selection: EMPTY_SELECTION });

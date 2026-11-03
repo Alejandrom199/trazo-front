@@ -1,4 +1,8 @@
 import {
+  faAnglesDown,
+  faAnglesUp,
+  faAngleDown,
+  faAngleUp,
   faBookOpen,
   faCircleInfo,
   faClone,
@@ -14,6 +18,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { useContextMenuStore, type CanvasContextMenu as MenuState } from '@/canvas/contextMenuStore';
 import { useElementClickStore } from '@/canvas/elementClickStore';
 import { duplicate } from '@/canvas/clipboardActions';
+import { LAYER_SHORTCUTS, moveLayers } from '@/canvas/layerActions';
 import { placeArtifact, useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { ARTIFACT_CATEGORIES, protectedNodeIds, type ArtifactDefinition, type Diagram } from '@/core/model';
@@ -27,7 +32,7 @@ import { useUiStore } from '@/ui/uiStore';
 /**
  * Menú del clic derecho en el lienzo, en un panel de vidrio junto al puntero:
  *   - sobre el fondo: buscador de artefactos; el elegido se crea en el punto del clic.
- *   - sobre un nodo o una flecha: sus acciones (explicar, editar, bloquear, duplicar, eliminar).
+ *   - sobre un nodo o una flecha: sus acciones (explicar, editar, bloquear, duplicar, capas, eliminar).
  * Se maneja entero con el teclado: ↑ ↓ para moverse, Enter para elegir, Esc para cerrar.
  */
 export function CanvasContextMenu() {
@@ -406,6 +411,10 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
       shortcut: 'Ctrl+D',
       run: () => duplicate(module, { nodeIds: [id], edgeIds: [] }),
     },
+    { id: 'front', label: 'Traer al frente', icon: faAnglesUp, shortcut: LAYER_SHORTCUTS.front, run: () => moveLayers(module, 'front', [id]) },
+    { id: 'forward', label: 'Traer adelante', icon: faAngleUp, shortcut: LAYER_SHORTCUTS.forward, run: () => moveLayers(module, 'forward', [id]) },
+    { id: 'backward', label: 'Enviar atrás', icon: faAngleDown, shortcut: LAYER_SHORTCUTS.backward, run: () => moveLayers(module, 'backward', [id]) },
+    { id: 'back', label: 'Enviar al fondo', icon: faAnglesDown, shortcut: LAYER_SHORTCUTS.back, run: () => moveLayers(module, 'back', [id]) },
     {
       id: 'delete',
       label: 'Eliminar',

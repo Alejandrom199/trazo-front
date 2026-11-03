@@ -11,6 +11,7 @@ import { PalettePanel } from '@/ui/palette/PalettePanel';
 import { SelectionPanel } from '@/ui/selection/SelectionPanel';
 import { TemplateGallery } from '@/ui/templates/TemplateGallery';
 import { CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
+import { LayersControl } from '@/ui/layers/LayersControl';
 import { TopBar } from '@/ui/toolbar/TopBar';
 import { useUiStore } from '@/ui/uiStore';
 import { ValidationPanel } from '@/ui/validation/ValidationPanel';
@@ -44,8 +45,9 @@ export function AppShell() {
               </div>
 
               {/* Arriba a la izquierda, bajo la barra del documento: abajo choca con el panel de problemas. */}
-              <div className="absolute top-[4.25rem] left-3 z-10">
+              <div className="absolute top-[4.25rem] left-3 z-10 flex items-start gap-2">
                 <CanvasSelectionToolbar />
+                <LayersControl />
               </div>
 
               <div className="pointer-events-none absolute inset-x-3 top-3 z-20 *:pointer-events-auto">
