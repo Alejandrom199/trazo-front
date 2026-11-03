@@ -29,7 +29,6 @@ export const deploymentNodeKinds: Record<string, NodeKind> = {
     defaultSize: { width: 220, height: 140 },
     defaultLabel: 'Entorno',
     nestable: true,
-    connectable: false,
   },
   [D.artifact]: { ...base, component: ArtifactShape, defaultSize: { width: 150, height: 60 }, defaultLabel: 'app.jar', labelCaption: 'Nombre del archivo' },
   [D.note]: { ...base, component: NoteShape, defaultSize: { width: 170, height: 80 }, defaultLabel: 'Comentario', secondaryDetail: true },

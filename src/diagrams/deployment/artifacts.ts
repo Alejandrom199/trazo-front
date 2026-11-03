@@ -122,7 +122,7 @@ const communicationPath = relation({
   whyExists: 'Las conexiones de red deciden puertos, firewalls y latencias.',
   whenToUse: ['Entre cada par de nodos o dispositivos que se comunican.'],
   whenNotToUse: ['Para indicar que un archivo se instala en un nodo: usa «deploy».'],
-  rules: ['Une dos nodos o dispositivos.', 'Se rotula con el protocolo.'],
+  rules: ['Une nodos, dispositivos o entornos de ejecución (dos contenedores también se comunican).', 'Se rotula con el protocolo y, si ayuda, el puerto: «HTTPS / TCP 443».'],
   commonMistakes: ['No indicar el protocolo.'],
   example: '«Teléfono» — «API» por HTTPS.',
   relatedArtifacts: [D.node, D.device],

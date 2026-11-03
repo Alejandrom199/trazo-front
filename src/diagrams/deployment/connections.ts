@@ -1,11 +1,12 @@
 import type { ConnectionResult, Diagram, DiagramEdge } from '@/core/model';
-import { DeploymentArtifact as D, HOST_TYPES, MACHINE_TYPES } from './artifactTypes';
+import { DeploymentArtifact as D, HOST_TYPES } from './artifactTypes';
 
 const reject = (reason: string): ConnectionResult => ({ allowed: false, reason });
 
 /**
  * El tipo de conexión se deduce de los extremos:
- *   máquina — máquina (nodos o dispositivos): camino de comunicación;
+ *   máquina o entorno — máquina o entorno: camino de comunicación (en UML el entorno
+ *     de ejecución también es un nodo: dos contenedores se comunican entre sí);
  *   artefacto → nodo, dispositivo o entorno: despliegue «deploy»;
  *   nota — cualquier cosa: anclaje.
  */
@@ -19,12 +20,12 @@ export function resolveDeploymentConnection(diagram: Diagram, sourceId: string, 
   if (source.artifactType === D.note || target.artifactType === D.note) {
     return source.artifactType === target.artifactType ? reject('Una nota no se ancla a otra nota.') : { allowed: true, edgeType: D.annotationLink };
   }
-  if (MACHINE_TYPES.has(source.artifactType) && MACHINE_TYPES.has(target.artifactType)) return { allowed: true, edgeType: D.communicationPath };
+  if (HOST_TYPES.has(source.artifactType) && HOST_TYPES.has(target.artifactType)) return { allowed: true, edgeType: D.communicationPath };
   if (source.artifactType === D.artifact && HOST_TYPES.has(target.artifactType)) return { allowed: true, edgeType: D.deployment };
   if (target.artifactType === D.artifact && HOST_TYPES.has(source.artifactType)) {
     return reject('El despliegue va del artefacto hacia donde se instala: arrastra desde el artefacto.');
   }
-  return reject('Une máquinas entre sí (camino de comunicación) o un artefacto con donde se instala («deploy»).');
+  return reject('Une máquinas o entornos entre sí (camino de comunicación) o un artefacto con donde se instala («deploy»).');
 }
 
 function alreadyConnected(edges: DiagramEdge[], a: string, b: string): boolean {

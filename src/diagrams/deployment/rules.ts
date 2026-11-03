@@ -1,4 +1,4 @@
-import type { Diagram, DiagramNode, ValidationIssue, ValidationRule } from '@/core/model';
+import { isInsideOf, type Diagram, type DiagramNode, type ValidationIssue, type ValidationRule } from '@/core/model';
 import { DeploymentArtifact as D, HOST_TYPES, MACHINE_TYPES } from './artifactTypes';
 
 type RuleMeta = Omit<ValidationRule, 'diagramType' | 'check'>;
@@ -64,8 +64,10 @@ const machineIsolated = rule(
   (diagram) => {
     const machines = diagram.nodes.filter((node) => MACHINE_TYPES.has(node.artifactType));
     if (machines.length < 2) return [];
+    // Cuenta también lo que se comunica desde dentro (un contenedor de esa máquina).
+    const talks = (id: string) => diagram.edges.some((edge) => edge.artifactType === D.communicationPath && (edge.sourceId === id || edge.targetId === id));
     return machines
-      .filter((node) => !diagram.edges.some((edge) => edge.artifactType === D.communicationPath && (edge.sourceId === node.id || edge.targetId === node.id)))
+      .filter((node) => !talks(node.id) && !diagram.nodes.some((inner) => isInsideOf(diagram, inner, node.id) && talks(inner.id)))
       .map((node) => ({ message: `${name(node)} no se comunica con ninguna otra máquina.`, suggestion: 'Únela con un camino de comunicación y escribe el protocolo.', nodeIds: [node.id] }));
   },
 );

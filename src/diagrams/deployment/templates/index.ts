@@ -25,11 +25,11 @@ const appWithDatabase = (() => {
   const database = b.node('Servidor de base de datos', { x: 460, y: 0 }, { width: 300, height: 200 });
   b.artifact('api.jar', { x: 60, y: 90 }, app);
   b.artifact('esquema.sql', { x: 60, y: 90 }, database);
-  b.connect(app, database, 'JDBC');
+  b.connect(app, database, 'TCP 5432 (PostgreSQL)');
   return b.build({
     id: 'deployment.app-database',
     name: 'Aplicación y base de datos',
-    description: 'La API corre en un servidor y guarda en otro, por JDBC. Cada archivo está en la máquina donde se instala.',
+    description: 'La API corre en un servidor y guarda en otro, por TCP 5432 (PostgreSQL). Cada archivo está en la máquina donde se instala.',
     difficulty: 'básico',
     learningGoals: [D.node, D.artifact, D.communicationPath],
   });
@@ -46,7 +46,7 @@ const containers = (() => {
   const database = b.node('Base de datos', { x: 720, y: 30 }, { width: 300, height: 230 });
   const postgres = b.environment('PostgreSQL', { x: 20, y: 55 }, { width: 250, height: 150 }, database);
   b.artifact('esquema.sql', { x: 50, y: 65 }, postgres);
-  b.connect(server, database, 'JDBC');
+  b.connect(server, database, 'TCP 5432 (PostgreSQL)');
   return b.build({
     id: 'deployment.containers',
     name: 'Aplicación en contenedores',
@@ -95,7 +95,7 @@ const highAvailability = (() => {
   const note = b.note('En otra zona: si cae la principal, la réplica toma su lugar.', { x: 1240, y: 520 });
   for (const server of servers) {
     b.connect(balancer, server, 'HTTP');
-    b.connect(server, primary, 'JDBC');
+    b.connect(server, primary, 'TCP 5432 (PostgreSQL)');
   }
   b.connect(primary, replica, 'replicación');
   b.connect(note, replica);
