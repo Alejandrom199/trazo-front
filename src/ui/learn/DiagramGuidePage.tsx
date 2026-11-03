@@ -1,7 +1,7 @@
 import { faArrowLeft, faLightbulb, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState, type ReactNode, type RefObject } from 'react';
-import type { DiagramGuide, DiagramModule } from '@/core/registry';
+import type { DiagramModule } from '@/core/registry';
 import { navigate } from '@/ui/navigation/route';
 import { ArtifactCatalog, artifactAnchor } from './ArtifactCatalog';
 import { ArtifactQuiz } from './ArtifactQuiz';
@@ -148,8 +148,8 @@ export function DiagramGuidePage({ module, scrollRoot }: DiagramGuidePageProps) 
         )}
 
         <Section id="guia-ejemplos" title="Ejemplos" lead="Diagramas completos para estudiar. Ábrelos en el editor para modificarlos.">
-          {guide.difficultyCriteria && <DifficultyCriteria criteria={guide.difficultyCriteria} />}
-          <ExampleCatalog module={module} onOpen={actions.openTemplate} onShowArtifact={showArtifact} />
+          {/* key: al cambiar de diagrama se quita el filtro de dificultad. */}
+          <ExampleCatalog key={module.diagramType} module={module} criteria={guide.difficultyCriteria} onOpen={actions.openTemplate} onShowArtifact={showArtifact} />
         </Section>
 
         <Section id="guia-errores" title="Errores típicos" lead="Lo que revisa el panel de problemas del editor mientras dibujas, y por qué.">
@@ -158,10 +158,6 @@ export function DiagramGuidePage({ module, scrollRoot }: DiagramGuidePageProps) 
       </div>
     </div>
   );
-}
-
-function DifficultyCriteria({ criteria }: { criteria: NonNullable<DiagramGuide['difficultyCriteria']> }) {
-  return <div className="mb-5 grid overflow-hidden rounded-lg border border-line bg-surface md:grid-cols-3">{criteria.map((level) => <div key={level.name} className="border-b border-line p-3.5 last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0"><p className="text-xs font-semibold capitalize text-ink-900">{level.name}</p><p className="mt-1 text-xs leading-relaxed text-ink-600">{level.description}</p></div>)}</div>;
 }
 
 function Section({ id, title, lead, children }: { id: string; title: string; lead?: string; children: ReactNode }) {
