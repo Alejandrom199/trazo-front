@@ -112,8 +112,11 @@ export interface NodeKind {
 /** Lee si un nodo se pega a sus vecinos (imán). */
 export const isMagnetic = (kind: NodeKind): boolean => kind.magnetic ?? kind.isContainer;
 
-/** Punta de flecha: llena (triángulo cerrado) o abierta (dos trazos). */
-export type ArrowHead = 'filled' | 'open';
+/**
+ * Punta de flecha: llena (triángulo relleno), abierta (dos trazos) o hueca
+ * (triángulo vacío, el de la generalización y la realización en UML).
+ */
+export type ArrowHead = 'filled' | 'open' | 'hollow';
 
 /**
  * Texto editable con doble clic sobre una conexión:

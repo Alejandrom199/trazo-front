@@ -11,9 +11,17 @@ export type CanvasTool = 'hand' | 'pointer' | 'lasso';
 interface CanvasInteractionState {
   tool: CanvasTool;
   setTool: (tool: CanvasTool) => void;
+  /**
+   * Tipo de conexión elegido en la paleta para las próximas flechas; null = se
+   * deduce solo (resolveConnection). Solo se usa si es válido entre esos nodos.
+   */
+  nextEdgeType: string | null;
+  setNextEdgeType: (edgeType: string | null) => void;
 }
 
 export const useCanvasInteractionStore = create<CanvasInteractionState>((set) => ({
   tool: 'pointer',
   setTool: (tool) => set({ tool }),
+  nextEdgeType: null,
+  setNextEdgeType: (nextEdgeType) => set({ nextEdgeType }),
 }));

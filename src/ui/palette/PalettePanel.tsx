@@ -18,12 +18,14 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { ARTIFACT_CATEGORIES, type ArtifactCategory, type ArtifactDefinition } from '@/core/model';
-import type { NodeKind } from '@/core/registry';
+import type { EdgeKind, NodeKind } from '@/core/registry';
+import { useCanvasInteractionStore } from '@/canvas/canvasInteractionStore';
 import { useContextMenuStore } from '@/canvas/contextMenuStore';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
 import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
+import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
 import { searchArtifacts } from './artifactSearch';
 import { NARROW_QUERY, useMediaQuery } from '@/ui/useMediaQuery';
@@ -58,6 +60,8 @@ export function PalettePanel() {
   const [query, setQuery] = useState('');
   const [flyout, setFlyout] = useState<{ category: ArtifactCategory; anchor: DOMRect } | null>(null);
   const rememberArtifact = useUiStore((state) => state.rememberArtifact);
+  const nextEdgeType = useCanvasInteractionStore((state) => state.nextEdgeType);
+  const setNextEdgeType = useCanvasInteractionStore((state) => state.setNextEdgeType);
   useContextMenuTip();
   const collapsed = useUiStore((state) => state.paletteCollapsed);
   const setCollapsed = useUiStore((state) => state.setPaletteCollapsed);
@@ -253,20 +257,19 @@ export function PalettePanel() {
           <section className="mt-3">
             <h3 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Conexiones</h3>
             <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
-              Pasa el ratón por un nodo y arrastra desde uno de sus puntos hasta otro nodo. El tipo se elige solo
-              {connectors.some((artifact) => module.edgeKinds[artifact.type]?.switchableTo?.length) && ' y luego puedes cambiarlo en sus propiedades'}:
+              Arrastra desde un punto de un nodo hasta otro. Elige aquí el tipo para las próximas flechas; si no eliges, se deduce solo.
             </p>
-            <ul className="space-y-1 px-2 pb-1 text-xs text-ink-600">
-              {connectors.map((artifact) => (
-                <li key={artifact.type} className="flex items-center gap-2">
-                  <span
-                    className="h-0 w-5 border-t-[1.5px] border-edge"
-                    style={{ borderStyle: module.edgeKinds[artifact.type]?.dashed ? 'dashed' : 'solid' }}
-                  />
-                  {artifact.name}
-                </li>
-              ))}
-            </ul>
+            {connectors.map((artifact) => (
+              <ConnectorItem
+                key={artifact.type}
+                artifact={artifact}
+                kind={module.edgeKinds[artifact.type]}
+                chosen={nextEdgeType === artifact.type}
+                isOpen={opened?.artifact.type === artifact.type}
+                onChoose={() => setNextEdgeType(nextEdgeType === artifact.type ? null : artifact.type)}
+                onInfo={toggleExplanation}
+              />
+            ))}
           </section>
         )}
       </div>
@@ -459,4 +462,66 @@ function useContextMenuTip() {
     const timer = window.setTimeout(() => showNotice('Consejo: haz clic derecho en el lienzo para buscar y agregar artefactos.'), 1500);
     return () => window.clearTimeout(timer);
   }, [showNotice]);
+}
+
+/**
+ * Un conector en la paleta: su figura real (punta, rombo, trazo), su nombre y su
+ * (i). Clic lo elige para las próximas flechas (otro clic lo suelta).
+ */
+function ConnectorItem({
+  artifact,
+  kind,
+  chosen,
+  isOpen,
+  onChoose,
+  onInfo,
+}: {
+  artifact: ArtifactDefinition;
+  kind: EdgeKind | undefined;
+  chosen: boolean;
+  isOpen: boolean;
+  onChoose: () => void;
+  onInfo: (artifact: ArtifactDefinition, anchor: DOMRect) => void;
+}) {
+  return (
+    <div
+      data-palette-item
+      role="button"
+      tabIndex={0}
+      aria-pressed={chosen}
+      title={chosen ? 'Elegido para las próximas flechas. Clic para volver a deducirlo solo' : 'Usar este tipo en las próximas flechas'}
+      onClick={onChoose}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onChoose();
+      }}
+      className={`group/item relative flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-[13px] select-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
+        chosen || isOpen ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
+      }`}
+    >
+      <span className="trazo-figure flex w-10 justify-center">
+        <EdgeFigure kind={kind} box={{ width: 40, height: 18 }} />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{artifact.name}</span>
+      <button
+        type="button"
+        data-palette-info
+        aria-label={`Qué es ${artifact.name}`}
+        aria-expanded={isOpen}
+        title="Qué es, por qué se usa y cuándo usarlo"
+        onClick={(event) => {
+          event.stopPropagation();
+          const row = event.currentTarget.closest('[data-palette-item]');
+          if (row) onInfo(artifact, row.getBoundingClientRect());
+        }}
+        onKeyDown={(event) => event.stopPropagation()}
+        className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
+          isOpen ? 'text-accent' : 'text-ink-400/50 hover:bg-surface hover:text-accent group-hover/item:text-ink-400'
+        }`}
+      >
+        <FontAwesomeIcon icon={faCircleInfo} />
+      </button>
+    </div>
+  );
 }

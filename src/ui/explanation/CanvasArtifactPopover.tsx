@@ -67,7 +67,16 @@ export function CanvasArtifactPopover() {
       subtitle={subtitle}
       footer={footer}
       properties={properties}
-      headerActions={'locked' in element ? <><LinkedDiagramButton props={element.props} onOpen={close} /><LockButton nodeId={element.id} locked={element.locked} /></> : undefined}
+      headerActions={
+        'locked' in element ? (
+          <>
+            <LinkedDiagramButton props={element.props} onOpen={close} />
+            <LockButton nodeId={element.id} locked={element.locked} />
+          </>
+        ) : (
+          <EdgeTypeSwitch edgeId={element.id} artifactType={element.artifactType} />
+        )
+      }
       detailsOpen={expanded}
       onToggleDetails={() => setExpanded(!expanded)}
       onClose={close}
@@ -101,5 +110,34 @@ function LockButton({ nodeId, locked }: { nodeId: string; locked: boolean }) {
     >
       <FontAwesomeIcon icon={locked ? faLock : faLockOpen} />
     </button>
+  );
+}
+
+/**
+ * Cambio rápido del tipo de una flecha desde el encabezado (sin desplegar las
+ * propiedades). Solo aparece si su tipo admite otros (switchableTo).
+ */
+function EdgeTypeSwitch({ edgeId, artifactType }: { edgeId: string; artifactType: string }) {
+  const module = useActiveModule();
+  const alternatives = module?.edgeKinds[artifactType]?.switchableTo ?? [];
+  if (!module || alternatives.length === 0) return null;
+  const options = [artifactType, ...alternatives.filter((type) => type !== artifactType)]
+    .map((type) => module.artifacts.find((artifact) => artifact.type === type))
+    .filter((artifact) => artifact !== undefined);
+  return (
+    <select
+      aria-label="Tipo de conexión"
+      title="Cambiar el tipo de conexión"
+      value={artifactType}
+      // Al cambiar de tipo, el estilo de línea vuelve al del tipo nuevo.
+      onChange={(event) => useDiagramStore.getState().updateEdge(edgeId, { artifactType: event.target.value, lineStyle: null })}
+      className="h-7 max-w-36 rounded-lg border border-line bg-surface px-1.5 text-xs text-ink-900 outline-none focus:border-accent/50"
+    >
+      {options.map((artifact) => (
+        <option key={artifact.type} value={artifact.type}>
+          {artifact.name}
+        </option>
+      ))}
+    </select>
   );
 }

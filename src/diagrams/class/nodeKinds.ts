@@ -20,8 +20,8 @@ export const classEdgeKinds: Record<string, EdgeKind> = {
   [C.association]: { dashed: false, arrow: null, text: 'label', textCaption: 'Nombre y multiplicidad', switchableTo },
   [C.aggregation]: { dashed: false, arrow: null, sourceMarker: 'diamond-open', text: 'label', textCaption: 'Nombre y multiplicidad', switchableTo },
   [C.composition]: { dashed: false, arrow: null, sourceMarker: 'diamond-filled', text: 'label', textCaption: 'Nombre y multiplicidad', switchableTo },
-  [C.generalization]: { dashed: false, arrow: 'open', text: null, switchableTo },
-  [C.realization]: { dashed: true, arrow: 'open', text: null, switchableTo },
+  [C.generalization]: { dashed: false, arrow: 'hollow', text: null, switchableTo },
+  [C.realization]: { dashed: true, arrow: 'hollow', text: null, switchableTo },
   [C.dependency]: { dashed: true, arrow: 'open', text: 'label', textCaption: 'Uso', switchableTo },
   [C.annotationLink]: { dashed: true, arrow: null, text: null, secondaryDetail: true },
 };

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import type { DiagramModule } from '@/core/registry';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
+import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 
 /** "Cómo leerlo": pasos numerados; el elegido muestra sus artefactos con la figura real. */
 export function HowToRead({ module }: { module: DiagramModule }) {
@@ -55,7 +56,7 @@ export function HowToRead({ module }: { module: DiagramModule }) {
               {kind ? (
                 <ArtifactFigure kind={kind} artifactType={definition!.type} box={{ width: 110, height: 56 }} />
               ) : (
-                <EdgeSample dashed={module.edgeKinds[definition!.type]?.dashed ?? false} />
+                <EdgeFigure kind={module.edgeKinds[definition!.type]} box={{ width: 110, height: 56 }} />
               )}
               <span className="text-center text-xs font-medium text-ink-900">{definition!.name}</span>
             </div>
@@ -82,28 +83,5 @@ export function HowToRead({ module }: { module: DiagramModule }) {
         </div>
       </div>
     </div>
-  );
-}
-
-/** Muestra de una conexión (no tiene figura de nodo). */
-export function EdgeSample({ dashed }: { dashed: boolean }) {
-  return (
-    <svg width={110} height={56} aria-hidden>
-      <defs>
-        <marker id="guide-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" style={{ fill: 'var(--color-edge)' }} />
-        </marker>
-      </defs>
-      <line
-        x1={12}
-        y1={28}
-        x2={98}
-        y2={28}
-        strokeWidth={1.5}
-        strokeDasharray={dashed ? '5 4' : undefined}
-        markerEnd={dashed ? undefined : 'url(#guide-arrow)'}
-        style={{ stroke: 'var(--color-edge)' }}
-      />
-    </svg>
   );
 }

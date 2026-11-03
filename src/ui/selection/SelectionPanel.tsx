@@ -1,4 +1,4 @@
-import { faLock, faLockOpen, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faLock, faLockOpen, faTrashCan, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo } from 'react';
 import { useActiveModule } from '@/canvas/useActiveModule';
@@ -8,7 +8,7 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { Field, FieldGroup, inputClass, LINE_OPTIONS, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from '@/ui/explanation/formFields';
 import { Panel } from '@/ui/layout/Panel';
-import { EdgeSample } from '@/ui/learn/HowToRead';
+import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 import { ArrangeTools } from './ArrangeTools';
 import { commonValue, summarizeSelection, type SelectionGroup } from './selectionSummary';
 
@@ -39,10 +39,23 @@ export function SelectionPanel() {
         <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">{total}</span>
         <button
           type="button"
+          onClick={() => store().removeElements(store().selection)}
+          aria-label="Eliminar lo seleccionado"
+          title={
+            summary.nodes.some((node) => node.locked)
+              ? 'Eliminar lo seleccionado (Supr). Lo bloqueado y los carriles que lo contienen se conservan'
+              : 'Eliminar lo seleccionado (Supr)'
+          }
+          className="ml-auto flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-danger-soft hover:text-danger"
+        >
+          <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
+        </button>
+        <button
+          type="button"
           onClick={() => store().setSelection({ nodeIds: [], edgeIds: [] })}
           aria-label="Quitar la selección"
           title="Quitar la selección"
-          className="ml-auto flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
+          className="flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
         >
           <FontAwesomeIcon icon={faXmark} className="text-sm" />
         </button>
@@ -94,7 +107,7 @@ function GroupRow({ group, module, name }: { group: SelectionGroup; module: Diag
           {kind ? (
             <ArtifactFigure kind={kind} artifactType={group.artifactType} box={{ width: 30, height: 20 }} />
           ) : (
-            <EdgeSample dashed={module.edgeKinds[group.artifactType]?.dashed ?? false} />
+            <EdgeFigure kind={module.edgeKinds[group.artifactType]} box={{ width: 30, height: 20 }} />
           )}
         </span>
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{name}</span>

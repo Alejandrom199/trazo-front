@@ -26,6 +26,6 @@ export const useCaseEdgeKinds: Record<string, EdgeKind> = {
   [U.association]: { dashed: false, arrow: null, text: null },
   [U.include]: dependency(),
   [U.extend]: dependency(),
-  [U.generalization]: { dashed: false, arrow: 'open', text: null },
+  [U.generalization]: { dashed: false, arrow: 'hollow', text: null },
   [U.annotationLink]: { dashed: true, arrow: null, text: null, secondaryDetail: true },
 };

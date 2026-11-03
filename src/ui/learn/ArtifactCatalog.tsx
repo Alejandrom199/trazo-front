@@ -5,7 +5,7 @@ import { ARTIFACT_CATEGORIES } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { ArtifactExplanation } from '@/ui/explanation/ArtifactExplanation';
-import { EdgeSample } from './HowToRead';
+import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 
 
 /** Id del ancla de un artefacto en la guía, para saltar a él desde otras secciones. */
@@ -58,7 +58,7 @@ export function ArtifactCatalog({ module, expandedType, onToggle, onOpenRelated,
                         {kind ? (
                           <ArtifactFigure kind={kind} artifactType={artifact.type} box={{ width: 80, height: 44 }} />
                         ) : (
-                          <EdgeSample dashed={module.edgeKinds[artifact.type]?.dashed ?? false} />
+                          <EdgeFigure kind={module.edgeKinds[artifact.type]} box={{ width: 80, height: 44 }} />
                         )}
                       </span>
                       <span className="min-w-0 flex-1">

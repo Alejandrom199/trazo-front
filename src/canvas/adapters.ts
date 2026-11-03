@@ -33,7 +33,9 @@ function classNames(...names: (string | false | undefined)[]): string | undefine
 const EDGE_COLOR = 'var(--color-edge)';
 const EDGE_COLOR_SELECTED = 'var(--color-accent)';
 
-const ARROW_MARKERS: Record<ArrowHead, MarkerType> = { filled: MarkerType.ArrowClosed, open: MarkerType.Arrow };
+/** Puntas de React Flow; la hueca es un marcador propio definido en DiagramCanvas. */
+const ARROW_MARKERS: Record<Exclude<ArrowHead, 'hollow'>, MarkerType> = { filled: MarkerType.ArrowClosed, open: MarkerType.Arrow };
+export const HOLLOW_TRIANGLE_MARKER = 'trazo-triangle-hollow';
 
 export function toFlowNodes(
   diagram: Diagram,
@@ -101,7 +103,11 @@ export function toFlowEdges(
       selected: isSelected,
       className: classNames(highlight.ids.has(edge.id) && highlight.className, presentation?.dimmedEdgeIds.has(edge.id) && 'trazo-dimmed', kind?.secondaryDetail && 'trazo-secondary-detail'),
       data: { edge },
-      markerEnd: kind?.arrow ? { type: ARROW_MARKERS[kind.arrow], color, width: 16, height: 16 } : undefined,
+      markerEnd: !kind?.arrow
+        ? undefined
+        : kind.arrow === 'hollow'
+          ? `url(#${HOLLOW_TRIANGLE_MARKER})`
+          : { type: ARROW_MARKERS[kind.arrow], color, width: 16, height: 16 },
       markerStart: kind?.sourceMarker ? `url(#trazo-${kind.sourceMarker})` : undefined,
       style: {
         stroke: color,

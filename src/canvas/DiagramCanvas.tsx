@@ -21,7 +21,7 @@ import { DEFAULT_EDGE_SHAPE, absolutePosition, findContainerAt, snapContainerPos
 import { isMagnetic, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { createId } from '@/core/utils/id';
-import { toFlowEdges, toFlowNodes, type ArtifactFlowNode, type FlowEdge } from './adapters';
+import { HOLLOW_TRIANGLE_MARKER, toFlowEdges, toFlowNodes, type ArtifactFlowNode, type FlowEdge } from './adapters';
 import { ArtifactNodeView } from './ArtifactNodeView';
 import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
@@ -77,6 +77,8 @@ export function DiagramCanvas() {
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
   useClipboardShortcuts(module);
+  // El conector elegido en la paleta es de este tipo de diagrama: al cambiar de tipo se olvida.
+  useEffect(() => useCanvasInteractionStore.getState().setNextEdgeType(null), [module?.diagramType]);
   useFitViewOnOpen(diagram?.id);
   useResetViewOnOpen(diagram?.id);
   const highlight = useHighlightStore((state) => state.highlight);
@@ -144,15 +146,16 @@ export function DiagramCanvas() {
       if (!current || !module) return;
       const result = module.resolveConnection(current, connection.source, connection.target);
       if (!result.allowed) return showNotice(result.reason);
+      const edgeType = chosenEdgeType(module, result.edgeType, useCanvasInteractionStore.getState().nextEdgeType);
       store().connect({
         id: createId(),
-        artifactType: result.edgeType,
+        artifactType: edgeType,
         sourceId: connection.source,
         targetId: connection.target,
         guard: null,
         ...DEFAULT_EDGE_SHAPE,
         waypoints: [],
-        ...(module.initialEdge?.(current, result.edgeType, connection.source, connection.target) ?? { label: '', props: {} }),
+        ...(module.initialEdge?.(current, edgeType, connection.source, connection.target) ?? { label: '', props: {} }),
       });
     },
     [module, showNotice],
@@ -251,6 +254,9 @@ export function DiagramCanvas() {
       >
         <svg className="pointer-events-none absolute size-0" aria-hidden>
           <defs>
+            <marker id={HOLLOW_TRIANGLE_MARKER} markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M1 1 11 6 1 11Z" fill="var(--color-board)" stroke="var(--color-edge)" strokeWidth="1.3" strokeLinejoin="round" />
+            </marker>
             <marker id="trazo-diamond-open" markerWidth="14" markerHeight="10" refX="2" refY="5" orient="auto-start-reverse" markerUnits="strokeWidth">
               <path d="M1 5 7 1 13 5 7 9Z" fill="var(--color-shape-fill)" stroke="var(--color-edge)" strokeWidth="1.2" />
             </marker>
@@ -321,6 +327,15 @@ function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
  * durante un gesto no crean pasos de deshacer (el checkpoint se tomó al empezar).
  * Los contenedores sueltos que se mueven se "pegan" a sus vecinos (imán).
  */
+/**
+ * El tipo de la flecha nueva: el elegido en la paleta si es válido entre esos nodos
+ * (el deducido o uno al que se puede cambiar), si no, el deducido.
+ */
+function chosenEdgeType(module: DiagramModule, resolved: string, preferred: string | null): string {
+  if (!preferred || preferred === resolved) return resolved;
+  return module.edgeKinds[resolved]?.switchableTo?.includes(preferred) ? preferred : resolved;
+}
+
 /** Distancia en pantalla a la que una guía atrae al nodo: igual a cualquier zoom. */
 const GUIDE_SCREEN_DISTANCE = 8;
 
