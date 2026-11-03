@@ -65,6 +65,10 @@ interface DiagramState {
   setEdgeGuard: (edgeId: string, guard: string | null) => void;
   /** Cambia trazado, vértices o estilo de una flecha (un paso de deshacer). */
   updateEdge: (edgeId: string, patch: EdgePatch) => void;
+  /** Cambia varios nodos a la vez (selección múltiple): un solo paso de deshacer. */
+  updateNodes: (changes: { id: string; patch: NodePatch }[]) => void;
+  /** Cambia varias flechas a la vez (selección múltiple): un solo paso de deshacer. */
+  updateEdges: (changes: { id: string; patch: EdgePatch }[]) => void;
   removeElements: (ids: ElementIds) => void;
 
   undo: () => void;
@@ -73,6 +77,11 @@ interface DiagramState {
   setSelection: (selection: ElementIds) => void;
   startEditing: (nodeId: string | null) => void;
   startEditingEdge: (edgeId: string | null) => void;
+}
+
+/** Si aplicar `patch` cambiaría algo del elemento (para no crear pasos de deshacer vacíos). */
+function differs<T extends object>(element: T | undefined, patch: Partial<T>): element is T {
+  return element !== undefined && Object.entries(patch).some(([key, value]) => JSON.stringify(element[key as keyof T]) !== JSON.stringify(value));
 }
 
 /** Marca la fecha de modificación. Se aplica a todo cambio de contenido. */
@@ -148,8 +157,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     updateNode: (nodeId, patch) =>
       apply((diagram) => {
         const node = diagram.nodes.find((candidate) => candidate.id === nodeId);
-        const changed = node && Object.entries(patch).some(([key, value]) => JSON.stringify(node[key as keyof typeof node]) !== JSON.stringify(value));
-        return changed ? updateNode(diagram, nodeId, patch) : diagram;
+        return differs(node, patch) ? updateNode(diagram, nodeId, patch) : diagram;
       }, true),
     setEdgeGuard: (edgeId, guard) =>
       apply((diagram) => {
@@ -159,9 +167,24 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     updateEdge: (edgeId, patch) =>
       apply((diagram) => {
         const edge = diagram.edges.find((candidate) => candidate.id === edgeId);
-        const changed = edge && Object.entries(patch).some(([key, value]) => JSON.stringify(edge[key as keyof typeof edge]) !== JSON.stringify(value));
-        return changed ? updateEdge(diagram, edgeId, patch) : diagram;
+        return differs(edge, patch) ? updateEdge(diagram, edgeId, patch) : diagram;
       }, true),
+    updateNodes: (changes) =>
+      apply(
+        (diagram) =>
+          changes
+            .filter(({ id, patch }) => differs(diagram.nodes.find((node) => node.id === id), patch))
+            .reduce((current, { id, patch }) => updateNode(current, id, patch), diagram),
+        true,
+      ),
+    updateEdges: (changes) =>
+      apply(
+        (diagram) =>
+          changes
+            .filter(({ id, patch }) => differs(diagram.edges.find((edge) => edge.id === id), patch))
+            .reduce((current, { id, patch }) => updateEdge(current, id, patch), diagram),
+        true,
+      ),
     removeElements: (ids) => {
       apply((diagram) => removeElements(diagram, ids), true);
       set({ selection: EMPTY_SELECTION });

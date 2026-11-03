@@ -35,13 +35,13 @@ function LineIcon({ dash, round = false }: { dash?: string; round?: boolean }) {
   );
 }
 
-/** Grupo de botones excluyentes (como pestañas pequeñas). */
+/** Grupo de botones excluyentes (como pestañas pequeñas). value null = ninguno marcado (valores mezclados). */
 export function Segmented<T extends string>({
   value,
   options,
   onChange,
 }: {
-  value: T;
+  value: T | null;
   options: { value: T; label: string; icon: ReactNode }[];
   onChange: (value: T) => void;
 }) {
@@ -139,22 +139,25 @@ export function TextInput({
   return multiline ? <textarea rows={3} {...shared} className={`${inputClass} resize-none`} /> : <input {...shared} />;
 }
 
+/** Campo numérico. value null = valores mezclados: se muestra vacío con `placeholder` ("Varios"). */
 export function NumberInput({
   prefix,
   value,
   min = -Infinity,
   max = Infinity,
   disabled,
+  placeholder,
   onCommit,
 }: {
   prefix: string;
-  value: number;
+  value: number | null;
   min?: number;
   max?: number;
   disabled?: boolean;
+  placeholder?: string;
   onCommit: (value: number) => void;
 }) {
-  const shown = String(Math.round(value));
+  const shown = value === null ? '' : String(Math.round(value));
   const draft = useDraft(shown, (text) => {
     const parsed = Number(text);
     if (text.trim() === '' || !Number.isFinite(parsed)) return;
@@ -167,6 +170,7 @@ export function NumberInput({
         type="number"
         inputMode="numeric"
         disabled={disabled}
+        placeholder={placeholder}
         value={draft.current}
         onChange={(event) => draft.change(event.target.value)}
         onBlur={draft.commit}

@@ -1,5 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { DiagramCanvas } from '@/canvas/DiagramCanvas';
+import { useDiagramStore } from '@/core/store/diagramStore';
 import { CanvasContextMenu } from '@/ui/canvasMenu/CanvasContextMenu';
 import { CanvasArtifactPopover } from '@/ui/explanation/CanvasArtifactPopover';
 import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
@@ -7,6 +8,7 @@ import { LearnPage } from '@/ui/learn/LearnPage';
 import { useRoute } from '@/ui/navigation/route';
 import { NarrationPanel } from '@/ui/narration/NarrationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
+import { SelectionPanel } from '@/ui/selection/SelectionPanel';
 import { TemplateGallery } from '@/ui/templates/TemplateGallery';
 import { CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
 import { TopBar } from '@/ui/toolbar/TopBar';
@@ -25,6 +27,8 @@ export function AppShell() {
   const narrationOpen = useUiStore((state) => state.narrationOpen);
   const notice = useUiStore((state) => state.notice);
   const route = useRoute();
+  // Con varios elementos seleccionados, el panel derecho muestra qué hay seleccionado.
+  const multipleSelected = useDiagramStore((state) => state.selection.nodeIds.length + state.selection.edgeIds.length > 1);
 
   return (
     <ReactFlowProvider>
@@ -50,7 +54,7 @@ export function AppShell() {
               </div>
 
               <div className="pointer-events-none absolute top-[4.25rem] right-3 bottom-3 left-3 flex flex-col items-end *:pointer-events-auto md:left-auto">
-                {narrationOpen ? <NarrationPanel /> : <ExplanationPanel />}
+                {narrationOpen ? <NarrationPanel /> : multipleSelected ? <SelectionPanel /> : <ExplanationPanel />}
               </div>
 
               <div className="pointer-events-none absolute right-3 bottom-16 z-20 w-[min(25rem,calc(100%-1.5rem))] *:pointer-events-auto lg:right-[22rem] xl:bottom-3">

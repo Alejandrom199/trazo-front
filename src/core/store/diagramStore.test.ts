@@ -80,6 +80,26 @@ describe('historial de deshacer/rehacer', () => {
     expect(store().past).toHaveLength(steps);
   });
 
+  it('Dados varios nodos bloqueados a la vez, Entonces un solo deshacer los desbloquea todos', () => {
+    store().addNode(node('a'));
+    store().addNode(node('b'));
+
+    store().updateNodes([{ id: 'a', patch: { locked: true } }, { id: 'b', patch: { locked: true } }]);
+    expect(store().diagram?.nodes.every((n) => n.locked)).toBe(true);
+
+    store().undo();
+    expect(store().diagram?.nodes.some((n) => n.locked)).toBe(false);
+  });
+
+  it('Dado un cambio en bloque sin diferencias, Entonces no crea un paso de deshacer', () => {
+    store().addNode(node('a'));
+    const before = store().past.length;
+
+    store().updateNodes([{ id: 'a', patch: { locked: false } }]);
+
+    expect(store().past.length).toBe(before);
+  });
+
   it('Dado un diagrama nuevo, Entonces el historial empieza vacío', () => {
     store().addNode(node('a'));
 
