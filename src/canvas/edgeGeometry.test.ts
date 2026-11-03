@@ -12,18 +12,27 @@ describe('floatingEndpoints', () => {
     expect(result.sourceX).toBe(result.targetX);
   });
 
-  it('Dado un nodo debajo de otro pero algo corrido, Entonces cada extremo va al centro de su nodo', () => {
+  it('Dado un nodo debajo de otro pero algo corrido, Entonces la flecha va recta al centro del destino, sin escalón', () => {
     const result = floatingEndpoints(action(0, 0), action(20, 200));
 
-    expect(result.sourceX).toBe(70);
+    expect(result.sourceX).toBe(90);
     expect(result.targetX).toBe(90);
+  });
+
+  it('Dadas dos ramas hacia abajo en diagonal, Entonces salen por costados opuestos y entran por arriba', () => {
+    const decision = { x: 100, y: 0, width: 44, height: 44 };
+    const left = floatingEndpoints(decision, action(-100, 150));
+    const right = floatingEndpoints(decision, action(250, 150));
+
+    expect(left).toMatchObject({ sourcePosition: Position.Left, targetPosition: Position.Top, sourceX: 100 });
+    expect(right).toMatchObject({ sourcePosition: Position.Right, targetPosition: Position.Top, sourceX: 144 });
   });
 
   it('Dado un nodo final redondo algo corrido bajo el inicial, Entonces la punta llega a su centro', () => {
     const initial = { x: 0, y: 0, width: 30, height: 30 };
     const final = { x: 12, y: 150, width: 32, height: 32 };
 
-    expect(floatingEndpoints(initial, final)).toMatchObject({ sourceX: 15, targetX: 28 });
+    expect(floatingEndpoints(initial, final)).toMatchObject({ sourceX: 28, targetX: 28 });
   });
 
   it('Dados dos nodos en la misma fila, Entonces la flecha es horizontal y recta', () => {
