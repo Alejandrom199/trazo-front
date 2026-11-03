@@ -36,7 +36,7 @@ export const UML_DIAGRAMS: UmlDiagramKind[] = [
   structure('Componentes', 'Piezas del software y las interfaces por las que se conectan.', 'component'),
   structure('Despliegue', 'En qué máquinas se instala cada artefacto y cómo se comunican.', 'deployment'),
   structure('Objetos', 'Una foto de instancias concretas en un momento dado.'),
-  structure('Paquetes', 'Cómo se organiza el modelo en grupos y sus dependencias.'),
+  structure('Paquetes', 'Cómo se organiza el modelo en grupos y sus dependencias.', 'package'),
   structure('Estructura compuesta', 'Las partes internas de una clase o componente y cómo colaboran.'),
   structure('Perfiles', 'Extensiones de UML con estereotipos propios de un dominio.'),
   behavior('Casos de uso', 'Qué puede hacer cada actor con el sistema.', 'usecase'),
