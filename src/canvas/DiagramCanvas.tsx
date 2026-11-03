@@ -268,6 +268,11 @@ export function DiagramCanvas() {
 
 const store = () => useDiagramStore.getState();
 
+/** Shift+clic: agrega el elemento a la selección, o lo quita si ya estaba. */
+function toggled(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids.filter((candidate) => candidate !== id) : [...ids, id];
+}
+
 const clearElementClick = () => useElementClickStore.getState().setClicked(null);
 
 /** Clic derecho: en vez del menú del navegador, el de Trazo, en el punto exacto del clic. */
@@ -286,7 +291,7 @@ function openContextMenu(
 function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
   if (event.shiftKey) {
     const { selection } = store();
-    store().setSelection({ ...selection, nodeIds: [...new Set([...selection.nodeIds, nodeId])] });
+    store().setSelection({ ...selection, nodeIds: toggled(selection.nodeIds, nodeId) });
     clearElementClick();
     return;
   }
@@ -299,7 +304,7 @@ function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
 function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
   if (event.shiftKey) {
     const { selection } = store();
-    store().setSelection({ ...selection, edgeIds: [...new Set([...selection.edgeIds, edgeId])] });
+    store().setSelection({ ...selection, edgeIds: toggled(selection.edgeIds, edgeId) });
     clearElementClick();
     return;
   }
