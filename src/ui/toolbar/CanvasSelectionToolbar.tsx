@@ -1,16 +1,15 @@
-import { faArrowPointer, faHand, faPencil } from '@fortawesome/free-solid-svg-icons';
+import { faArrowPointer, faPencil } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect } from 'react';
 import { useCanvasInteractionStore, type CanvasTool } from '@/canvas/canvasInteractionStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
 
 const TOOLS: { id: CanvasTool; label: string; key: string; help: string; icon: typeof faArrowPointer }[] = [
-  { id: 'hand', label: 'Mano', key: 'H', help: 'Mano (H): solo para moverte por el lienzo', icon: faHand },
-  { id: 'pointer', label: 'Puntero', key: 'V', help: 'Puntero (V): clic para seleccionar, arrastra para mover; sobre el fondo, un recuadro selecciona', icon: faArrowPointer },
+  { id: 'pointer', label: 'Puntero', key: 'V', help: 'Puntero (V): clic para seleccionar, arrastra para mover; sobre el fondo, un recuadro selecciona. Ctrl + arrastrar desplaza el lienzo', icon: faArrowPointer },
   { id: 'lasso', label: 'Lápiz', key: 'L', help: 'Lápiz (L): dibuja a mano alzada el área que quieres seleccionar (Shift suma)', icon: faPencil },
 ];
 
-/** Herramientas del lienzo: mano, puntero y lápiz de selección. Se cambian también con H, V y L. */
+/** Herramientas del lienzo: puntero y lápiz de selección (también con V y L). Ctrl + arrastrar desplaza el lienzo. */
 export function CanvasSelectionToolbar() {
   const tool = useCanvasInteractionStore((state) => state.tool);
   const setTool = useCanvasInteractionStore((state) => state.setTool);
@@ -44,7 +43,7 @@ export function CanvasSelectionToolbar() {
   );
 }
 
-/** H, V y L cambian de herramienta, salvo mientras se escribe en un campo. */
+/** V y L cambian de herramienta, salvo mientras se escribe en un campo. */
 function useToolShortcuts(setTool: (tool: CanvasTool) => void) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

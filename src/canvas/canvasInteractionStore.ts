@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 
 /**
- * Herramienta activa del lienzo:
- *   hand: solo desplaza la vista (no selecciona ni mueve nada).
+ * Herramienta activa del lienzo (con cualquiera, mantener Ctrl y arrastrar desplaza la vista):
  *   pointer: clic para seleccionar, arrastrar nodos; sobre el fondo, recuadro de selección.
  *   lasso: el lápiz; dibuja a mano alzada el área que se selecciona.
  */
-export type CanvasTool = 'hand' | 'pointer' | 'lasso';
+export type CanvasTool = 'pointer' | 'lasso';
 
 interface CanvasInteractionState {
   tool: CanvasTool;

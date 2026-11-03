@@ -7,6 +7,7 @@ import {
   Controls,
   ReactFlow,
   SelectionMode,
+  useKeyPress,
   useReactFlow,
   type Connection,
   type EdgeChange,
@@ -81,6 +82,7 @@ export function DiagramCanvas() {
   const detailMode = useCanvasViewStore((state) => state.detail);
   const focus = useCanvasViewStore((state) => state.focus);
   const canvasTool = useCanvasInteractionStore((state) => state.tool);
+  const panKeyHeld = useKeyPress('Control');
   const [zoom, setZoom] = useState(1);
   // Con cuadrícula visible, los nodos se ajustan a sus celdas; sin ella, a un paso fino.
   const snapStep = grid.visible ? grid.size : FREE_SNAP_STEP;
@@ -203,9 +205,8 @@ export function DiagramCanvas() {
         isValidConnection={isValidConnection}
         onDelete={onDelete}
         onEdgeDoubleClick={(_event, edge) => store().startEditingEdge(edge.id)}
-        // Con la mano solo se navega: un clic no abre el popup de nada.
-        onNodeClick={(event, node) => canvasTool !== 'hand' && publishNodeClick(event, node.id)}
-        onEdgeClick={(event, edge) => canvasTool !== 'hand' && publishEdgeClick(event, edge.id)}
+        onNodeClick={(event, node) => publishNodeClick(event, node.id)}
+        onEdgeClick={(event, edge) => publishEdgeClick(event, edge.id)}
         onMoveStart={(event) => {
           if (!event) return;
           clearElementClick();
@@ -225,10 +226,11 @@ export function DiagramCanvas() {
         // entero dentro, así un carril no se selecciona por rozarlo); la rueda del medio desplaza.
         selectionOnDrag={canvasTool === 'pointer'}
         selectionMode={SelectionMode.Full}
-        panOnDrag={canvasTool === 'hand' ? true : [1]}
+        // Mantener Ctrl y arrastrar desplaza la vista con cualquier herramienta.
+        panOnDrag={[1]}
+        panActivationKeyCode="Control"
         nodesDraggable={canvasTool === 'pointer'}
         nodesConnectable={canvasTool === 'pointer'}
-        elementsSelectable={canvasTool !== 'hand'}
         deleteKeyCode={['Delete', 'Backspace']}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
@@ -256,7 +258,8 @@ export function DiagramCanvas() {
         ) : (
           <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--color-dot)" />
         )}
-        {canvasTool === 'lasso' && module && <LassoLayer module={module} />}
+        {/* Con Ctrl presionado el lápiz se aparta para dejar desplazar la vista. */}
+        {canvasTool === 'lasso' && !panKeyHeld && module && <LassoLayer module={module} />}
         <Controls position="bottom-left" showInteractive={false} />
         <LockBadges />
       </ReactFlow>
