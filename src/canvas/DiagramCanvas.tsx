@@ -30,6 +30,8 @@ import { useContextMenuStore, type ContextMenuTarget } from './contextMenuStore'
 import { useElementClickStore } from './elementClickStore';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
+import { GuideLines, useGuidesStore } from './GuideLines';
+import { snapToGuides, type Guide } from './alignmentGuides';
 import { LassoLayer } from './LassoLayer';
 import { LockBadges } from './LockBadges';
 import { centerInParent, placeArtifact } from './placeArtifact';
@@ -70,7 +72,7 @@ export function DiagramCanvas() {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getZoom } = useReactFlow();
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
   useFitViewOnOpen(diagram?.id);
@@ -107,8 +109,8 @@ export function DiagramCanvas() {
   );
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<ArtifactFlowNode>[]) => module && applyNodeChanges(module, changes),
-    [module],
+    (changes: NodeChange<ArtifactFlowNode>[]) => module && applyNodeChanges(module, changes, getZoom()),
+    [module, getZoom],
   );
   const onEdgesChange = useCallback((changes: EdgeChange<FlowEdge>[]) => applyEdgeSelection(changes), []);
 
@@ -119,6 +121,7 @@ export function DiagramCanvas() {
 
   const onNodeDragStop = useCallback<OnNodeDrag<ArtifactFlowNode>>(
     (_event, _node, draggedNodes) => {
+      useGuidesStore.getState().setGuides([]);
       if (module) placeIntoContainers(module, draggedNodes.map((node) => node.id));
     },
     [module],
@@ -263,6 +266,7 @@ export function DiagramCanvas() {
         {canvasTool === 'lasso' && !panKeyHeld && module && <LassoLayer module={module} />}
         <Controls position="bottom-left" showInteractive={false} />
         <LockBadges />
+        <GuideLines />
       </ReactFlow>
 
       {notice && (
@@ -315,13 +319,38 @@ function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
  * durante un gesto no crean pasos de deshacer (el checkpoint se tomó al empezar).
  * Los contenedores sueltos que se mueven se "pegan" a sus vecinos (imán).
  */
-function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlowNode>[]): void {
+/** Distancia en pantalla a la que una guía atrae al nodo: igual a cualquier zoom. */
+const GUIDE_SCREEN_DISTANCE = 8;
+
+/**
+ * Ajusta un nodo que se arrastra a los bordes y centros de los demás (ver
+ * alignmentGuides). Se compara en coordenadas absolutas con los nodos que no son
+ * contenedores ni marcos, sin contar los suyos propios (sus hijos).
+ */
+function alignToNeighbors(module: DiagramModule, diagram: Diagram, node: DiagramNode, position: { x: number; y: number }, threshold: number) {
+  const parent = node.parentId ? diagram.nodes.find((candidate) => candidate.id === node.parentId) : undefined;
+  const origin = parent ? absolutePosition(diagram, parent) : { x: 0, y: 0 };
+  const others = diagram.nodes
+    .filter((other) => other.id !== node.id && other.parentId !== node.id)
+    .filter((other) => {
+      const kind = module.nodeKinds[other.artifactType];
+      return kind && !kind.isContainer && !kind.gripOnly;
+    })
+    .map((other) => ({ ...absolutePosition(diagram, other), ...other.size }));
+  const snap = snapToGuides({ x: origin.x + position.x, y: origin.y + position.y, ...node.size }, others, threshold);
+  return { position: { x: snap.position.x - origin.x, y: snap.position.y - origin.y }, guides: snap.guides };
+}
+
+function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlowNode>[], zoom: number): void {
   const diagram = store().diagram;
   const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   const moves: NodeMove[] = [];
   // Al redimensionar desde la izquierda o arriba también cambia la posición; el imán
   // no debe actuar ahí, o devolvería el borde a su vecino y crecería el lado opuesto.
   const resizing = new Set(changes.flatMap((change) => (change.type === 'dimensions' && change.resizing ? [change.id] : [])));
+  // Las guías de alineación solo se usan al arrastrar un único nodo.
+  const dragged = changes.filter((change) => change.type === 'position' && change.dragging);
+  let guides: Guide[] = [];
   for (const change of changes) {
     if (change.type !== 'position' || !change.position) continue;
     const node = diagram?.nodes.find((candidate) => candidate.id === change.id);
@@ -329,11 +358,18 @@ function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlo
     // Los que solo se deslizan en horizontal conservan su fila.
     const requested = kind?.dragAxis === 'x' && node ? { x: change.position.x, y: node.position.y } : change.position;
     const snapsToNeighbors = diagram && node && kind && node.parentId === null && isMagnetic(kind) && !resizing.has(change.id);
-    const position = snapsToNeighbors
+    let position = snapsToNeighbors
       ? snapContainerPosition(diagram, node.id, requested, node.size, isContainer)
       : requested;
+    if (diagram && node && kind && !snapsToNeighbors && dragged.length === 1 && change.dragging) {
+      const snap = alignToNeighbors(module, diagram, node, position, GUIDE_SCREEN_DISTANCE / zoom);
+      position = kind.dragAxis === 'x' ? { x: snap.position.x, y: position.y } : snap.position;
+      guides = snap.guides;
+    }
     moves.push({ id: change.id, position });
   }
+  // Solo los lotes con movimientos cambian las guías (otros lotes, como la selección, no las borran).
+  if (changes.some((change) => change.type === 'position')) useGuidesStore.getState().setGuides(guides);
   for (const change of changes) {
     if (change.type === 'dimensions' && change.resizing && change.dimensions) {
       store().resizeNode(change.id, { width: change.dimensions.width, height: change.dimensions.height });
