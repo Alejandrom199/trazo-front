@@ -66,12 +66,13 @@ export function SavedDiagrams({ onOpened }: { onOpened: () => void }) {
               </button>
 
               {confirmingId === summary.id ? (
-                <div className="absolute top-2 right-2 flex items-center gap-1 rounded-lg border border-line bg-surface p-1 shadow-panel">
-                  <button type="button" onClick={() => remove(summary.id)} className="rounded-md bg-danger px-2 py-1 text-[11px] font-medium text-white">
-                    Eliminar
-                  </button>
+                // «Eliminar» va a la derecha, donde estaba el tacho: confirmar no obliga a mover el ratón.
+                <div className="absolute top-1 right-1 flex items-center gap-1 rounded-lg border border-line bg-surface p-1 shadow-panel">
                   <button type="button" onClick={() => setConfirmingId(null)} className="rounded-md px-2 py-1 text-[11px] text-ink-600 hover:bg-canvas">
                     Cancelar
+                  </button>
+                  <button type="button" onClick={() => remove(summary.id)} className="rounded-md bg-danger px-2 py-1 text-[11px] font-medium text-white">
+                    Eliminar
                   </button>
                 </div>
               ) : (
