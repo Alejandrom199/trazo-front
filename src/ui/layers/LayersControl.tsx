@@ -43,8 +43,8 @@ export function LayersControl() {
         aria-controls="trazo-layers"
         title="Capas: el orden en que se apilan los artefactos"
         onClick={() => setOpen((value) => !value)}
-        className={`flex h-11 items-center gap-2 rounded-xl border border-line px-3.5 text-[13px] shadow-panel backdrop-blur transition-colors ${
-          open ? 'bg-accent-soft text-accent' : 'bg-surface/95 text-ink-600 hover:text-ink-900'
+        className={`glass-panel relative flex h-11 items-center gap-2 rounded-xl px-3.5 text-[13px] transition-colors ${
+          open ? 'text-accent' : 'text-ink-600 hover:text-ink-900'
         }`}
       >
         <FontAwesomeIcon icon={faLayerGroup} />
@@ -105,7 +105,7 @@ function LayersPanel({ module, empty, onClose }: { module: DiagramModule; empty:
   }
 
   return (
-    <section id="trazo-layers" aria-label="Capas" className="trazo-pop-in flex max-h-[min(30rem,calc(100vh-12rem))] w-64 flex-col rounded-xl border border-line bg-surface/95 shadow-panel backdrop-blur">
+    <section id="trazo-layers" aria-label="Capas" className="glass-panel relative flex max-h-[min(30rem,calc(100vh-12rem))] w-64 flex-col rounded-xl">
       <header className="flex items-center justify-between border-b border-line/70 py-2 pr-1.5 pl-3.5">
         <p className="text-sm font-semibold text-ink-900">Capas</p>
         <button type="button" aria-label="Cerrar capas" onClick={onClose} className="flex size-7 items-center justify-center rounded-md text-ink-400 hover:bg-raised hover:text-ink-900">

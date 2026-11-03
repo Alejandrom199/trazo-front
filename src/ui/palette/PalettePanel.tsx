@@ -117,8 +117,8 @@ export function PalettePanel() {
   };
 
   return (
-    // Sin backdrop-filter: haría que los desplegables (position: fixed) se ubiquen respecto a la tira y no a la pantalla.
-    <aside aria-label="Artefactos" className="flex w-40 flex-col gap-0.5 rounded-xl border border-line bg-surface p-1 shadow-panel">
+    // glass-panel desenfoca en una capa propia: los desplegables (position: fixed) siguen ubicándose respecto a la pantalla.
+    <aside aria-label="Artefactos" className="glass-panel relative flex w-40 flex-col gap-0.5 rounded-xl p-1">
       {categories.map(({ category, shortTitle }) => toolButton(category, shortTitle, CATEGORY_ICONS[category] ?? faShapes))}
       {connectors.length > 0 &&
         toolButton(CONNECTORS, chosenConnector ? chosenConnector.name : 'Conexiones', faArrowRightLong, chosenConnector !== undefined)}

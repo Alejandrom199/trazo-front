@@ -242,14 +242,28 @@ select {
 
 /* Vidrio: panel flotante semitransparente que deja ver el lienzo desenfocado,
    con un reflejo fino en el borde superior. Sin degradados de color. */
+/* Vidrio: fondo casi opaco (se lee aunque el navegador no aplique el desenfoque)
+   y el desenfoque en una capa propia (::before). Así el panel no crea un bloque
+   contenedor para lo que tenga position: fixed dentro (sus desplegables), que
+   seguirían ubicándose respecto a la pantalla. El panel debe estar posicionado
+   (fixed, absolute o relative). */
 .glass-panel {
-  background: color-mix(in oklch, var(--color-surface) 74%, transparent);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  isolation: isolate;
+  background: color-mix(in oklch, var(--color-surface) 86%, transparent);
   border: 1px solid color-mix(in oklch, var(--color-line) 75%, transparent);
   box-shadow:
     inset 0 1px 0 0 oklch(100% 0 0 / 0.6),
     0 16px 48px -16px oklch(20% 0.02 300 / 0.28);
+}
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  pointer-events: none;
 }
 :root[data-theme='dark'] .glass-panel {
   box-shadow:

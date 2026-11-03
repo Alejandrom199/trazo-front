@@ -18,7 +18,7 @@ export function CanvasSelectionToolbar() {
   useToolShortcuts(setTool);
 
   return (
-    <div className="flex h-11 items-center gap-1 rounded-xl border border-line bg-surface/95 p-1 shadow-panel backdrop-blur">
+    <div className="glass-panel relative flex h-11 items-center gap-1 rounded-xl p-1">
       {TOOLS.map((item) => (
         <button
           key={item.id}
