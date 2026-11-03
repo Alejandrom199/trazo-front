@@ -9,3 +9,4 @@ export * from './operations';
 export * from './containerLayout';
 export * from './horizontalEdge';
 export * from './viewMetadata';
+export * from './edgeLabel';

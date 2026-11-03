@@ -1,4 +1,4 @@
-import { EDGE_OFFSET_KEY, readEdgeOffset, type ArtifactDefinition, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type LineStyle, type NodePatch } from '@/core/model';
+import { EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type ArtifactDefinition, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type LineStyle, type NodePatch } from '@/core/model';
 import { readNumberProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Field, FieldGroup, inputClass, LINE_OPTIONS, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from './formFields';
@@ -73,6 +73,7 @@ export function EdgeProperties({
   const nameOf = (id: string) => diagram.nodes.find((node) => node.id === id)?.label.trim() || 'nodo sin nombre';
   const kind = module.edgeKinds[edge.artifactType];
   const isHorizontal = kind?.layout === 'horizontal';
+  const labelOffset = readLabelOffset(edge);
   /** El estilo que le corresponde por su tipo (p. ej. el anclaje de nota es discontinuo). */
   const defaultStyle: LineStyle = kind?.dashed ? 'dashed' : 'solid';
   const update = (patch: EdgePatch) => useDiagramStore.getState().updateEdge(edge.id, patch);
@@ -118,6 +119,18 @@ export function EdgeProperties({
         <Field label={kind.textCaption ?? 'Texto'}>
           <TextInput value={edge.label} placeholder="p. ej. validar(usuario)" onCommit={(label) => update({ label })} />
         </Field>
+      )}
+      {(labelOffset.x !== 0 || labelOffset.y !== 0) && (
+        <button
+          type="button"
+          onClick={() => {
+            const { [LABEL_OFFSET_KEY]: _moved, ...props } = edge.props;
+            update({ props });
+          }}
+          className="text-xs font-medium text-accent hover:underline"
+        >
+          Devolver el texto a su sitio
+        </button>
       )}
 
       {isHorizontal ? (

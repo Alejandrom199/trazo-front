@@ -1,6 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, useReactFlow, type EdgeProps, type InternalNode } from '@xyflow/react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { absolutePosition, EDGE_OFFSET_KEY, type DiagramEdge, type Position } from '@/core/model';
+import { absolutePosition, EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readLabelOffset, type DiagramEdge, type Position } from '@/core/model';
 import type { EdgeTextKind } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import type { FlowEdge } from './adapters';
@@ -33,6 +33,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const isEditing = useDiagramStore((state) => state.editingEdgeId === id);
   const startDrag = useWaypointDrag(id);
   const startHeightDrag = useHeightDrag(id);
+  const startLabelDrag = useLabelDrag();
 
   if (!sourceNode || !targetNode || !data || !module || !diagram) return null;
 
@@ -40,6 +41,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const kind = module.edgeKinds[edge.artifactType];
   const path = connectionPath(diagram, module, edge, rectOf(sourceNode), rectOf(targetNode));
   const isHorizontal = kind?.layout === 'horizontal';
+  const labelOffset = readLabelOffset(edge);
 
   // Un punto sobre la línea por cada tramo: ahí nace un vértice nuevo.
   const insertionPoints = path.insertionPoints.map((point, index) => ({ ...point, insertAt: index }));
@@ -48,7 +50,16 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
     <>
       <BaseEdge id={id} path={path.d} style={style} markerEnd={markerEnd} interactionWidth={16} />
       <EdgeLabelRenderer>
-        {kind?.text && <EdgeText edge={edge} textKind={kind.text} at={path.label} above={isHorizontal} isEditing={isEditing} />}
+        {kind?.text && (
+          <EdgeText
+            edge={edge}
+            textKind={kind.text}
+            at={{ x: path.label.x + labelOffset.x, y: path.label.y + labelOffset.y }}
+            above={isHorizontal}
+            isEditing={isEditing}
+            onDragStart={(event) => startLabelDrag(event, edge)}
+          />
+        )}
 
         {selected && isHorizontal && (
           <Handle
@@ -94,12 +105,14 @@ interface EdgeTextProps {
   /** Encima de la línea (mensajes) en vez de centrado sobre ella. */
   above: boolean;
   isEditing: boolean;
+  /** Empieza a arrastrar el texto a otra posición. */
+  onDragStart: (event: ReactPointerEvent) => void;
 }
 
 const store = () => useDiagramStore.getState();
 
 /** Texto de la conexión: la guarda entre corchetes o la etiqueta tal cual. Doble clic para escribirlo. */
-function EdgeText({ edge, textKind, at, above, isEditing }: EdgeTextProps) {
+function EdgeText({ edge, textKind, at, above, isEditing, onDragStart }: EdgeTextProps) {
   const isGuard = textKind === 'guard';
   const value = isGuard ? (edge.guard ?? '') : edge.label;
   if (!isEditing && !value) return null;
@@ -112,7 +125,11 @@ function EdgeText({ edge, textKind, at, above, isEditing }: EdgeTextProps) {
 
   return (
     <div
+      title={isEditing ? undefined : 'Arrastra para mover el texto. Doble clic para editarlo'}
+      onPointerDown={isEditing ? undefined : onDragStart}
       className={`trazo-edge-label nodrag nopan pointer-events-auto absolute rounded-md px-1.5 py-0.5 text-xs whitespace-nowrap ${
+        isEditing ? '' : 'cursor-move '
+      }${
         above ? 'text-ink-900' : 'bg-canvas text-ink-600'
       }`}
       // zIndex: las flechas entre nodos de un carril se elevan sobre él; el texto debe quedar encima de ellas.
@@ -233,6 +250,38 @@ function useHeightDrag(edgeId: string) {
       // No sube por encima del borde superior del participante.
       const offset = Math.max(0, snapValue(y - top));
       store().setEdgeProps(edgeId, { ...edge.props, [EDGE_OFFSET_KEY]: offset });
+    });
+  };
+}
+
+/** Pasado este recorrido (en píxeles de pantalla) un clic se vuelve arrastre: así el doble clic sigue editando. */
+const DRAG_THRESHOLD = 3;
+
+/**
+ * Arrastre del texto de una flecha: guarda su desplazamiento respecto del punto
+ * medio (core/model/edgeLabel). Todo el gesto es un solo paso de deshacer.
+ */
+function useLabelDrag() {
+  const { getZoom } = useReactFlow();
+
+  return (event: ReactPointerEvent, edge: DiagramEdge) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    const origin = { x: event.clientX, y: event.clientY };
+    const base = readLabelOffset(edge);
+    let dragging = false;
+
+    followPointer((moveEvent) => {
+      const zoom = getZoom();
+      const dx = (moveEvent.clientX - origin.x) / zoom;
+      const dy = (moveEvent.clientY - origin.y) / zoom;
+      if (!dragging) {
+        if (Math.hypot(moveEvent.clientX - origin.x, moveEvent.clientY - origin.y) < DRAG_THRESHOLD) return;
+        dragging = true;
+        store().checkpoint();
+      }
+      const offset = { x: Math.round(base.x + dx), y: Math.round(base.y + dy) };
+      store().setEdgeProps(edge.id, { ...edge.props, [LABEL_OFFSET_KEY]: offset });
     });
   };
 }
