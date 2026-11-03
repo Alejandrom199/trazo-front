@@ -268,11 +268,6 @@ export function DiagramCanvas() {
 
 const store = () => useDiagramStore.getState();
 
-/** Shift+clic: agrega el elemento a la selección, o lo quita si ya estaba. */
-function toggled(ids: string[], id: string): string[] {
-  return ids.includes(id) ? ids.filter((candidate) => candidate !== id) : [...ids, id];
-}
-
 const clearElementClick = () => useElementClickStore.getState().setClicked(null);
 
 /** Clic derecho: en vez del menú del navegador, el de Trazo, en el punto exacto del clic. */
@@ -289,12 +284,9 @@ function openContextMenu(
 
 /** Publica el clic en un nodo con el rectángulo del nodo en pantalla (para ubicar el popup a su lado). */
 function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
-  if (event.shiftKey) {
-    const { selection } = store();
-    store().setSelection({ ...selection, nodeIds: toggled(selection.nodeIds, nodeId) });
-    clearElementClick();
-    return;
-  }
+  // Con Shift, React Flow ya agregó o quitó el nodo de la selección (multiSelectionKeyCode):
+  // aquí solo se evita abrir el popup de un único elemento.
+  if (event.shiftKey) return clearElementClick();
   const element = (event.target as Element).closest('.react-flow__node');
   const rect = (element ?? (event.currentTarget as Element)).getBoundingClientRect();
   useElementClickStore.getState().setClicked({ kind: 'node', id: nodeId, rect });
@@ -302,12 +294,7 @@ function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
 
 /** En una flecha no hay rectángulo útil: se usa el punto exacto donde se hizo clic. */
 function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
-  if (event.shiftKey) {
-    const { selection } = store();
-    store().setSelection({ ...selection, edgeIds: toggled(selection.edgeIds, edgeId) });
-    clearElementClick();
-    return;
-  }
+  if (event.shiftKey) return clearElementClick();
   const rect = { left: event.clientX, top: event.clientY, right: event.clientX, bottom: event.clientY };
   useElementClickStore.getState().setClicked({ kind: 'edge', id: edgeId, rect });
 }
