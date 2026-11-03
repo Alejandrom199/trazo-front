@@ -32,6 +32,7 @@ import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
 import { GuideLines, useGuidesStore } from './GuideLines';
 import { snapToGuides, type Guide } from './alignmentGuides';
+import { useClipboardShortcuts } from './clipboardActions';
 import { LassoLayer } from './LassoLayer';
 import { LockBadges } from './LockBadges';
 import { centerInParent, placeArtifact } from './placeArtifact';
@@ -75,6 +76,7 @@ export function DiagramCanvas() {
   const { screenToFlowPosition, getZoom } = useReactFlow();
   const { notice, showNotice } = useNotice();
   useUndoRedoShortcuts();
+  useClipboardShortcuts(module);
   useFitViewOnOpen(diagram?.id);
   useResetViewOnOpen(diagram?.id);
   const highlight = useHighlightStore((state) => state.highlight);

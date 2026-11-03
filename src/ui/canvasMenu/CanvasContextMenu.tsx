@@ -13,12 +13,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useContextMenuStore, type CanvasContextMenu as MenuState } from '@/canvas/contextMenuStore';
 import { useElementClickStore } from '@/canvas/elementClickStore';
+import { duplicate } from '@/canvas/clipboardActions';
 import { placeArtifact, useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { ARTIFACT_CATEGORIES, protectedNodeIds, type ArtifactDefinition, type Diagram } from '@/core/model';
 import type { DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
-import { createId } from '@/core/utils/id';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { ArtifactPopover, type PopoverAnchor } from '@/ui/explanation/ArtifactPopover';
 import { searchArtifacts } from '@/ui/palette/artifactSearch';
@@ -401,13 +401,10 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
     },
     {
       id: 'duplicate',
-      label: kind.isContainer ? 'Duplicar (sin su contenido)' : 'Duplicar',
+      label: kind.isContainer ? 'Duplicar con su contenido' : 'Duplicar',
       icon: faClone,
-      run: () => {
-        const copy = { ...node, id: createId(), position: { x: node.position.x + DUPLICATE_OFFSET, y: node.position.y + DUPLICATE_OFFSET }, props: { ...node.props }, locked: false };
-        store.addNode(copy);
-        store.setSelection({ nodeIds: [copy.id], edgeIds: [] });
-      },
+      shortcut: 'Ctrl+D',
+      run: () => duplicate(module, { nodeIds: [id], edgeIds: [] }),
     },
     {
       id: 'delete',
@@ -425,5 +422,3 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
   ];
 }
 
-/** Separación de la copia respecto del original, para que se vea que hay dos. */
-const DUPLICATE_OFFSET = 24;

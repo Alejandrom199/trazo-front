@@ -11,3 +11,4 @@ export * from './horizontalEdge';
 export * from './viewMetadata';
 export * from './edgeLabel';
 export * from './arrange';
+export * from './clipboard';

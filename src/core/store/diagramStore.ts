@@ -59,6 +59,8 @@ interface DiagramState {
   // Cambios discretos: cada uno es un paso de deshacer.
   addNode: (node: DiagramNode) => void;
   connect: (edge: DiagramEdge) => void;
+  /** Agrega varios nodos y flechas (pegar, duplicar) en un solo paso de deshacer, y los deja seleccionados. */
+  addElements: (nodes: DiagramNode[], edges: DiagramEdge[]) => void;
   setNodeLabel: (nodeId: string, label: string) => void;
   /** Cambia propiedades de un nodo desde el panel de propiedades (un paso de deshacer). */
   updateNode: (nodeId: string, patch: NodePatch) => void;
@@ -149,6 +151,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     addNode: (node) => apply((diagram) => addNode(diagram, node), true),
     connect: (edge) => apply((diagram) => addEdge(diagram, edge), true),
+    addElements: (nodes, edges) => {
+      if (nodes.length === 0) return;
+      // Los contenedores van antes que sus hijos (React Flow lo exige al dibujar).
+      apply((diagram) => edges.reduce(addEdge, nodes.reduce(addNode, diagram)), true);
+      set({ selection: { nodeIds: nodes.map((node) => node.id), edgeIds: edges.map((edge) => edge.id) } });
+    },
     setNodeLabel: (nodeId, label) =>
       apply((diagram) => {
         const node = diagram.nodes.find((candidate) => candidate.id === nodeId);
