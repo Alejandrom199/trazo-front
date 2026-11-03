@@ -99,6 +99,11 @@ function GroupRow({ group, module, name }: { group: SelectionGroup; module: Diag
   const kind = group.kind === 'node' ? module.nodeKinds[group.artifactType] : undefined;
   const selectOnly = (id: string) =>
     store().setSelection(group.kind === 'node' ? { nodeIds: [id], edgeIds: [] } : { nodeIds: [], edgeIds: [id] });
+  /** Quita un solo elemento de la selección; el resto sigue seleccionado. */
+  const deselect = (id: string) => {
+    const { selection } = store();
+    store().setSelection({ nodeIds: selection.nodeIds.filter((other) => other !== id), edgeIds: selection.edgeIds.filter((other) => other !== id) });
+  };
 
   return (
     <div>
@@ -113,17 +118,26 @@ function GroupRow({ group, module, name }: { group: SelectionGroup; module: Diag
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{name}</span>
         <span className="text-xs tabular-nums text-ink-400">× {group.elements.length}</span>
       </div>
-      <ul className="mt-1.5 flex flex-wrap gap-1 pl-[3.125rem]">
+      <ul className="mt-1.5 space-y-0.5 pl-[3.125rem]">
         {group.elements.map((element: DiagramNode | DiagramEdge) => (
-          <li key={element.id}>
+          <li key={element.id} className="group/row flex items-center rounded-md hover:bg-raised">
             <button
               type="button"
               onClick={() => selectOnly(element.id)}
               title="Seleccionar solo este"
-              className="flex max-w-40 items-center gap-1 rounded-md border border-line px-1.5 py-0.5 text-[11px] text-ink-600 hover:border-accent/50 hover:text-accent"
+              className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left text-xs text-ink-600 hover:text-accent"
             >
               {'locked' in element && element.locked && <FontAwesomeIcon icon={faLock} className="text-[9px]" />}
               <span className="truncate">{element.label.trim() || 'sin nombre'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => deselect(element.id)}
+              aria-label={`Quitar «${element.label.trim() || 'sin nombre'}» de la selección`}
+              title="Quitar de la selección"
+              className="mr-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] text-ink-400 hover:bg-surface hover:text-ink-900"
+            >
+              <FontAwesomeIcon icon={faXmark} />
             </button>
           </li>
         ))}
