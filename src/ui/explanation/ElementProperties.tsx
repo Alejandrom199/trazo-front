@@ -1,7 +1,7 @@
-import { EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type ArtifactDefinition, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type LineStyle, type NodePatch } from '@/core/model';
-import { readNumberProperty, type DiagramModule } from '@/core/registry';
+import { EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type NodePatch } from '@/core/model';
+import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
-import { Field, FieldGroup, inputClass, LINE_OPTIONS, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from './formFields';
+import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from './formFields';
 
 /**
  * Propiedades editables del elemento clicado en el lienzo. Cada campo confirma al
@@ -40,17 +40,47 @@ export function NodeProperties({ node, diagram, module }: { node: DiagramNode; d
         </Field>
       )}
 
-      {kind?.properties.map((property) => (
-        <Field key={property.key} label={property.label} hint={`Entre ${property.min} y ${property.max}${property.unit ?? ''}`}>
-          <NumberInput
-            prefix={property.unit ?? ''}
-            value={readNumberProperty(node, property)}
-            min={property.min}
-            max={property.max}
-            onCommit={(value) => update({ props: { ...node.props, [property.key]: value } })}
-          />
-        </Field>
-      ))}
+      {kind?.properties.map((property) => {
+        if (property.kind === 'text') {
+          return (
+            <Field key={property.key} label={property.label} hint={property.hint}>
+              <TextInput
+                value={readTextProperty(node, property)}
+                placeholder={property.placeholder}
+                onCommit={(value) => update({ props: { ...node.props, [property.key]: value } })}
+              />
+            </Field>
+          );
+        }
+        if (property.kind === 'select') {
+          return (
+            <Field key={property.key} label={property.label} hint={property.hint}>
+              <select
+                value={readSelectProperty(node, property)}
+                onChange={(event) => update({ props: { ...node.props, [property.key]: event.target.value } })}
+                className={inputClass}
+              >
+                {property.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          );
+        }
+        return (
+          <Field key={property.key} label={property.label} hint={`Entre ${property.min} y ${property.max}${property.unit ?? ''}`}>
+            <NumberInput
+              prefix={property.unit ?? ''}
+              value={readNumberProperty(node, property)}
+              min={property.min}
+              max={property.max}
+              onCommit={(value) => update({ props: { ...node.props, [property.key]: value } })}
+            />
+          </Field>
+        );
+      })}
 
       <Field label="Notas">
         <TextInput value={node.notes} multiline placeholder="Comentario para ti o tu equipo" onCommit={(notes) => update({ notes })} />
@@ -63,44 +93,19 @@ export function EdgeProperties({
   edge,
   diagram,
   module,
-  definition,
 }: {
   edge: DiagramEdge;
   diagram: Diagram;
   module: DiagramModule;
-  definition: ArtifactDefinition;
 }) {
   const nameOf = (id: string) => diagram.nodes.find((node) => node.id === id)?.label.trim() || 'nodo sin nombre';
   const kind = module.edgeKinds[edge.artifactType];
   const isHorizontal = kind?.layout === 'horizontal';
   const labelOffset = readLabelOffset(edge);
-  /** El estilo que le corresponde por su tipo (p. ej. el anclaje de nota es discontinuo). */
-  const defaultStyle: LineStyle = kind?.dashed ? 'dashed' : 'solid';
   const update = (patch: EdgePatch) => useDiagramStore.getState().updateEdge(edge.id, patch);
-  const alternatives = (kind?.switchableTo ?? [])
-    .map((type) => module.artifacts.find((artifact) => artifact.type === type))
-    .filter((artifact): artifact is ArtifactDefinition => artifact !== undefined);
 
   return (
     <div className="space-y-4">
-      <Field label="Tipo" hint={alternatives.length > 0 ? 'Cambia el tipo sin volver a dibujarla' : undefined}>
-        {alternatives.length > 0 ? (
-          <select
-            value={edge.artifactType}
-            // Al cambiar de tipo, el estilo de línea vuelve al del tipo nuevo.
-            onChange={(event) => update({ artifactType: event.target.value, lineStyle: null })}
-            className={inputClass}
-          >
-            {[definition, ...alternatives.filter((artifact) => artifact.type !== definition.type)].map((artifact) => (
-              <option key={artifact.type} value={artifact.type}>
-                {artifact.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <p className="text-sm text-ink-900">{definition.name}</p>
-        )}
-      </Field>
       <Field label="Conecta">
         <p className="text-sm text-ink-900">
           «{nameOf(edge.sourceId)}» → «{nameOf(edge.targetId)}»
@@ -160,21 +165,6 @@ export function EdgeProperties({
         )}
       </FieldGroup>
       )}
-
-      <FieldGroup
-        label="Línea"
-        hint={
-          edge.lineStyle && edge.lineStyle !== defaultStyle
-            ? `En UML este tipo se dibuja con línea ${defaultStyle === 'dashed' ? 'discontinua' : 'continua'}: cambiarla puede confundir a quien lo lea.`
-            : undefined
-        }
-      >
-        <Segmented
-          value={edge.lineStyle ?? defaultStyle}
-          options={LINE_OPTIONS}
-          onChange={(lineStyle) => update({ lineStyle: lineStyle === defaultStyle ? null : lineStyle })}
-        />
-      </FieldGroup>
     </div>
   );
 }

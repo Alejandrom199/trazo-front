@@ -6,11 +6,12 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createDiagramFromTemplate, groupByUmlFamily, umlKindOf, type Difficulty, type DiagramType, type Template, type UmlFamily } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { useUiStore } from '@/ui/uiStore';
 import { SavedDiagrams } from './SavedDiagrams';
 import { TemplatePreview } from './TemplatePreview';
@@ -48,19 +49,16 @@ export function TemplateGallery() {
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
   const persistenceAvailable = usePersistenceStore((state) => state.repository !== null);
   const [view, setView] = useState<GalleryView>({ step: 'start' });
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setGalleryOpen(false), [setGalleryOpen]);
+  useDialogBehavior(isOpen, dialogRef, close);
   // Agrupados como UML: estructura y comportamiento.
   const groups = groupByUmlFamily(diagramRegistry.list(), (module) => module.diagramType);
   const modules = groups.flatMap((group) => group.items);
 
   useEffect(() => {
-    if (!isOpen) {
-      setView({ step: 'start' });
-      return;
-    }
-    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && setGalleryOpen(false);
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [isOpen, setGalleryOpen]);
+    if (!isOpen) setView({ step: 'start' });
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -88,13 +86,15 @@ export function TemplateGallery() {
   return (
     <div
       className="motion-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-[2px] md:p-6"
-      onMouseDown={(event) => event.target === event.currentTarget && setGalleryOpen(false)}
+      onMouseDown={(event) => event.target === event.currentTarget && close()}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="gallery-title"
-        className="flex h-[calc(100dvh-1.5rem)] max-h-[760px] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel md:h-[calc(100dvh-3rem)]"
+        tabIndex={-1}
+        className="flex h-[calc(100dvh-1.5rem)] max-h-[760px] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel outline-none md:h-[calc(100dvh-3rem)]"
       >
         <header className="relative flex items-start justify-between gap-4 bg-brand px-5 py-5 text-white md:px-8 md:py-7">
           <div className="flex min-w-0 items-start gap-3">
@@ -103,7 +103,7 @@ export function TemplateGallery() {
                 type="button"
                 onClick={goBack}
                 aria-label="Volver"
-                className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="text-sm" />
               </button>
@@ -117,9 +117,9 @@ export function TemplateGallery() {
           </div>
           <button
             type="button"
-            onClick={() => setGalleryOpen(false)}
+            onClick={close}
             aria-label="Cerrar"
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             <FontAwesomeIcon icon={faXmark} className="text-sm" />
           </button>
@@ -150,7 +150,10 @@ export function TemplateGallery() {
               />
 
               <div role="tabpanel" className="min-w-0 flex-1">
-                <h3 className="mb-3 text-sm font-semibold text-ink-900">Ejemplos de {shortDiagramName(selectedModule).toLowerCase()}</h3>
+                <h3 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-900">
+                  Ejemplos de {shortDiagramName(selectedModule).toLowerCase()}
+                  {selectedModule.maturity === 'preview' && <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-ink-900">Vista previa</span>}
+                </h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                   {selectedModule.templates.map((template) => (
                     <GalleryCard

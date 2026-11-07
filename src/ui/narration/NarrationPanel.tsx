@@ -43,10 +43,10 @@ function isNumbered(line: NarrationLine): boolean {
  * "Explicar diagrama": la narración del módulo activo, recalculada en vivo.
  * Clic en una línea = resalta (y el lienzo encuadra) los elementos que describe.
  */
-export function NarrationPanel() {
+export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
-  const setNarrationOpen = useUiStore((state) => state.setNarrationOpen);
+  const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const highlight = useHighlightStore((state) => state.highlight);
   const setHighlight = useHighlightStore((state) => state.setHighlight);
   const [copied, setCopied] = useState(false);
@@ -79,11 +79,11 @@ export function NarrationPanel() {
 
   function close() {
     if (highlight?.sourceKey.startsWith(NARRATION_PREFIX)) setHighlight(null);
-    setNarrationOpen(false);
+    setInspectorOpen(false);
   }
 
-  return (
-    <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-[420px]">
+  const content = (
+    <>
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Narración</h2>
         <div className="ml-auto flex items-center gap-1">
@@ -114,14 +114,16 @@ export function NarrationPanel() {
               {copied ? 'Copiado' : 'Copiar texto'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Cerrar narración"
-            className="flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
-          >
-            <FontAwesomeIcon icon={faXmark} className="text-sm" />
-          </button>
+          {!embedded && (
+            <button
+              type="button"
+              onClick={close}
+              aria-label="Cerrar narración"
+              className="flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
+            >
+              <FontAwesomeIcon icon={faXmark} className="text-sm" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -204,6 +206,8 @@ export function NarrationPanel() {
       <footer className="border-t border-line px-4 py-2.5 text-[11px] leading-relaxed text-ink-400">
         Narración automática y determinista: se genera recorriendo el diagrama, sin IA. Haz clic en una línea para verla en el lienzo.
       </footer>
-    </Panel>
+    </>
   );
+  if (embedded) return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
+  return <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-[420px]">{content}</Panel>;
 }

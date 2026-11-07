@@ -123,7 +123,7 @@ export function SavedDiagrams({ onOpened, limit, onShowAll }: SavedDiagramsProps
                   type="button"
                   onClick={() => setConfirmingId(summary.id)}
                   aria-label={`Eliminar «${summary.name}»`}
-                  className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-lg bg-surface/90 text-ink-400 opacity-0 shadow-sm group-hover:opacity-100 hover:text-danger focus-visible:opacity-100"
+                  className="absolute top-2 right-2 flex size-11 items-center justify-center rounded-lg bg-surface/90 text-ink-400 opacity-100 shadow-sm hover:text-danger sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                 >
                   <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
                 </button>

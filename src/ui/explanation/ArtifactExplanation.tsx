@@ -9,10 +9,21 @@ interface ArtifactExplanationProps {
   onOpenRelated: (artifactType: string) => void;
   /** Datos del elemento concreto del diagrama, si se explica uno. */
   instance?: ReactNode;
+  /** Vista rápida de la paleta. La ficha completa vive en el inspector. */
+  variant?: 'full' | 'brief';
 }
 
-/** Ficha completa de un artefacto: lo que dice su ArtifactDefinition, ordenado para aprender. */
-export function ArtifactExplanation({ definition, definitionsByType, onOpenRelated, instance }: ArtifactExplanationProps) {
+/** Ficha de un artefacto. `brief` es la vista rápida; `full` es la del inspector. */
+export function ArtifactExplanation({ definition, definitionsByType, onOpenRelated, instance, variant = 'full' }: ArtifactExplanationProps) {
+  if (variant === 'brief') {
+    return (
+      <article className="space-y-3 text-sm leading-relaxed text-ink-600">
+        <p className="text-ink-900">{definition.whatIs}</p>
+        <p>{definition.whatFor}</p>
+        <p className="rounded-xl border-l-2 border-accent bg-accent-soft/60 px-3 py-2.5 text-ink-900">{definition.example}</p>
+      </article>
+    );
+  }
   const connections = describeConnectionRules(definition.connectionRules);
 
   return (

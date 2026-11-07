@@ -70,7 +70,7 @@ function KindChip({ kind }: { kind: UmlDiagramKind }) {
     <li>
       <button
         type="button"
-        title={kind.summary}
+        title={diagramRegistry.get(diagramType).maturity === 'preview' ? `${kind.summary} Vista previa.` : kind.summary}
         onClick={() => navigate({ page: 'learn-diagram', diagramType })}
         className="rounded-md border border-accent/40 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent hover:border-accent focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
       >

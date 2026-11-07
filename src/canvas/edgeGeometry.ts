@@ -89,9 +89,11 @@ const BAR_RATIO = 4;
 
 /**
  * Coordenada de una flecha recta entre dos nodos que se solapan en un eje:
+ *   0. si uno es claramente más chico (un nodo inicial redondo junto a una acción,
+ *      una acción bajo una barra de fork), su centro, si cae dentro del otro: así
+ *      la línea no roza el borde del nodo chico como una tangente;
  *   1. el centro del destino, si cae dentro del origen: la punta llega centrada
- *      (p. ej. a un nodo final redondo) y de una barra de fork sale una línea
- *      recta hacia cada acción;
+ *      (p. ej. a un nodo final redondo);
  *   2. si no, el centro del origen, si cae dentro del destino (p. ej. una acción
  *      que entra a un costado de una barra de join);
  *   3. si no, el centro del más angosto ajustado al tramo que comparten.
@@ -99,13 +101,18 @@ const BAR_RATIO = 4;
 function sharedCoordinate(sourceStart: number, sourceSize: number, targetStart: number, targetSize: number): number {
   const sourceCenter = sourceStart + sourceSize / 2;
   const targetCenter = targetStart + targetSize / 2;
+  if (sourceSize < CLEARLY_SMALLER * targetSize && sourceCenter >= targetStart && sourceCenter <= targetStart + targetSize) return sourceCenter;
+  if (targetSize < CLEARLY_SMALLER * sourceSize && targetCenter >= sourceStart && targetCenter <= sourceStart + sourceSize) return targetCenter;
   if (targetCenter >= sourceStart && targetCenter <= sourceStart + sourceSize) return targetCenter;
   if (sourceCenter >= targetStart && sourceCenter <= targetStart + targetSize) return sourceCenter;
   const narrowerCenter = sourceSize <= targetSize ? sourceCenter : targetCenter;
   return clamp(narrowerCenter, Math.max(sourceStart, targetStart), Math.min(sourceStart + sourceSize, targetStart + targetSize));
 }
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+/** Un nodo es "claramente más chico" que otro en un eje si mide menos de esta fracción. */
+const CLEARLY_SMALLER = 0.8;
+
+const clamp =(value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 function centerOf(rect: Rect) {
   return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };

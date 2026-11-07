@@ -26,8 +26,11 @@ import type { EdgeKind, NodeKind } from '@/core/registry';
 import { useCanvasInteractionStore } from '@/canvas/canvasInteractionStore';
 import { useContextMenuStore } from '@/canvas/contextMenuStore';
 import { ARTIFACT_DRAG_MIME } from '@/canvas/dragAndDrop';
+import { edgeTypeChangePatch } from '@/canvas/applyEdgeType';
+import { switchableSelectedEdges } from '@/canvas/edgeTypeChoice';
 import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
+import { useDiagramStore } from '@/core/store/diagramStore';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 import { ArtifactPopover } from '@/ui/explanation/ArtifactPopover';
@@ -163,7 +166,7 @@ export function PalettePanel() {
       {flyout?.key === CONNECTORS && (
         <CategoryFlyout title="Conexiones" anchor={flyout.anchor} onClose={() => setFlyout(null)}>
           <p className="px-2 pb-2 text-xs leading-relaxed text-ink-400">
-            Arrastra desde un punto de un nodo hasta otro. Elige aquí el tipo para las próximas flechas; si no eliges, se deduce solo.
+            Arrastra desde un punto de un nodo hasta otro. Elige aquí el tipo para la flecha seleccionada o para las próximas; si no eliges, se deduce solo.
           </p>
           {connectors.map((artifact) => (
             <ConnectorItem
@@ -172,7 +175,18 @@ export function PalettePanel() {
               kind={module.edgeKinds[artifact.type]}
               chosen={nextEdgeType === artifact.type}
               isOpen={opened?.artifact.type === artifact.type}
-              onChoose={() => setNextEdgeType(nextEdgeType === artifact.type ? null : artifact.type)}
+              onChoose={() => {
+                const { diagram, selection } = useDiagramStore.getState();
+                const targets = diagram
+                  ? switchableSelectedEdges(module, diagram.edges, selection.edgeIds, selection.nodeIds, artifact.type)
+                  : [];
+                if (diagram && targets.length > 0) {
+                  useDiagramStore.getState().updateEdges(
+                    targets.map((edge) => ({ id: edge.id, patch: edgeTypeChangePatch(module, diagram, edge, artifact.type) })),
+                  );
+                }
+                setNextEdgeType(nextEdgeType === artifact.type ? null : artifact.type);
+              }}
               onInfo={toggleExplanation}
             />
           ))}
@@ -263,9 +277,8 @@ function PaletteItem({ artifact, kind, isOpen, compact = false, onHover, onLeave
             if (row) onInfo(artifact, row.getBoundingClientRect());
           }}
           onKeyDown={(event) => event.stopPropagation()}
-          className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
-            // Semitransparente en reposo para no competir con el nombre; se aviva al pasar el ratón.
-            isOpen ? 'text-accent' : 'text-ink-400/50 hover:bg-surface hover:text-accent group-hover/item:text-ink-400'
+          className={`flex size-11 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
+            isOpen ? 'text-accent' : 'text-ink-400 hover:bg-surface hover:text-accent'
           }`}
         >
           <FontAwesomeIcon icon={faCircleInfo} />
@@ -380,8 +393,8 @@ function ConnectorItem({
           if (row) onInfo(artifact, row.getBoundingClientRect());
         }}
         onKeyDown={(event) => event.stopPropagation()}
-        className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
-          isOpen ? 'text-accent' : 'text-ink-400/50 hover:bg-surface hover:text-accent group-hover/item:text-ink-400'
+        className={`flex size-11 shrink-0 items-center justify-center rounded-md text-[13px] transition-colors ${
+          isOpen ? 'text-accent' : 'text-ink-400 hover:bg-surface hover:text-accent'
         }`}
       >
         <FontAwesomeIcon icon={faCircleInfo} />

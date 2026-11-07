@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { ArtifactDefinition } from '@/core/model';
 import { useUiStore, type PopoverTab } from '@/ui/uiStore';
+import { ArtifactExplanation } from './ArtifactExplanation';
 
 /** Rectángulo en pantalla junto al que se abre el popup (DOMRect lo cumple). */
 export interface PopoverAnchor {
@@ -121,7 +122,7 @@ export function ArtifactPopover({
               aria-expanded={detailsOpen}
               aria-label={detailsOpen ? 'Ocultar propiedades y explicación' : 'Ver propiedades y explicación'}
               title={detailsOpen ? 'Ocultar detalle' : 'Ver propiedades y explicación'}
-              className={`flex size-7 items-center justify-center rounded-lg transition-colors ${
+              className={`flex size-11 items-center justify-center rounded-lg transition-colors ${
                 detailsOpen ? 'text-ink-400 hover:bg-canvas hover:text-ink-900' : 'bg-accent-soft text-accent hover:bg-brand hover:text-white'
               }`}
             >
@@ -132,7 +133,7 @@ export function ArtifactPopover({
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="flex size-7 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
+            className="flex size-11 items-center justify-center rounded-lg text-ink-400 hover:bg-canvas hover:text-ink-900"
           >
             <FontAwesomeIcon icon={faXmark} className="text-sm" />
           </button>
@@ -151,29 +152,19 @@ export function ArtifactPopover({
           {tab === 'properties' && properties ? (
             <div className="overflow-y-auto px-4 py-4">{properties}</div>
           ) : (
-            <div className="space-y-4 overflow-y-auto px-4 py-4 text-sm leading-relaxed text-ink-600">
-              <section>
-                <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Qué es</h4>
-                <p className="text-ink-900">{artifact.whatIs}</p>
-              </section>
-
-              <section>
-                <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Por qué se usa</h4>
-                <p>{artifact.whatFor}</p>
-                <p className="mt-1.5">{artifact.whyExists}</p>
-              </section>
-
-              <section>
-                <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Cuándo usarlo</h4>
-                <ul className="space-y-1.5">
-                  {artifact.whenToUse.map((item) => (
-                    <li key={item} className="flex gap-2.5">
-                      <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-success" aria-hidden />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+            <div className="overflow-y-auto px-4 py-4">
+              <ArtifactExplanation definition={artifact} definitionsByType={new Map()} onOpenRelated={() => undefined} variant="brief" />
+              <button
+                type="button"
+                onClick={() => {
+                  useUiStore.getState().setPinnedExplanation(artifact.type);
+                  useUiStore.getState().setInspectorTab('explanation');
+                  onClose();
+                }}
+                className="mt-4 text-sm font-medium text-accent hover:underline"
+              >
+                Abrir la ficha completa
+              </button>
             </div>
           )}
 

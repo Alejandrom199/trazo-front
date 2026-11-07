@@ -43,12 +43,12 @@ export function LayersControl() {
         aria-controls="trazo-layers"
         title="Capas: el orden en que se apilan los artefactos"
         onClick={() => setOpen((value) => !value)}
-        className={`glass-panel relative flex h-11 items-center gap-2 rounded-xl px-3.5 text-[13px] transition-colors ${
+        className={`glass-panel relative flex h-11 items-center gap-2 rounded-xl px-3 text-[13px] transition-colors sm:px-3.5 ${
           open ? 'text-accent' : 'text-ink-600 hover:text-ink-900'
         }`}
       >
         <FontAwesomeIcon icon={faLayerGroup} />
-        <span>Capas</span>
+        <span className="hidden sm:inline">Capas</span>
       </button>
       {open && <LayersPanel module={module} empty={!hasNodes} onClose={() => setOpen(false)} />}
     </div>
@@ -108,7 +108,7 @@ function LayersPanel({ module, empty, onClose }: { module: DiagramModule; empty:
     <section id="trazo-layers" aria-label="Capas" className="glass-panel relative flex max-h-[min(30rem,calc(100vh-12rem))] w-64 flex-col rounded-xl">
       <header className="flex items-center justify-between border-b border-line/70 py-2 pr-1.5 pl-3.5">
         <p className="text-sm font-semibold text-ink-900">Capas</p>
-        <button type="button" aria-label="Cerrar capas" onClick={onClose} className="flex size-7 items-center justify-center rounded-md text-ink-400 hover:bg-raised hover:text-ink-900">
+        <button type="button" aria-label="Cerrar capas" onClick={onClose} className="flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-raised hover:text-ink-900">
           <FontAwesomeIcon icon={faXmark} className="text-xs" />
         </button>
       </header>
@@ -179,8 +179,8 @@ function LayersPanel({ module, empty, onClose }: { module: DiagramModule; empty:
                   aria-label={node.locked ? `Desbloquear ${name}` : `Bloquear ${name}`}
                   title={node.locked ? 'Desbloquear' : 'Bloquear'}
                   onClick={() => store().updateNode(node.id, { locked: !node.locked })}
-                  className={`mr-1 flex size-6 shrink-0 items-center justify-center rounded text-[10px] hover:bg-surface ${
-                    node.locked ? 'text-ink-600' : 'text-ink-400 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100'
+                  className={`mr-1 flex size-11 shrink-0 items-center justify-center rounded text-[10px] hover:bg-surface ${
+                    node.locked ? 'text-ink-600' : 'text-ink-400'
                   }`}
                 >
                   <FontAwesomeIcon icon={node.locked ? faLock : faLockOpen} />

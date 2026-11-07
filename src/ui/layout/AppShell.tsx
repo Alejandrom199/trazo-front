@@ -1,55 +1,64 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { DiagramCanvas } from '@/canvas/DiagramCanvas';
-import { useDiagramStore } from '@/core/store/diagramStore';
 import { CanvasContextMenu } from '@/ui/canvasMenu/CanvasContextMenu';
-import { CanvasArtifactPopover } from '@/ui/explanation/CanvasArtifactPopover';
-import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
+import { InspectorDock, InspectorToggle } from '@/ui/inspector/InspectorDock';
 import { LearnPage } from '@/ui/learn/LearnPage';
 import { useRoute } from '@/ui/navigation/route';
-import { NarrationPanel } from '@/ui/narration/NarrationPanel';
 import { PalettePanel } from '@/ui/palette/PalettePanel';
-import { SelectionPanel } from '@/ui/selection/SelectionPanel';
+import { ProjectSidebar, ProjectSidebarToggle } from '@/ui/projects/ProjectSidebar';
 import { TemplateGallery } from '@/ui/templates/TemplateGallery';
 import { TooltipLayer } from '@/ui/tooltip/TooltipLayer';
-import { ArtifactsToggle, CanvasSelectionToolbar } from '@/ui/toolbar/CanvasSelectionToolbar';
+import { CommandPalette } from '@/ui/commands/CommandPalette';
+import { ArtifactsToggle, CanvasSelectionToolbar, ZoomControls } from '@/ui/toolbar/CanvasSelectionToolbar';
+import { CanvasViewControl } from '@/ui/toolbar/CanvasViewControl';
+import { GridControl } from '@/ui/toolbar/GridControl';
 import { LayersControl } from '@/ui/layers/LayersControl';
+import { EditorTutorial } from '@/ui/tutorial/EditorTutorial';
 import { useUiStore } from '@/ui/uiStore';
-import { ValidationPanel } from '@/ui/validation/ValidationPanel';
 import { ProjectPanel } from '@/ui/projects/ProjectPanel';
 import { AppHeader } from './AppHeader';
 
 /**
- * Estructura de la pantalla: la barra superior y, debajo, el lienzo con todo el
- * ancho. Sobre el lienzo flotan las herramientas (selección, capas y artefactos),
- * el panel de explicación/narración y el de problemas; `pointer-events-none` en
- * sus capas deja pasar el ratón al lienzo en los huecos. La página Aprender se
- * superpone al lienzo sin desmontarlo.
+ * Mesa de trabajo: navegador del proyecto, lienzo e inspector estable. Los dos
+ * laterales se integran como columnas en escritorio y como paneles superpuestos
+ * en pantallas angostas. Aprender ocupa el área de trabajo sin desmontar el lienzo.
  */
 export function AppShell() {
-  const narrationOpen = useUiStore((state) => state.narrationOpen);
   const notice = useUiStore((state) => state.notice);
   const artifactToolsVisible = useUiStore((state) => state.artifactToolsVisible);
   const route = useRoute();
-  // Con varios elementos seleccionados, el panel derecho muestra qué hay seleccionado.
-  const multipleSelected = useDiagramStore((state) => state.selection.nodeIds.length + state.selection.edgeIds.length > 1);
+  const inEditor = route.page === 'editor';
 
   return (
     <ReactFlowProvider>
       <div className="flex h-full w-full flex-col overflow-hidden">
         <AppHeader />
         <div className="relative flex min-h-0 flex-1">
+          {inEditor && <ProjectSidebar />}
           <div className="relative flex min-w-0 flex-1">
             <main className="relative min-w-0 flex-1 overflow-hidden bg-board">
               <div className="absolute inset-0">
                 <DiagramCanvas />
               </div>
 
-              {/* Arriba a la izquierda: abajo choca con el panel de problemas. */}
+              {/* Herramientas compactas; los botones de restaurar laterales aparecen solo al plegarlos. */}
               <div className="absolute top-3 left-3 z-10 flex items-start gap-2">
-                <CanvasSelectionToolbar />
-                <LayersControl />
+                <ProjectSidebarToggle />
                 <ArtifactsToggle />
+                <LayersControl />
               </div>
+              <div className="absolute top-3 right-3 z-10">
+                <InspectorToggle />
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
+                <div className="glass-panel pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-xl p-1">
+                  <CanvasSelectionToolbar embedded />
+                  <ZoomControls />
+                  <CanvasViewControl />
+                  <GridControl />
+                </div>
+              </div>
+              <EditorTutorial />
 
               {/* Herramientas de dibujo, bajo las de selección (se ocultan con su botón o la tecla A). */}
               {artifactToolsVisible && (
@@ -57,14 +66,6 @@ export function AppShell() {
                   <PalettePanel />
                 </div>
               )}
-
-              <div className="pointer-events-none absolute top-3 right-3 bottom-3 left-3 flex flex-col items-end *:pointer-events-auto md:left-auto">
-                {narrationOpen ? <NarrationPanel /> : multipleSelected ? <SelectionPanel /> : <ExplanationPanel />}
-              </div>
-
-              <div className="pointer-events-none absolute right-3 bottom-16 z-20 w-[min(25rem,calc(100%-1.5rem))] *:pointer-events-auto lg:right-[22rem] xl:bottom-3">
-                <ValidationPanel />
-              </div>
 
               {notice && (
                 <div
@@ -75,18 +76,19 @@ export function AppShell() {
                 </div>
               )}
             </main>
-            {route.page !== 'editor' && <LearnPage route={route} />}
+            {!inEditor && <LearnPage route={route} />}
           </div>
+          {inEditor && <InspectorDock />}
         </div>
 
         {route.page === 'editor' && (
           <>
-            <CanvasArtifactPopover />
             <CanvasContextMenu />
             <TemplateGallery />
             <ProjectPanel />
           </>
         )}
+        <CommandPalette />
         <TooltipLayer />
       </div>
     </ReactFlowProvider>

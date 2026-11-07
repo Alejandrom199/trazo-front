@@ -35,6 +35,16 @@ describe('floatingEndpoints', () => {
     expect(floatingEndpoints(initial, final)).toMatchObject({ sourceX: 28, targetX: 28 });
   });
 
+  it('Dado un nodo inicial redondo a la derecha de una acción más alta, Entonces la línea sale por su centro y no lo roza', () => {
+    const initial = { x: 300, y: 0, width: 30, height: 30 };
+    const box = { x: 0, y: 0, width: 140, height: 60 };
+
+    const result = floatingEndpoints(initial, box);
+
+    expect(result.sourceY).toBe(15);
+    expect(result.targetY).toBe(15);
+  });
+
   it('Dados dos nodos en la misma fila, Entonces la flecha es horizontal y recta', () => {
     const result = floatingEndpoints(action(300, 0), action(0, 0));
 

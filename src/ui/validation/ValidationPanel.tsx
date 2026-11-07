@@ -22,12 +22,13 @@ const ISSUE_PREFIX = 'issue:';
  * regla sabe corregirlo, «Arreglar» lo hace en un paso de deshacer y deja
  * seleccionado lo que agregó, para que se vea la corrección.
  */
-export function ValidationPanel() {
+export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
   const highlight = useHighlightStore((state) => state.highlight);
   const setHighlight = useHighlightStore((state) => state.setHighlight);
   const [expanded, setExpanded] = useState(false);
+  const showingIssues = embedded || expanded;
 
   const issues = useMemo(
     () => (diagram && module ? validateDiagram(diagram, module.rules) : []),
@@ -69,9 +70,9 @@ export function ValidationPanel() {
   }
 
   return (
-    <div className="w-full min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
-      {expanded && (
-        <ul className="max-h-[38vh] divide-y divide-line overflow-y-auto border-b border-line">
+    <div className={embedded ? 'flex h-full w-full min-w-0 flex-col overflow-hidden bg-surface' : 'w-full min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-panel'}>
+      {showingIssues && (
+        <ul className={embedded ? 'order-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto' : 'max-h-[38vh] divide-y divide-line overflow-y-auto border-b border-line'}>
           {issues.length === 0 ? (
             <li className="px-4 py-4 text-sm text-ink-600">
               {diagram.nodes.length === 0
@@ -95,9 +96,9 @@ export function ValidationPanel() {
 
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        className="flex h-11 w-full items-center gap-3 px-4 text-left hover:bg-raised sm:gap-4"
+        onClick={() => !embedded && setExpanded(!expanded)}
+        aria-expanded={showingIssues}
+        className={`flex h-11 w-full shrink-0 items-center gap-3 px-4 text-left sm:gap-4 ${embedded ? 'order-1 cursor-default border-b border-line' : 'hover:bg-raised'}`}
       >
         <span className="text-xs font-semibold text-ink-600">Problemas</span>
         {issues.length === 0 ? (
@@ -119,10 +120,12 @@ export function ValidationPanel() {
               </span>
             ))
         )}
-        <FontAwesomeIcon
-          icon={faChevronDown}
-          className={`ml-auto text-[11px] text-ink-400 transition-transform ${expanded ? '' : 'rotate-180'}`}
-        />
+        {!embedded && (
+          <FontAwesomeIcon
+            icon={faChevronDown}
+            className={`ml-auto text-[11px] text-ink-400 transition-transform ${expanded ? '' : 'rotate-180'}`}
+          />
+        )}
       </button>
     </div>
   );

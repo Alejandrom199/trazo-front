@@ -1,4 +1,4 @@
-import { faBookOpen, faFolderOpen, faGraduationCap, faMoon, faPenRuler, faRotateLeft, faRotateRight, faSun, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { faFolderOpen, faGraduationCap, faMagnifyingGlass, faMoon, faPenRuler, faRotateLeft, faRotateRight, faSun, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { usePersistenceStore, type SaveStatus } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
@@ -6,16 +6,14 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { Logo } from '@/ui/brand/Logo';
 import { navigate, useRoute } from '@/ui/navigation/route';
-import { CanvasViewControl } from '@/ui/toolbar/CanvasViewControl';
 import { FileMenu } from '@/ui/toolbar/FileMenu';
-import { GridControl } from '@/ui/toolbar/GridControl';
 import { useUiStore } from '@/ui/uiStore';
 
 /**
  * Barra superior de toda la app, en una sola fila (el lienzo queda con todo el ancho):
  *   izquierda: logo, menú Archivo y el documento (nombre, tipo, guardado);
- *   derecha: lo del lienzo (explicar, vista, cuadrícula, deshacer), la sección
- *   (Editor / Aprender) y el tema. En Aprender solo quedan logo, sección y tema.
+ *   derecha: deshacer, la sección (Editor / Aprender) y el tema.
+ *   Vista, zoom y cuadrícula viven en la barra inferior del lienzo.
  */
 export function AppHeader() {
   const route = useRoute();
@@ -34,17 +32,17 @@ export function AppHeader() {
       <div className="ml-auto flex shrink-0 items-center gap-0.5">
         {inEditor && (
           <>
-            <ExplainToggle />
-            {/* En pantallas angostas se ocultan los ajustes de vista: el lienzo se maneja con los dedos. */}
-            <div className="hidden items-center gap-0.5 md:flex">
-              <CanvasViewControl />
-              <GridControl />
-            </div>
-            <Divider />
             <UndoRedo />
             <Divider />
           </>
         )}
+        <button type="button" onClick={() => useUiStore.getState().setCommandPaletteOpen(true)} aria-label="Buscar" aria-keyshortcuts="Control+K" className="flex size-11 items-center justify-center rounded-md text-ink-600 hover:bg-raised hover:text-ink-900 sm:hidden">
+          <FontAwesomeIcon icon={faMagnifyingGlass} />
+        </button>
+        <button type="button" onClick={() => useUiStore.getState().setCommandPaletteOpen(true)} className="hidden h-11 items-center rounded-md px-2 text-xs text-ink-400 hover:bg-raised hover:text-ink-900 sm:flex" aria-keyshortcuts="Control+K">
+          Buscar
+          <kbd className="ml-2 rounded border border-line px-1 text-[10px]">Ctrl K</kbd>
+        </button>
         <SectionSwitch inEditor={inEditor} />
         <ThemeToggle />
       </div>
@@ -54,10 +52,11 @@ export function AppHeader() {
 
 function ProjectBadge() {
   const project = useProjectStore((state) => state.project);
-  const setProjectOpen = useUiStore((state) => state.setProjectOpen);
+  const sidebarOpen = useUiStore((state) => state.projectSidebarOpen);
+  const setSidebarOpen = useUiStore((state) => state.setProjectSidebarOpen);
   if (!project) return null;
   return (
-    <button type="button" onClick={() => setProjectOpen(true)} title="Abrir proyecto" className="hidden max-w-48 items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/15 md:flex">
+    <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} aria-pressed={sidebarOpen} title={sidebarOpen ? 'Ocultar navegador del proyecto' : 'Mostrar navegador del proyecto'} className="hidden max-w-48 items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/15 md:flex">
       <FontAwesomeIcon icon={faFolderOpen} className="text-[11px]" />
       <span className="truncate">{project.name}</span>
       <span className="rounded-full bg-surface px-1.5 text-[10px]">{project.diagramIds.length}</span>
@@ -84,26 +83,6 @@ function DocumentTitle() {
         <SaveIndicator />
       </span>
     </div>
-  );
-}
-
-/** Explicar: la narración paso a paso del diagrama, en el panel derecho. */
-function ExplainToggle() {
-  const narrationOpen = useUiStore((state) => state.narrationOpen);
-  const setNarrationOpen = useUiStore((state) => state.setNarrationOpen);
-  return (
-    <button
-      type="button"
-      aria-pressed={narrationOpen}
-      title="Explicar el diagrama paso a paso"
-      onClick={() => setNarrationOpen(!narrationOpen)}
-      className={`flex h-8 items-center gap-2 rounded-md px-2.5 text-[13px] font-medium transition-colors ${
-        narrationOpen ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
-      }`}
-    >
-      <FontAwesomeIcon icon={faBookOpen} className="text-xs" />
-      <span className="hidden md:inline">Explicar</span>
-    </button>
   );
 }
 
@@ -201,7 +180,7 @@ function IconButton({ label, icon, disabled, onClick }: IconButtonProps) {
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-8 items-center justify-center rounded-md text-ink-600 hover:bg-raised hover:text-ink-900 disabled:pointer-events-none disabled:opacity-35"
+      className="flex size-11 items-center justify-center rounded-md text-ink-600 hover:bg-raised hover:text-ink-900 disabled:pointer-events-none disabled:opacity-35"
     >
       <FontAwesomeIcon icon={icon} className="text-[13px]" />
     </button>

@@ -4,7 +4,6 @@ import {
   BackgroundVariant,
   ConnectionLineType,
   ConnectionMode,
-  Controls,
   ReactFlow,
   SelectionMode,
   useKeyPress,
@@ -22,13 +21,13 @@ import { DEFAULT_EDGE_SHAPE, absolutePosition, findContainerAt, snapContainerPos
 import { isMagnetic, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { createId } from '@/core/utils/id';
+import { useUiStore } from '@/ui/uiStore';
 import { HOLLOW_TRIANGLE_MARKER, toFlowEdges, toFlowNodes, type ArtifactFlowNode, type FlowEdge } from './adapters';
 import { ArtifactNodeView } from './ArtifactNodeView';
 import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
 import { useActiveModule } from './useActiveModule';
 import { useContextMenuStore, type ContextMenuTarget } from './contextMenuStore';
-import { useElementClickStore } from './elementClickStore';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
 import { GuideLines, useGuidesStore } from './GuideLines';
@@ -41,6 +40,7 @@ import { centerInParent, placeArtifact } from './placeArtifact';
 import { canvasPresentation } from './canvasView';
 import { useCanvasViewStore } from './canvasViewStore';
 import { useCanvasInteractionStore } from './canvasInteractionStore';
+import { chosenEdgeType } from './edgeTypeChoice';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
@@ -124,7 +124,6 @@ export function DiagramCanvas() {
 
   const onNodeDragStart = useCallback<OnNodeDrag<ArtifactFlowNode>>(() => {
     store().checkpoint();
-    clearElementClick();
   }, []);
 
   const onNodeDragStop = useCallback<OnNodeDrag<ArtifactFlowNode>>(
@@ -151,8 +150,9 @@ export function DiagramCanvas() {
       const result = module.resolveConnection(current, connection.source, connection.target);
       if (!result.allowed) return showNotice(result.reason);
       const edgeType = chosenEdgeType(module, result.edgeType, useCanvasInteractionStore.getState().nextEdgeType);
+      const id = createId();
       store().connect({
-        id: createId(),
+        id,
         artifactType: edgeType,
         sourceId: connection.source,
         targetId: connection.target,
@@ -161,6 +161,9 @@ export function DiagramCanvas() {
         waypoints: [],
         ...(module.initialEdge?.(current, edgeType, connection.source, connection.target) ?? { label: '', props: {} }),
       });
+      // Deja solo la flecha nueva seleccionada para poder cambiar su tipo al instante.
+      store().setSelection({ nodeIds: [], edgeIds: [id] });
+      useUiStore.getState().setInspectorTab('properties');
     },
     [module, showNotice],
   );
@@ -227,7 +230,6 @@ export function DiagramCanvas() {
         onEdgeClick={(event, edge) => canvasTool !== 'hand' && publishEdgeClick(event, edge.id)}
         onMoveStart={(event) => {
           if (!event) return;
-          clearElementClick();
           useContextMenuStore.getState().close();
         }}
         onPaneContextMenu={(event) => openContextMenu(event, { kind: 'pane' }, screenToFlowPosition)}
@@ -235,7 +237,6 @@ export function DiagramCanvas() {
         onEdgeContextMenu={(event, edge) => openContextMenu(event, { kind: 'edge', id: edge.id }, screenToFlowPosition)}
         onPaneClick={() => {
           useHighlightStore.getState().setHighlight(null);
-          clearElementClick();
         }}
         multiSelectionKeyCode="Shift"
         selectionKeyCode={null}
@@ -269,12 +270,6 @@ export function DiagramCanvas() {
             <marker id={HOLLOW_TRIANGLE_MARKER} markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
               <path d="M1 1 11 6 1 11Z" fill="var(--color-board)" stroke="var(--color-edge)" strokeWidth="1.3" strokeLinejoin="round" />
             </marker>
-            <marker id="trazo-diamond-open" markerWidth="14" markerHeight="10" refX="2" refY="5" orient="auto-start-reverse" markerUnits="strokeWidth">
-              <path d="M1 5 7 1 13 5 7 9Z" fill="var(--color-shape-fill)" stroke="var(--color-edge)" strokeWidth="1.2" />
-            </marker>
-            <marker id="trazo-diamond-filled" markerWidth="14" markerHeight="10" refX="2" refY="5" orient="auto-start-reverse" markerUnits="strokeWidth">
-              <path d="M1 5 7 1 13 5 7 9Z" fill="var(--color-edge)" stroke="var(--color-edge)" strokeWidth="1.2" />
-            </marker>
           </defs>
         </svg>
         {grid.visible ? (
@@ -284,7 +279,6 @@ export function DiagramCanvas() {
         )}
         {/* Con Alt presionado el lápiz se aparta para dejar desplazar la vista. */}
         {canvasTool === 'lasso' && !panKeyHeld && module && <LassoLayer module={module} />}
-        <Controls position="bottom-left" showInteractive={false} />
         <LockBadges />
         <GuideLines />
       </ReactFlow>
@@ -303,8 +297,6 @@ export function DiagramCanvas() {
 
 const store = () => useDiagramStore.getState();
 
-const clearElementClick = () => useElementClickStore.getState().setClicked(null);
-
 /** Clic derecho: en vez del menú del navegador, el de Trazo, en el punto exacto del clic. */
 function openContextMenu(
   event: ReactMouseEvent | MouseEvent,
@@ -312,40 +304,26 @@ function openContextMenu(
   screenToFlowPosition: (point: { x: number; y: number }) => { x: number; y: number },
 ): void {
   event.preventDefault();
-  clearElementClick();
   const screen = { x: event.clientX, y: event.clientY };
   useContextMenuStore.getState().open({ target, screen, flow: screenToFlowPosition(screen) });
 }
 
-/** Publica el clic en un nodo con el rectángulo del nodo en pantalla (para ubicar el popup a su lado). */
+/**
+ * Un clic simple deja solo ese elemento seleccionado y abre sus propiedades.
+ * Sin esto, nodos y flechas pueden quedar juntos en la selección y el inspector
+ * entra en modo múltiple sin el cambio de tipo de la conexión.
+ * Shift conserva la selección múltiple de React Flow.
+ */
 function publishNodeClick(event: ReactMouseEvent, nodeId: string): void {
-  // Con Shift, React Flow ya agregó o quitó el nodo de la selección (multiSelectionKeyCode):
-  // aquí solo se evita abrir el popup de un único elemento.
-  if (event.shiftKey) return clearElementClick();
-  const element = (event.target as Element).closest('.react-flow__node');
-  const rect = (element ?? (event.currentTarget as Element)).getBoundingClientRect();
-  useElementClickStore.getState().setClicked({ kind: 'node', id: nodeId, rect });
+  if (event.shiftKey) return;
+  store().setSelection({ nodeIds: [nodeId], edgeIds: [] });
+  useUiStore.getState().setInspectorTab('properties');
 }
 
-/** En una flecha no hay rectángulo útil: se usa el punto exacto donde se hizo clic. */
 function publishEdgeClick(event: ReactMouseEvent, edgeId: string): void {
-  if (event.shiftKey) return clearElementClick();
-  const rect = { left: event.clientX, top: event.clientY, right: event.clientX, bottom: event.clientY };
-  useElementClickStore.getState().setClicked({ kind: 'edge', id: edgeId, rect });
-}
-
-/**
- * Traduce los avisos de React Flow a acciones del store. Las posiciones y tamaños
- * durante un gesto no crean pasos de deshacer (el checkpoint se tomó al empezar).
- * Los contenedores sueltos que se mueven se "pegan" a sus vecinos (imán).
- */
-/**
- * El tipo de la flecha nueva: el elegido en la paleta si es válido entre esos nodos
- * (el deducido o uno al que se puede cambiar), si no, el deducido.
- */
-function chosenEdgeType(module: DiagramModule, resolved: string, preferred: string | null): string {
-  if (!preferred || preferred === resolved) return resolved;
-  return module.edgeKinds[resolved]?.switchableTo?.includes(preferred) ? preferred : resolved;
+  if (event.shiftKey) return;
+  store().setSelection({ nodeIds: [], edgeIds: [edgeId] });
+  useUiStore.getState().setInspectorTab('properties');
 }
 
 /** Distancia en pantalla a la que una guía atrae al nodo: igual a cualquier zoom. */

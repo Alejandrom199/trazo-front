@@ -47,7 +47,7 @@ export function GridControl() {
         aria-expanded={open}
         title="Cuadrícula"
         aria-label="Cuadrícula"
-        className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors ${
+        className={`flex h-11 min-w-11 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors ${
           visible ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
         }`}
       >
@@ -56,7 +56,7 @@ export function GridControl() {
       </button>
 
       {open && (
-        <div role="dialog" aria-label="Cuadrícula" className="absolute top-full right-0 z-30 mt-2 w-64 max-w-[calc(100vw-5rem)] rounded-lg border border-line bg-surface p-3 shadow-panel">
+        <div role="dialog" aria-label="Cuadrícula" className="absolute right-0 bottom-full z-30 mb-2 w-64 max-w-[calc(100vw-5rem)] rounded-lg border border-line bg-surface p-3 shadow-panel">
           <label className="flex items-center justify-between gap-3">
             <span className="text-sm text-ink-900">Mostrar cuadrícula</span>
             <button

@@ -31,7 +31,7 @@
   --color-line: oklch(91.8% 0.005 300);
   --color-ink-900: oklch(19.4% 0.006 301);
   --color-ink-600: oklch(40% 0.014 303);
-  --color-ink-400: oklch(54% 0.02 305);
+  --color-ink-400: oklch(45% 0.02 305);
 
   /* Acento violeta rosado: texto, trazos y estados activos. */
   --color-accent: oklch(52% 0.23 315);
@@ -68,7 +68,7 @@
   --color-line: oklch(29% 0.012 304);
   --color-ink-900: oklch(98.8% 0 0);
   --color-ink-600: oklch(84% 0.009 308);
-  --color-ink-400: oklch(68% 0.018 305);
+  --color-ink-400: oklch(78% 0.012 305);
 
   --color-accent: oklch(75% 0.14 318);
   --color-accent-soft: oklch(31% 0.07 315);

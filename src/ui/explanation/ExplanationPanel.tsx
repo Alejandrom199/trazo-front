@@ -5,6 +5,7 @@ import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode } from '@/co
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
+import { useUiStore } from '@/ui/uiStore';
 import { ArtifactExplanation } from './ArtifactExplanation';
 import { resolveExplanationTarget, targetKey, type ExplanationTarget } from './explanationTarget';
 
@@ -15,8 +16,10 @@ import { resolveExplanationTarget, targetKey, type ExplanationTarget } from './e
  * No se abre solo: al seleccionar algo aparece el botón "Ver explicación".
  * (Para aprender un diagrama completo está la página Aprender.)
  */
-export function ExplanationPanel() {
+export function ExplanationPanel({ embedded = false, alwaysOpen = false }: { embedded?: boolean; alwaysOpen?: boolean }) {
   const module = useActiveModule();
+  const pinnedExplanation = useUiStore((state) => state.pinnedExplanation);
+  const setPinnedExplanation = useUiStore((state) => state.setPinnedExplanation);
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
 
@@ -36,7 +39,7 @@ export function ExplanationPanel() {
   if (!module || !diagram) return null;
 
   const browsed = trail.key === key ? trail.types : [];
-  const isOpen = openedFor === key;
+  const isOpen = alwaysOpen || openedFor === key;
 
   if (!isOpen) {
     if (target.kind === 'none') return null;
@@ -56,28 +59,30 @@ export function ExplanationPanel() {
   const browsedType = browsed.at(-1);
   const browsedDefinition = browsedType ? definitionsByType.get(browsedType) : undefined;
 
-  return (
-    <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-80">
+  const content = (
+    <>
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
         {browsed.length > 0 && (
           <button
             type="button"
             onClick={goBack}
             aria-label="Volver"
-            className="-ml-1.5 flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
+            className="-ml-1.5 flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
           >
             <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
           </button>
         )}
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Explicación</h2>
-        <button
-          type="button"
-          onClick={() => setOpenedFor(null)}
-          aria-label="Cerrar explicación"
-          className="ml-auto flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
-        >
-          <FontAwesomeIcon icon={faXmark} className="text-sm" />
-        </button>
+        {!embedded && (
+          <button
+            type="button"
+            onClick={() => setOpenedFor(null)}
+            aria-label="Cerrar explicación"
+            className="ml-auto flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
+          >
+            <FontAwesomeIcon icon={faXmark} className="text-sm" />
+          </button>
+        )}
       </header>
 
       {/* La key reinicia el scroll al cambiar de ficha: cada explicación empieza por arriba. */}
@@ -89,6 +94,16 @@ export function ExplanationPanel() {
             definitionsByType={definitionsByType}
             onOpenRelated={openRelated}
           />
+        ) : pinnedExplanation && target.kind === 'none' && definitionsByType.get(pinnedExplanation) ? (
+          <ArtifactExplanation
+            key={pinnedExplanation}
+            definition={definitionsByType.get(pinnedExplanation)!}
+            definitionsByType={definitionsByType}
+            onOpenRelated={(type) => {
+              setPinnedExplanation(null);
+              openRelated(type);
+            }}
+          />
         ) : (
           <TargetExplanation
             target={target}
@@ -98,8 +113,10 @@ export function ExplanationPanel() {
           />
         )}
       </div>
-    </Panel>
+    </>
   );
+  if (embedded) return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
+  return <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-80">{content}</Panel>;
 }
 
 interface TargetExplanationProps {
@@ -113,8 +130,7 @@ function TargetExplanation({ target, diagram, definitionsByType, onOpenRelated }
   if (target.kind === 'none') {
     return (
       <p className="p-4 text-sm leading-relaxed text-ink-600">
-        Selecciona un elemento del lienzo para ver qué es, para qué sirve y por qué existe. También puedes pasar el
-        ratón por la paleta para una explicación corta.
+        Selecciona un elemento del lienzo para ver su ficha. Desde la paleta puedes abrir una vista rápida y, si quieres el detalle, la misma ficha.
       </p>
     );
   }

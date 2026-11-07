@@ -1,7 +1,8 @@
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ImageBackground, ImageExportOptions, ImageFormat, ImageFrame } from '@/canvas/exportImage';
+import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 
 type Choices = Omit<ImageExportOptions, 'title'>;
 
@@ -87,21 +88,18 @@ export function ExportDialog({
 }) {
   const [choices, setChoices] = useState<Choices>(readChoices);
   const set = (patch: Partial<Choices>) => setChoices((current) => ({ ...current, ...patch }));
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && onCancel();
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [onCancel]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancel = useCallback(() => onCancel(), [onCancel]);
+  useDialogBehavior(true, dialogRef, cancel);
 
   return (
-    <div className="motion-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
-      <div role="dialog" aria-labelledby="export-title" className="w-full max-w-md rounded-xl border border-line bg-surface shadow-panel">
+    <div className="motion-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={(event) => event.target === event.currentTarget && cancel()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="export-title" tabIndex={-1} className="w-full max-w-md rounded-xl border border-line bg-surface shadow-panel outline-none">
         <header className="flex items-center border-b border-line px-5 py-3.5">
           <h2 id="export-title" className="text-sm font-semibold text-ink-900">
             Exportar imagen
           </h2>
-          <button type="button" onClick={onCancel} aria-label="Cerrar" className="ml-auto flex size-7 items-center justify-center rounded-md text-ink-400 hover:bg-raised hover:text-ink-900">
+          <button type="button" onClick={cancel} aria-label="Cerrar" className="ml-auto flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-raised hover:text-ink-900">
             <FontAwesomeIcon icon={faXmark} />
           </button>
         </header>
@@ -135,7 +133,7 @@ export function ExportDialog({
         </div>
 
         <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">
-          <button type="button" onClick={onCancel} className="rounded-lg px-3.5 py-2 text-sm text-ink-600 hover:bg-raised">
+          <button type="button" onClick={cancel} className="min-h-11 rounded-lg px-3.5 py-2 text-sm text-ink-600 hover:bg-raised">
             Cancelar
           </button>
           <button

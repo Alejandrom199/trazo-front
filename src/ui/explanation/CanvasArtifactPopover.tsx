@@ -7,6 +7,7 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { createDiagramFromTemplate, linkedTemplateId } from '@/core/model';
 import { diagramRegistry } from '@/core/registry';
 import { ArtifactPopover } from './ArtifactPopover';
+import { EdgeTypeSelect } from './EdgeTypeSelect';
 import { EdgeProperties, NodeProperties } from './ElementProperties';
 
 /**
@@ -54,7 +55,7 @@ export function CanvasArtifactPopover() {
         : 'En Aprender está la guía completa del diagrama.';
   const properties =
     'sourceId' in element ? (
-      <EdgeProperties edge={element} diagram={diagram} module={module} definition={definition} />
+      <EdgeProperties edge={element} diagram={diagram} module={module} />
     ) : (
       <NodeProperties node={element} diagram={diagram} module={module} />
     );
@@ -74,7 +75,12 @@ export function CanvasArtifactPopover() {
             <LockButton nodeId={element.id} locked={element.locked} />
           </>
         ) : (
-          <EdgeTypeSwitch edgeId={element.id} artifactType={element.artifactType} />
+          <EdgeTypeSelect
+            edgeId={element.id}
+            artifactType={element.artifactType}
+            module={module}
+            className="h-7 max-w-36 rounded-lg border border-line bg-surface px-1.5 text-xs text-ink-900 outline-none focus:border-accent/50"
+          />
         )
       }
       detailsOpen={expanded}
@@ -88,7 +94,7 @@ function LinkedDiagramButton({ props, onOpen }: { props: Record<string, unknown>
   const templateId = linkedTemplateId(props);
   const template = templateId ? diagramRegistry.list().flatMap((module) => module.templates).find((candidate) => candidate.id === templateId) : undefined;
   if (!template) return null;
-  return <button type="button" title={`Abrir detalle: ${template.name}`} aria-label={`Abrir diagrama relacionado: ${template.name}`} onClick={() => { useDiagramStore.getState().openDiagram(createDiagramFromTemplate(template)); onOpen(); }} className="flex size-7 items-center justify-center rounded-lg bg-accent-soft text-xs text-accent hover:bg-brand hover:text-white"><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></button>;
+  return <button type="button" title={`Abrir detalle: ${template.name}`} aria-label={`Abrir diagrama relacionado: ${template.name}`} onClick={() => { useDiagramStore.getState().openDiagram(createDiagramFromTemplate(template)); onOpen(); }} className="flex size-11 items-center justify-center rounded-lg bg-accent-soft text-xs text-accent hover:bg-brand hover:text-white"><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></button>;
 }
 
 /** Candado del encabezado: muestra si el nodo está bloqueado y lo alterna con un clic. */
@@ -104,7 +110,7 @@ function LockButton({ nodeId, locked }: { nodeId: string; locked: boolean }) {
       aria-label={label}
       title={label}
       onClick={() => useDiagramStore.getState().updateNode(nodeId, { locked: !locked })}
-      className={`flex size-7 items-center justify-center rounded-lg text-xs transition-colors ${
+      className={`flex size-11 items-center justify-center rounded-lg text-xs transition-colors ${
         locked ? 'bg-brand text-white' : 'text-ink-400 hover:bg-raised hover:text-ink-900'
       }`}
     >
@@ -113,31 +119,3 @@ function LockButton({ nodeId, locked }: { nodeId: string; locked: boolean }) {
   );
 }
 
-/**
- * Cambio rápido del tipo de una flecha desde el encabezado (sin desplegar las
- * propiedades). Solo aparece si su tipo admite otros (switchableTo).
- */
-function EdgeTypeSwitch({ edgeId, artifactType }: { edgeId: string; artifactType: string }) {
-  const module = useActiveModule();
-  const alternatives = module?.edgeKinds[artifactType]?.switchableTo ?? [];
-  if (!module || alternatives.length === 0) return null;
-  const options = [artifactType, ...alternatives.filter((type) => type !== artifactType)]
-    .map((type) => module.artifacts.find((artifact) => artifact.type === type))
-    .filter((artifact) => artifact !== undefined);
-  return (
-    <select
-      aria-label="Tipo de conexión"
-      title="Cambiar el tipo de conexión"
-      value={artifactType}
-      // Al cambiar de tipo, el estilo de línea vuelve al del tipo nuevo.
-      onChange={(event) => useDiagramStore.getState().updateEdge(edgeId, { artifactType: event.target.value, lineStyle: null })}
-      className="h-7 max-w-36 rounded-lg border border-line bg-surface px-1.5 text-xs text-ink-900 outline-none focus:border-accent/50"
-    >
-      {options.map((artifact) => (
-        <option key={artifact.type} value={artifact.type}>
-          {artifact.name}
-        </option>
-      ))}
-    </select>
-  );
-}

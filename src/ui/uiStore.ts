@@ -3,10 +3,13 @@ import { create } from 'zustand';
 const THEME_KEY = 'trazo.theme';
 const RECENT_ARTIFACTS_KEY = 'trazo.recentArtifacts';
 const ARTIFACT_TOOLS_KEY = 'trazo.artifactToolsVisible';
+const PROJECT_SIDEBAR_KEY = 'trazo.projectSidebarOpen';
+const TUTORIAL_KEY = 'trazo.tutorial';
 /** Cuántos artefactos usados recientemente se recuerdan. */
 const MAX_RECENT_ARTIFACTS = 4;
 
 export type Theme = 'light' | 'dark';
+export type InspectorTab = 'properties' | 'explanation' | 'problems' | 'narration' | 'traceability';
 
 /**
  * Preferencias de la interfaz (no forman parte del diagrama ni del historial).
@@ -23,22 +26,44 @@ interface UiState {
   /** Gestor del proyecto activo y sus diagramas. */
   projectOpen: boolean;
   setProjectOpen: (open: boolean) => void;
+  /** Navegador lateral del proyecto activo. */
+  projectSidebarOpen: boolean;
+  setProjectSidebarOpen: (open: boolean) => void;
+  /** Inspector estable del editor: una sola superficie para selección, teoría, validación y narración. */
+  inspectorOpen: boolean;
+  setInspectorOpen: (open: boolean) => void;
+  inspectorTab: InspectorTab;
+  setInspectorTab: (tab: InspectorTab) => void;
   /** Tira de herramientas de artefactos sobre el lienzo: visible hasta que el usuario la oculte (botón o tecla A). */
   artifactToolsVisible: boolean;
   setArtifactToolsVisible: (visible: boolean) => void;
   /** Últimos artefactos agregados (más reciente primero); el menú del lienzo los ofrece primero. */
   recentArtifacts: string[];
   rememberArtifact: (artifactType: string) => void;
-  /** Panel "Explicar diagrama": ocupa el lugar del panel de explicación mientras está abierto. */
-  narrationOpen: boolean;
-  setNarrationOpen: (open: boolean) => void;
   /** Pestaña del popup del lienzo; se recuerda para el siguiente elemento que se clique. */
   popoverTab: PopoverTab;
   setPopoverTab: (tab: PopoverTab) => void;
   /** Aviso breve para el usuario (p. ej. un archivo que no se pudo importar). */
   notice: string | null;
   showNotice: (message: string) => void;
+  /** Artefacto abierto desde la vista rápida, cuando el lienzo no tiene selección. */
+  pinnedExplanation: string | null;
+  setPinnedExplanation: (artifactType: string | null) => void;
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
+  tutorialStatus: TutorialStatus;
+  tutorialStep: number;
+  /** Paso en el que ocurrió la última exportación, para completar el recorrido. */
+  tutorialExportOnStep: number | null;
+  startTutorial: () => void;
+  skipTutorial: () => void;
+  restartTutorial: () => void;
+  setTutorialStep: (step: number) => void;
+  finishTutorial: () => void;
+  noteExport: () => void;
 }
+
+export type TutorialStatus = 'offer' | 'active' | 'dismissed' | 'done';
 
 export type PopoverTab = 'properties' | 'explanation';
 
@@ -65,6 +90,34 @@ function readArtifactToolsVisible(): boolean {
     return localStorage.getItem(ARTIFACT_TOOLS_KEY) !== 'false';
   } catch {
     return true;
+  }
+}
+
+function readProjectSidebarOpen(): boolean {
+  try {
+    const saved = localStorage.getItem(PROJECT_SIDEBAR_KEY);
+    if (saved === 'true' || saved === 'false') return saved === 'true';
+  } catch {
+    // Se usa el ancho disponible.
+  }
+  return typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches;
+}
+
+function readTutorial(): TutorialStatus {
+  try {
+    const saved = localStorage.getItem(TUTORIAL_KEY);
+    if (saved === 'dismissed' || saved === 'done') return saved;
+  } catch {
+    // Sin almacenamiento, se ofrece el recorrido en esta sesión.
+  }
+  return 'offer';
+}
+
+function rememberTutorial(status: TutorialStatus): void {
+  try {
+    localStorage.setItem(TUTORIAL_KEY, status);
+  } catch {
+    // La decisión dura solo esta sesión.
   }
 }
 
@@ -96,6 +149,19 @@ export const useUiStore = create<UiState>()((set) => ({
   setGalleryOpen: (open) => set({ galleryOpen: open }),
   projectOpen: false,
   setProjectOpen: (open) => set({ projectOpen: open }),
+  projectSidebarOpen: readProjectSidebarOpen(),
+  setProjectSidebarOpen: (open) => {
+    try {
+      localStorage.setItem(PROJECT_SIDEBAR_KEY, String(open));
+    } catch {
+      // Sin almacenamiento la preferencia dura solo esta sesión.
+    }
+    set({ projectSidebarOpen: open });
+  },
+  inspectorOpen: typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches,
+  setInspectorOpen: (open) => set({ inspectorOpen: open }),
+  inspectorTab: 'properties',
+  setInspectorTab: (tab) => set({ inspectorTab: tab, inspectorOpen: true }),
   artifactToolsVisible: readArtifactToolsVisible(),
   setArtifactToolsVisible: (visible) => {
     try {
@@ -116,8 +182,6 @@ export const useUiStore = create<UiState>()((set) => ({
       }
       return { recentArtifacts };
     }),
-  narrationOpen: false,
-  setNarrationOpen: (open) => set({ narrationOpen: open }),
   popoverTab: 'properties',
   setPopoverTab: (tab) => set({ popoverTab: tab }),
   notice: null,
@@ -126,4 +190,29 @@ export const useUiStore = create<UiState>()((set) => ({
     set({ notice: message });
     noticeTimer = setTimeout(() => set({ notice: null }), NOTICE_DURATION_MS);
   },
+  pinnedExplanation: null,
+  setPinnedExplanation: (artifactType) => set({ pinnedExplanation: artifactType }),
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  tutorialStatus: readTutorial(),
+  tutorialStep: 0,
+  tutorialExportOnStep: null,
+  startTutorial: () => {
+    rememberTutorial('active');
+    set({ tutorialStatus: 'active', tutorialStep: 0, tutorialExportOnStep: null, galleryOpen: false });
+  },
+  skipTutorial: () => {
+    rememberTutorial('dismissed');
+    set({ tutorialStatus: 'dismissed' });
+  },
+  restartTutorial: () => {
+    rememberTutorial('active');
+    set({ tutorialStatus: 'active', tutorialStep: 0, tutorialExportOnStep: null });
+  },
+  setTutorialStep: (step) => set({ tutorialStep: step }),
+  finishTutorial: () => {
+    rememberTutorial('done');
+    set({ tutorialStatus: 'done' });
+  },
+  noteExport: () => set((state) => ({ tutorialExportOnStep: state.tutorialStatus === 'active' ? state.tutorialStep : state.tutorialExportOnStep })),
 }));

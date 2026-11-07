@@ -1,6 +1,6 @@
 import { addEdge, addNode, createEmptyDiagram, DEFAULT_EDGE_SHAPE, type Diagram, type Position, type Size, type Template } from '@/core/model';
 import { ClassArtifact as C } from '../artifactTypes';
-import { resolveClassConnection } from '../connections';
+import { initialClassEdge, resolveClassConnection } from '../connections';
 import { classNodeKinds } from '../nodeKinds';
 
 type Info = Omit<Template, 'diagram' | 'diagramType'>;
@@ -11,7 +11,12 @@ export function createClassTemplateBuilder() {
     classifier: (artifactType: string, label: string, position: Position, parentId: string | null = null) => node(artifactType, label, position, undefined, parentId),
     package: (label: string, position: Position, size: Size) => node(C.package, label, position, size),
     note: (label: string, position: Position) => node(C.note, label, position),
-    relation(sourceId: string, targetId: string, artifactType: string = C.association, label = '') { const result = resolveClassConnection(diagram, sourceId, targetId); if (!result.allowed) throw new Error(result.reason); diagram = addEdge(diagram, { id: id(), artifactType, sourceId, targetId, guard: null, label, ...DEFAULT_EDGE_SHAPE, routing: 'straight', props: {} }); },
+    relation(sourceId: string, targetId: string, artifactType: string = C.association, label?: string) {
+      const result = resolveClassConnection(diagram, sourceId, targetId);
+      if (!result.allowed) throw new Error(result.reason);
+      const text = label ?? initialClassEdge(artifactType).label;
+      diagram = addEdge(diagram, { id: id(), artifactType, sourceId, targetId, guard: null, label: text, ...DEFAULT_EDGE_SHAPE, routing: 'straight', props: {} });
+    },
     build(info: Info): Template { return { ...info, diagramType: 'class', diagram: { ...diagram, id: info.id, name: info.name, description: info.description, templateId: info.id } }; },
   };
 }

@@ -48,6 +48,7 @@ export function FileMenu() {
     const diagram = currentDiagram();
     if (!diagram) return;
     downloadText(diagramToJson(diagram), `${toFileName(diagram.name)}.json`, 'application/json');
+    useUiStore.getState().noteExport();
     setOpen(false);
   }
 
@@ -59,6 +60,7 @@ export function FileMenu() {
     try {
       const url = await exportImage(options);
       downloadUrl(url, `${toFileName(diagram.name)}.${options.format}`);
+      useUiStore.getState().noteExport();
     } catch (error) {
       showNotice(error instanceof Error && error.message ? `No se pudo exportar: ${error.message}` : 'No se pudo exportar la imagen.');
     } finally {
@@ -104,10 +106,17 @@ export function FileMenu() {
     const persistence = usePersistenceStore.getState();
     if (!persistence.repository) return showNotice('Este navegador no permite guardar un proyecto con varios diagramas.');
     const now = new Date().toISOString();
-    const diagrams = parsed.project.diagrams.map((diagram) => ({ ...diagram, id: createId(), updatedAt: now }));
+    const diagramIds = new Map(parsed.project.diagrams.map((diagram) => [diagram.id, createId()]));
+    const diagrams = parsed.project.diagrams.map((diagram) => ({ ...diagram, id: diagramIds.get(diagram.id)!, updatedAt: now }));
+    const traceLinks = parsed.project.traceLinks.map((link) => ({
+      ...link,
+      id: createId(),
+      source: { ...link.source, diagramId: diagramIds.get(link.source.diagramId)! },
+      target: { ...link.target, diagramId: diagramIds.get(link.target.diagramId)! },
+    }));
     for (const diagram of diagrams) persistence.repository.save(diagram);
     persistence.refresh();
-    useProjectStore.getState().openProject({ id: createId(), name: parsed.project.name, diagramIds: diagrams.map((diagram) => diagram.id), createdAt: now, updatedAt: now });
+    useProjectStore.getState().openProject({ id: createId(), name: parsed.project.name, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, createdAt: now, updatedAt: now });
     useDiagramStore.getState().openDiagram(diagrams[0]!);
     showNotice(`Se importó el proyecto «${parsed.project.name}» con ${diagrams.length} diagramas.`);
   }

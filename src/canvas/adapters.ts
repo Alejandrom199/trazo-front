@@ -103,12 +103,14 @@ export function toFlowEdges(
       selected: isSelected,
       className: classNames(highlight.ids.has(edge.id) && highlight.className, presentation?.dimmedEdgeIds.has(edge.id) && 'trazo-dimmed', kind?.secondaryDetail && 'trazo-secondary-detail'),
       data: { edge },
+      // React Flow envuelve el id con url('#…'); hay que pasar solo el id del <marker>.
+      // El rombo de agregación/composición lo dibuja FlowEdgeView (no un marker-start).
       markerEnd: !kind?.arrow
         ? undefined
         : kind.arrow === 'hollow'
-          ? `url(#${HOLLOW_TRIANGLE_MARKER})`
+          ? HOLLOW_TRIANGLE_MARKER
           : { type: ARROW_MARKERS[kind.arrow], color, width: 16, height: 16 },
-      markerStart: kind?.sourceMarker ? `url(#trazo-${kind.sourceMarker})` : undefined,
+      markerStart: undefined,
       style: {
         stroke: color,
         strokeWidth: 1.5,

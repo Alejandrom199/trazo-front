@@ -14,3 +14,18 @@ export function resolveClassConnection(diagram: Diagram, sourceId: string, targe
   return reject('Relaciona clases, interfaces o enumeraciones; las notas se anclan a un clasificador.');
 }
 const connected = (edges: DiagramEdge[], a: string, b: string) => edges.some((edge) => (edge.sourceId === a && edge.targetId === b) || (edge.sourceId === b && edge.targetId === a));
+
+/**
+ * Estereotipos por defecto al crear o cambiar el tipo de una relación.
+ * Asociación, agregación y composición no llevan estereotipo (van con multiplicidad).
+ */
+export const CLASS_EDGE_STEREOTYPE: Readonly<Record<string, string>> = {
+  [C.generalization]: '«extends»',
+  [C.dependency]: '«use»',
+  [C.realization]: '«implements»',
+};
+
+/** Dependencia y realización nacen rotuladas; el resto, sin texto (multiplicidad se escribe después). */
+export function initialClassEdge(edgeType: string): Pick<DiagramEdge, 'label' | 'props'> {
+  return { label: CLASS_EDGE_STEREOTYPE[edgeType] ?? '', props: {} };
+}

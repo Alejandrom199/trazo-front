@@ -83,6 +83,11 @@ export function DiagramGuidePage({ module, scrollRoot }: DiagramGuidePageProps) 
 
         <header id="guia-que-es" className="scroll-mt-8">
           <span className="text-xs font-semibold uppercase tracking-wider text-accent">Guía interactiva</span>
+          {module.maturity === 'preview' && (
+            <p className="mt-3 max-w-2xl rounded-lg bg-warning-soft px-3 py-2 text-sm leading-relaxed text-ink-900">
+              Vista previa. Puedes dibujarlo y validar lo esencial, pero sus reglas, propiedades y talleres todavía no tienen la profundidad de Actividad, Secuencia o Clases.
+            </p>
+          )}
           <h1 className="mt-2 text-3xl font-semibold text-ink-900 md:text-4xl">{module.displayName}</h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600">{guide.summary}</p>
           <div className="mt-5 flex flex-wrap gap-2">

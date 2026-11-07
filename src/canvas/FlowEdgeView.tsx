@@ -7,6 +7,7 @@ import type { FlowEdge } from './adapters';
 import { connectionPath } from './connectionPath';
 import { EditableText } from './EditableText';
 import type { Rect } from './edgeGeometry';
+import { sourceDiamondPath } from './edgeMarkers';
 import { useGridStore } from './gridStore';
 import { useActiveModule } from './useActiveModule';
 
@@ -43,13 +44,32 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const path = connectionPath(diagram, module, edge, rectOf(sourceNode), rectOf(targetNode));
   const isHorizontal = kind?.layout === 'horizontal';
   const labelOffset = readLabelOffset(edge);
+  const start = path.controlPoints[0];
+  const toward = path.controlPoints[1] ?? path.controlPoints.at(-1);
+  const stroke = typeof style?.stroke === 'string' ? style.stroke : 'var(--color-edge)';
 
   // Un punto sobre la línea por cada tramo: ahí nace un vértice nuevo.
   const insertionPoints = path.insertionPoints.map((point, index) => ({ ...point, insertAt: index }));
 
   return (
     <>
-      <BaseEdge id={id} path={path.d} style={reconnect.preview ? { ...style, opacity: 0.35 } : style} markerEnd={markerEnd} interactionWidth={16} />
+      <BaseEdge
+        id={id}
+        path={path.d}
+        style={reconnect.preview ? { ...style, opacity: 0.35 } : style}
+        markerEnd={markerEnd}
+        interactionWidth={16}
+      />
+      {kind?.sourceMarker && start && toward && !reconnect.preview && (
+        <path
+          d={sourceDiamondPath(start, toward)}
+          fill={kind.sourceMarker === 'diamond-filled' ? stroke : 'var(--color-shape-fill)'}
+          stroke={stroke}
+          strokeWidth={1.2}
+          strokeLinejoin="round"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
       {reconnect.preview && (
         // Vista previa mientras se arrastra un extremo hacia otro nodo.
         <path

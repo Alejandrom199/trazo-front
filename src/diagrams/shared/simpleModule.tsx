@@ -15,7 +15,7 @@ import {
   type Template,
   type ValidationRule,
 } from '@/core/model';
-import type { ArtifactNodeProps, DiagramGuide, DiagramModule, EdgeKind, NodeKind } from '@/core/registry';
+import type { ArtifactNodeProps, DiagramGuide, DiagramModule, EdgeKind, LearningWorkshop, NodeKind, PropertyDefinition } from '@/core/registry';
 import { centeredLabelClass, SHAPE_FILL, STROKE_WIDTH, strokeFor } from './shapeStyles';
 
 export type SimpleVisual = 'box' | 'object' | 'profile' | 'stereotype' | 'frame' | 'part' | 'port' | 'interaction' | 'timeLane' | 'stateBar' | 'diamond';
@@ -35,6 +35,9 @@ export interface SimpleNodeSpec {
   container?: boolean;
   connectable?: boolean;
   resizable?: boolean;
+  hasLabel?: boolean;
+  labelCaption?: string;
+  properties?: PropertyDefinition[];
 }
 
 export interface SimpleEdgeSpec {
@@ -49,6 +52,7 @@ export interface SimpleEdgeSpec {
   whatFor: string;
   example: string;
   defaultLabel?: string;
+  textCaption?: string;
 }
 
 export interface SimpleTemplateNode {
@@ -78,6 +82,13 @@ export interface SimpleTemplateSpec {
   edges: SimpleTemplateEdge[];
 }
 
+export interface SimpleModuleSemantics {
+  resolveConnection?: (diagram: Diagram, sourceId: string, targetId: string) => ConnectionResult;
+  rules?: ValidationRule[];
+  narrate?: (diagram: Diagram) => Narration;
+  workshop?: (templates: Template[]) => LearningWorkshop;
+}
+
 interface SimpleModuleSpec {
   diagramType: DiagramType;
   displayName: string;
@@ -88,6 +99,8 @@ interface SimpleModuleSpec {
   templates: SimpleTemplateSpec[];
   /** Seis contextos que reutilizan la misma notación base con nombres de dominio distintos. */
   scenarios?: SimpleScenario[];
+  /** Semántica propia cuando el tipo exige más que el comportamiento declarativo común. */
+  semantics?: SimpleModuleSemantics;
 }
 
 interface SimpleScenario {
@@ -116,12 +129,12 @@ export function createSimpleModule(spec: SimpleModuleSpec): DiagramModule {
     artifacts,
     nodeKinds,
     edgeKinds,
-    resolveConnection: (diagram, sourceId, targetId) => resolve(diagram, sourceId, targetId, spec.defaultEdge),
+    resolveConnection: spec.semantics?.resolveConnection ?? ((diagram, sourceId, targetId) => resolve(diagram, sourceId, targetId, spec.defaultEdge)),
     initialEdge: (_diagram, edgeType) => ({ label: spec.edges.find((edge) => edge.type === edgeType)?.defaultLabel ?? '', props: {} }),
-    rules: rulesFor(spec.diagramType),
-    narrate: narrate,
+    rules: [...rulesFor(spec.diagramType, new Set(spec.nodes.filter((node) => node.hasLabel === false).map((node) => node.type))), ...(spec.semantics?.rules ?? [])],
+    narrate: spec.semantics?.narrate ?? narrate,
     templates,
-    guide: spec.guide,
+    guide: { ...spec.guide, workshop: spec.guide.workshop ?? spec.semantics?.workshop?.(templates) },
   };
 }
 
@@ -158,17 +171,28 @@ function artifact(diagramType: DiagramType, item: SimpleNodeSpec | (SimpleEdgeSp
   };
 }
 
+function defaultPropsFor(spec: SimpleNodeSpec): Record<string, unknown> {
+  const props: Record<string, unknown> = { visual: spec.visual };
+  for (const property of spec.properties ?? []) {
+    if (property.kind === 'number') props[property.key] = property.defaultValue;
+    else if (property.kind === 'select') props[property.key] = property.defaultValue;
+    else if (property.defaultValue !== undefined) props[property.key] = property.defaultValue;
+  }
+  return props;
+}
+
 function nodeKind(spec: SimpleNodeSpec): NodeKind {
   return {
     component: SimpleShape,
     defaultSize: spec.size,
     defaultLabel: spec.defaultLabel,
-    defaultProps: { visual: spec.visual },
-    hasLabel: true,
+    defaultProps: defaultPropsFor(spec),
+    hasLabel: spec.hasLabel ?? true,
+    labelCaption: spec.labelCaption,
     resizable: spec.resizable ?? true,
     isContainer: spec.container ?? false,
     connectable: spec.connectable ?? true,
-    properties: [],
+    properties: spec.properties ?? [],
     keepAspectRatio: spec.visual === 'port' || spec.visual === 'diamond',
     magnetic: false,
     nestable: spec.container,
@@ -176,7 +200,13 @@ function nodeKind(spec: SimpleNodeSpec): NodeKind {
 }
 
 function edgeKind(spec: SimpleEdgeSpec, switchableTo: string[]): EdgeKind {
-  return { dashed: spec.dashed ?? false, arrow: spec.arrow === undefined ? 'open' : spec.arrow, text: 'label', switchableTo };
+  return {
+    dashed: spec.dashed ?? false,
+    arrow: spec.arrow === undefined ? 'open' : spec.arrow,
+    text: 'label',
+    textCaption: spec.textCaption,
+    switchableTo,
+  };
 }
 
 function resolve(diagram: Diagram, sourceId: string, targetId: string, edgeType: string): ConnectionResult {
@@ -186,15 +216,15 @@ function resolve(diagram: Diagram, sourceId: string, targetId: string, edgeType:
   return { allowed: true, edgeType };
 }
 
-function rulesFor(diagramType: DiagramType): ValidationRule[] {
+function rulesFor(diagramType: DiagramType, unlabeledTypes: ReadonlySet<string>): ValidationRule[] {
   return [
     {
       id: `${diagramType}.unnamed`, diagramType, severity: 'warning', title: 'Elemento sin nombre', explanation: 'Un elemento anónimo no puede relacionarse con el resto del modelo.',
-      check: (diagram) => diagram.nodes.filter((node) => !node.label.trim()).map((node) => ({ ruleId: `${diagramType}.unnamed`, severity: 'warning', message: 'Hay un elemento sin nombre.', suggestion: 'Haz doble clic y escribe un nombre concreto.', nodeIds: [node.id], edgeIds: [] })),
+      check: (diagram) => diagram.nodes.filter((node) => !unlabeledTypes.has(node.artifactType) && !node.label.trim()).map((node) => ({ ruleId: `${diagramType}.unnamed`, severity: 'warning', message: 'Hay un elemento sin nombre.', suggestion: 'Haz doble clic y escribe un nombre concreto.', nodeIds: [node.id], edgeIds: [] })),
     },
     {
       id: `${diagramType}.isolated`, diagramType, severity: 'info', title: 'Elemento aislado', explanation: 'Un elemento aislado puede ser correcto, pero conviene comprobar si falta una relación.',
-      check: (diagram) => diagram.nodes.length < 2 ? [] : diagram.nodes.filter((node) => !diagram.edges.some((edge) => edge.sourceId === node.id || edge.targetId === node.id)).map((node) => ({ ruleId: `${diagramType}.isolated`, severity: 'info', message: `«${node.label || 'Sin nombre'}» está aislado.`, suggestion: 'Conéctalo si participa en la historia que cuenta el diagrama.', nodeIds: [node.id], edgeIds: [] })),
+      check: (diagram) => diagram.nodes.length < 2 ? [] : diagram.nodes.filter((node) => !diagram.nodes.some((child) => child.parentId === node.id) && !diagram.edges.some((edge) => edge.sourceId === node.id || edge.targetId === node.id)).map((node) => ({ ruleId: `${diagramType}.isolated`, severity: 'info', message: `«${node.label || 'Sin nombre'}» está aislado.`, suggestion: 'Conéctalo si participa en la historia que cuenta el diagrama.', nodeIds: [node.id], edgeIds: [] })),
     },
   ];
 }
@@ -217,7 +247,7 @@ function buildTemplate(spec: SimpleModuleSpec, input: SimpleTemplateSpec): Templ
   for (const item of input.nodes) {
     const definition = nodeSpecs.get(item.type);
     if (!definition) throw new Error(`Plantilla ${input.id}: nodo desconocido ${item.type}.`);
-    diagram = addNode(diagram, { id: item.id, artifactType: item.type, label: item.label, position: item.position, size: item.size ?? definition.size, parentId: item.parentId ?? null, props: { visual: definition.visual }, notes: '', locked: false });
+    diagram = addNode(diagram, { id: item.id, artifactType: item.type, label: item.label, position: item.position, size: item.size ?? definition.size, parentId: item.parentId ?? null, props: defaultPropsFor(definition), notes: '', locked: false });
   }
   for (const item of input.edges) {
     diagram = addEdge(diagram, { id: item.id, artifactType: item.type, sourceId: item.sourceId, targetId: item.targetId, guard: null, label: item.label ?? '', ...DEFAULT_EDGE_SHAPE, props: {} });

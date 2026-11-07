@@ -1,26 +1,9 @@
 import { faArrowRight, faDiagramProject, faRoute } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf, type DiagramType } from '@/core/model';
+import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { navigate } from '@/ui/navigation/route';
 import { UmlMap } from './UmlMap';
-
-const LIBRARY_PROJECT_PRIORITY: Record<DiagramType, 'required' | 'optional'> = {
-  usecase: 'required',
-  activity: 'required',
-  sequence: 'required',
-  class: 'required',
-  state: 'optional',
-  component: 'optional',
-  deployment: 'optional',
-  package: 'optional',
-  object: 'optional',
-  profile: 'optional',
-  composite: 'optional',
-  communication: 'optional',
-  interactionOverview: 'optional',
-  timing: 'optional',
-};
 
 /** Inicio de Aprender: el mapa de UML y una tarjeta por tipo de diagrama, agrupadas por familia. */
 export function LearnHome() {
@@ -63,9 +46,6 @@ export function LearnHome() {
           hecho el sistema, y los de <strong className="font-medium text-ink-900">comportamiento</strong>, qué hace y cómo cambia. Los de
           interacción son comportamiento centrado en los mensajes.
         </p>
-        <p className="mt-2 text-xs leading-relaxed text-ink-400">
-          Las etiquetas <strong className="font-medium text-success">Obligatorio</strong> y <strong className="font-medium text-ink-600">Opcional</strong> corresponden al proyecto Biblioteca Digital, no a una regla universal de UML.
-        </p>
         <div className="mt-4">
           <UmlMap />
         </div>
@@ -94,7 +74,6 @@ export function LearnHome() {
 
 function GuideCard({ module }: { module: DiagramModule }) {
   const isInteraction = umlKindOf(module.diagramType)?.interaction ?? false;
-  const priority = LIBRARY_PROJECT_PRIORITY[module.diagramType];
   return (
     <button
       type="button"
@@ -106,9 +85,7 @@ function GuideCard({ module }: { module: DiagramModule }) {
           <FontAwesomeIcon icon={faDiagramProject} />
         </span>
         <span className="flex flex-wrap justify-end gap-1.5">
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${priority === 'required' ? 'bg-success-soft text-success' : 'bg-raised text-ink-600'}`}>
-            {priority === 'required' ? 'Obligatorio' : 'Opcional'}
-          </span>
+          {module.maturity === 'preview' && <span className="rounded-full bg-warning-soft px-2.5 py-0.5 text-[11px] font-medium text-ink-900">Vista previa</span>}
           {isInteraction && <span className="rounded-full bg-raised px-2.5 py-0.5 text-[11px] font-medium text-ink-600">Interacción</span>}
         </span>
       </span>

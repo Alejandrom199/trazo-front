@@ -1,12 +1,13 @@
 import { faLock, faLockOpen, faTrashCan, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo } from 'react';
+import { edgeTypeChangePatch } from '@/canvas/applyEdgeType';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { EDGE_OFFSET_KEY, readEdgeOffset, type DiagramEdge, type DiagramNode, type EdgePatch, type NodePatch } from '@/core/model';
-import { readNumberProperty, type DiagramModule } from '@/core/registry';
+import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
-import { Field, FieldGroup, inputClass, LINE_OPTIONS, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from '@/ui/explanation/formFields';
+import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from '@/ui/explanation/formFields';
 import { Panel } from '@/ui/layout/Panel';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 import { ArrangeTools } from './ArrangeTools';
@@ -22,7 +23,7 @@ const store = () => useDiagramStore.getState();
  * si todos son del mismo tipo, además se editan sus propiedades a la vez (cada
  * cambio es un solo paso de deshacer). Los campos que difieren dicen "Varios".
  */
-export function SelectionPanel() {
+export function SelectionPanel({ embedded = false }: { embedded?: boolean }) {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
@@ -32,8 +33,8 @@ export function SelectionPanel() {
   const total = summary.nodes.length + summary.edges.length;
   const nameOf = (type: string) => module.artifacts.find((artifact) => artifact.type === type)?.name ?? type;
 
-  return (
-    <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-80">
+  const content = (
+    <>
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Selección</h2>
         <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">{total}</span>
@@ -46,7 +47,7 @@ export function SelectionPanel() {
               ? 'Eliminar lo seleccionado (Supr). Lo bloqueado y los carriles que lo contienen se conservan'
               : 'Eliminar lo seleccionado (Supr)'
           }
-          className="ml-auto flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-danger-soft hover:text-danger"
+          className="ml-auto flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-danger-soft hover:text-danger"
         >
           <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
         </button>
@@ -55,7 +56,7 @@ export function SelectionPanel() {
           onClick={() => store().setSelection({ nodeIds: [], edgeIds: [] })}
           aria-label="Quitar la selección"
           title="Quitar la selección"
-          className="flex size-6 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
+          className="flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
         >
           <FontAwesomeIcon icon={faXmark} className="text-sm" />
         </button>
@@ -90,8 +91,10 @@ export function SelectionPanel() {
           </p>
         )}
       </div>
-    </Panel>
+    </>
   );
+  if (embedded) return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
+  return <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-80">{content}</Panel>;
 }
 
 /** Un tipo de artefacto con su figura y cada elemento seleccionado; clic en uno lo deja solo a él. */
@@ -135,7 +138,7 @@ function GroupRow({ group, module, name }: { group: SelectionGroup; module: Diag
               onClick={() => deselect(element.id)}
               aria-label={`Quitar «${element.label.trim() || 'sin nombre'}» de la selección`}
               title="Quitar de la selección"
-              className="mr-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] text-ink-400 hover:bg-surface hover:text-ink-900"
+              className="mr-0.5 flex size-11 shrink-0 items-center justify-center rounded-md text-[11px] text-ink-400 hover:bg-surface hover:text-ink-900"
             >
               <FontAwesomeIcon icon={faXmark} />
             </button>
@@ -189,18 +192,50 @@ function SharedNodeProperties({ nodes, module }: { nodes: DiagramNode[]; module:
           </div>
         </Field>
       )}
-      {kind?.properties.map((property) => (
-        <Field key={property.key} label={property.label} hint={`Entre ${property.min} y ${property.max}${property.unit ?? ''}`}>
-          <NumberInput
-            prefix={property.unit ?? ''}
-            value={commonValue(nodes.map((node) => readNumberProperty(node, property)))}
-            placeholder={MIXED}
-            min={property.min}
-            max={property.max}
-            onCommit={(value) => update((node) => ({ props: { ...node.props, [property.key]: value } }))}
-          />
-        </Field>
-      ))}
+      {kind?.properties.map((property) => {
+        if (property.kind === 'text') {
+          return (
+            <Field key={property.key} label={property.label} hint={property.hint}>
+              <TextInput
+                value={commonValue(nodes.map((node) => readTextProperty(node, property))) ?? ''}
+                placeholder={MIXED}
+                onCommit={(value) => update((node) => ({ props: { ...node.props, [property.key]: value } }))}
+              />
+            </Field>
+          );
+        }
+        if (property.kind === 'select') {
+          const shared = commonValue(nodes.map((node) => readSelectProperty(node, property)));
+          return (
+            <Field key={property.key} label={property.label} hint={property.hint}>
+              <select
+                value={shared ?? ''}
+                onChange={(event) => update((node) => ({ props: { ...node.props, [property.key]: event.target.value } }))}
+                className={inputClass}
+              >
+                {shared === null && <option value="">{MIXED}</option>}
+                {property.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          );
+        }
+        return (
+          <Field key={property.key} label={property.label} hint={`Entre ${property.min} y ${property.max}${property.unit ?? ''}`}>
+            <NumberInput
+              prefix={property.unit ?? ''}
+              value={commonValue(nodes.map((node) => readNumberProperty(node, property)))}
+              placeholder={MIXED}
+              min={property.min}
+              max={property.max}
+              onCommit={(value) => update((node) => ({ props: { ...node.props, [property.key]: value } }))}
+            />
+          </Field>
+        );
+      })}
     </>
   );
 }
@@ -209,7 +244,6 @@ function SharedNodeProperties({ nodes, module }: { nodes: DiagramNode[]; module:
 function SharedEdgeProperties({ edges, module }: { edges: DiagramEdge[]; module: DiagramModule }) {
   const kind = module.edgeKinds[edges[0]!.artifactType];
   const update = (patchFor: (edge: DiagramEdge) => EdgePatch) => store().updateEdges(edges.map((edge) => ({ id: edge.id, patch: patchFor(edge) })));
-  const defaultStyle = kind?.dashed ? 'dashed' : 'solid';
   const alternatives = (kind?.switchableTo ?? [])
     .map((type) => module.artifacts.find((artifact) => artifact.type === type))
     .filter((artifact) => artifact !== undefined);
@@ -221,7 +255,12 @@ function SharedEdgeProperties({ edges, module }: { edges: DiagramEdge[]; module:
         <Field label="Tipo">
           <select
             value={current.type}
-            onChange={(event) => update(() => ({ artifactType: event.target.value, lineStyle: null }))}
+            onChange={(event) => {
+              const diagram = store().diagram;
+              const edgeType = event.target.value;
+              if (!diagram) return;
+              store().updateEdges(edges.map((edge) => ({ id: edge.id, patch: edgeTypeChangePatch(module, diagram, edge, edgeType) })));
+            }}
             className={inputClass}
           >
             {[current, ...alternatives.filter((artifact) => artifact.type !== current.type)].map((artifact) => (
@@ -247,13 +286,6 @@ function SharedEdgeProperties({ edges, module }: { edges: DiagramEdge[]; module:
           <Segmented value={commonValue(edges.map((edge) => edge.routing))} options={ROUTING_OPTIONS} onChange={(routing) => update(() => ({ routing }))} />
         </FieldGroup>
       )}
-      <FieldGroup label="Línea">
-        <Segmented
-          value={commonValue(edges.map((edge) => edge.lineStyle ?? defaultStyle))}
-          options={LINE_OPTIONS}
-          onChange={(lineStyle) => update(() => ({ lineStyle: lineStyle === defaultStyle ? null : lineStyle }))}
-        />
-      </FieldGroup>
     </>
   );
 }

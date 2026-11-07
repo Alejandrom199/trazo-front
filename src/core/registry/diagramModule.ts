@@ -49,7 +49,7 @@ export interface ArtifactNodeProps {
 export const CONTAINER_GRIP_CLASS = 'container-grip';
 
 /**
- * Propiedad visual configurable de un artefacto (se guarda en DiagramNode.props).
+ * Propiedad configurable de un artefacto (se guarda en DiagramNode.props).
  * El módulo la declara y el panel de propiedades la muestra sin saber qué es:
  * así cada tipo de diagrama agrega las suyas sin tocar la interfaz.
  */
@@ -63,13 +63,44 @@ export interface NumberPropertyDefinition {
   unit?: string;
 }
 
-export type PropertyDefinition = NumberPropertyDefinition;
+export interface TextPropertyDefinition {
+  kind: 'text';
+  key: string;
+  label: string;
+  defaultValue?: string;
+  placeholder?: string;
+  hint?: string;
+}
+
+export interface SelectPropertyDefinition {
+  kind: 'select';
+  key: string;
+  label: string;
+  defaultValue: string;
+  options: { value: string; label: string }[];
+  hint?: string;
+}
+
+export type PropertyDefinition = NumberPropertyDefinition | TextPropertyDefinition | SelectPropertyDefinition;
 
 /** Lee una propiedad numérica de un nodo; si falta o es inválida (diagramas viejos), usa la de por defecto. */
 export function readNumberProperty(node: DiagramNode, definition: NumberPropertyDefinition): number {
   const value = node.props[definition.key];
   if (typeof value !== 'number' || !Number.isFinite(value)) return definition.defaultValue;
   return Math.min(definition.max, Math.max(definition.min, value));
+}
+
+/** Lee una propiedad de texto; si falta, usa el valor por defecto del módulo. */
+export function readTextProperty(node: DiagramNode, definition: TextPropertyDefinition): string {
+  const value = node.props[definition.key];
+  return typeof value === 'string' ? value : (definition.defaultValue ?? '');
+}
+
+/** Lee una opción; si el valor guardado no está entre las opciones, usa el de por defecto. */
+export function readSelectProperty(node: DiagramNode, definition: SelectPropertyDefinition): string {
+  const value = node.props[definition.key];
+  if (typeof value === 'string' && definition.options.some((option) => option.value === value)) return value;
+  return definition.defaultValue;
 }
 
 /** Cómo se comporta en el lienzo un artefacto que es nodo. */
@@ -235,6 +266,11 @@ export interface DiagramModule {
   diagramType: DiagramType;
   /** Nombre visible, p. ej. "Diagrama de actividades". */
   displayName: string;
+  /**
+   * Los módulos construidos sobre el editor genérico todavía no igualan la
+   * madurez de Actividad, Secuencia o Clases. La interfaz lo dice en voz alta.
+   */
+  maturity?: 'preview';
   artifacts: ArtifactDefinition[];
   /** Comportamiento visual por artifactType (solo artefactos que son nodos). */
   nodeKinds: Record<string, NodeKind>;

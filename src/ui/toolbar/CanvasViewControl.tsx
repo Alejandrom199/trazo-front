@@ -39,7 +39,7 @@ export function CanvasViewControl() {
         aria-expanded={open}
         title="Vista: enfocar la selección y el detalle al alejarse"
         onClick={() => setOpen(!open)}
-        className={`flex h-8 items-center gap-2 rounded-md px-2 text-xs ${
+        className={`flex h-11 min-w-11 items-center gap-2 rounded-md px-2 text-xs ${
           customized ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
         }`}
       >
@@ -48,7 +48,7 @@ export function CanvasViewControl() {
         <FontAwesomeIcon icon={faChevronDown} className="text-[9px]" />
       </button>
       {open && (
-        <div role="dialog" aria-label="Vista" className="absolute top-full right-0 z-30 mt-2 w-72 rounded-lg border border-line bg-surface p-3 shadow-panel">
+        <div role="dialog" aria-label="Vista" className="absolute right-0 bottom-full z-30 mb-2 w-72 rounded-lg border border-line bg-surface p-3 shadow-panel">
           <button
             type="button"
             role="switch"

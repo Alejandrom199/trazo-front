@@ -1,5 +1,6 @@
-import { faArrowPointer, faHand, faPencil, faShapes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowPointer, faCompress, faHand, faMagnifyingGlassMinus, faMagnifyingGlassPlus, faPencil, faShapes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useReactFlow } from '@xyflow/react';
 import { useEffect } from 'react';
 import { useCanvasInteractionStore, type CanvasTool } from '@/canvas/canvasInteractionStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -16,14 +17,14 @@ const TOOLS: { id: CanvasTool; label: string; key: string; help: string; icon: t
  * La tecla A muestra u oculta los artefactos (ver ArtifactsToggle). Alt + arrastrar
  * desplaza el lienzo con cualquiera.
  */
-export function CanvasSelectionToolbar() {
+export function CanvasSelectionToolbar({ embedded = false }: { embedded?: boolean }) {
   const tool = useCanvasInteractionStore((state) => state.tool);
   const setTool = useCanvasInteractionStore((state) => state.setTool);
   const selected = useDiagramStore((state) => state.selection.nodeIds.length + state.selection.edgeIds.length);
   useToolShortcuts(setTool, toggleArtifacts);
 
   return (
-    <div className="glass-panel relative flex h-11 items-center gap-1 rounded-xl p-1">
+    <div className={embedded ? 'flex items-center gap-1' : 'glass-panel relative flex items-center gap-1 rounded-xl p-1'}>
       {TOOLS.map((item) => (
         <button
           key={item.id}
@@ -33,7 +34,7 @@ export function CanvasSelectionToolbar() {
           aria-keyshortcuts={item.key}
           title={item.help}
           onClick={() => setTool(item.id)}
-          className={`flex size-9 items-center justify-center rounded-lg text-[13px] transition-colors ${
+          className={`flex size-11 items-center justify-center rounded-lg text-[13px] transition-colors ${
             tool === item.id ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
           }`}
         >
@@ -60,13 +61,29 @@ export function ArtifactsToggle() {
       aria-keyshortcuts="A"
       title={visible ? 'Ocultar artefactos (A)' : 'Mostrar artefactos (A)'}
       onClick={toggleArtifacts}
-      className={`glass-panel relative flex h-11 items-center gap-2 rounded-xl px-3.5 text-[13px] transition-colors ${
+      className={`glass-panel relative flex h-11 min-w-11 items-center gap-2 rounded-xl px-3 text-[13px] transition-colors sm:px-3.5 ${
         visible ? 'text-accent' : 'text-ink-600 hover:text-ink-900'
       }`}
     >
       <FontAwesomeIcon icon={faShapes} />
-      Artefactos
+      <span className="hidden sm:inline">Artefactos</span>
     </button>
+  );
+}
+
+export function ZoomControls() {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const item = (label: string, icon: typeof faCompress, onClick: () => void) => (
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="flex size-11 items-center justify-center rounded-lg text-ink-600 hover:bg-raised hover:text-ink-900">
+      <FontAwesomeIcon icon={icon} />
+    </button>
+  );
+  return (
+    <>
+      {item('Alejar', faMagnifyingGlassMinus, () => zoomOut())}
+      {item('Acercar', faMagnifyingGlassPlus, () => zoomIn())}
+      {item('Ver todo', faCompress, () => fitView({ padding: 0.2 }))}
+    </>
   );
 }
 

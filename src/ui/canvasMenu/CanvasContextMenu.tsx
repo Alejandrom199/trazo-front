@@ -16,7 +16,6 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useContextMenuStore, type CanvasContextMenu as MenuState } from '@/canvas/contextMenuStore';
-import { useElementClickStore } from '@/canvas/elementClickStore';
 import { duplicate } from '@/canvas/clipboardActions';
 import { LAYER_SHORTCUTS, moveLayers } from '@/canvas/layerActions';
 import { placeArtifact, useAddArtifactAtCenter } from '@/canvas/placeArtifact';
@@ -222,8 +221,8 @@ function ArtifactPicker({ menu, module, onClose }: { menu: MenuState; module: Di
                       event.stopPropagation();
                       toggleInfo(itemIndex);
                     }}
-                    className={`flex size-6 shrink-0 items-center justify-center rounded-md transition-colors hover:text-accent ${
-                      info?.artifact.type === artifact.type ? 'text-accent' : isActive ? 'text-ink-400' : 'text-ink-400/40'
+                    className={`flex size-11 shrink-0 items-center justify-center rounded-md transition-colors hover:text-accent ${
+                      info?.artifact.type === artifact.type ? 'text-accent' : 'text-ink-400'
                     }`}
                   >
                     <FontAwesomeIcon icon={faCircleInfo} />
@@ -363,16 +362,14 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
   if (menu.target.kind === 'pane') return [];
   const { kind: targetKind, id } = menu.target;
   const store = useDiagramStore.getState();
-  const point = { left: menu.screen.x, top: menu.screen.y, right: menu.screen.x, bottom: menu.screen.y };
 
   const explain: Action = {
     id: 'explain',
     label: 'Explicar qué es',
     icon: faBookOpen,
     run: () => {
-      useUiStore.getState().setPopoverTab('explanation');
-      useElementClickStore.getState().setClicked({ kind: targetKind, id, rect: point });
-      useElementClickStore.getState().setExpanded(true);
+      store.setSelection(targetKind === 'node' ? { nodeIds: [id], edgeIds: [] } : { nodeIds: [], edgeIds: [id] });
+      useUiStore.getState().setInspectorTab('explanation');
     },
   };
 
