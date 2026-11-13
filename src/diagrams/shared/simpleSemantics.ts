@@ -200,7 +200,7 @@ export const objectSemantics: SimpleModuleSemantics = {
         title: 'Una fotografía a medias',
         context: 'Alguien copió un diagrama de clases y lo rellenó con datos, pero dejó valores sin dueño.',
         diagram: broken,
-        expectedProblems: 2,
+        expectedProblems: 5,
         question: {
           id: 'object-fix',
           prompt: '¿Qué corrección recupera primero el sentido de una fotografía UML?',
@@ -338,7 +338,7 @@ export const profileSemantics: SimpleModuleSemantics = {
         title: 'Un perfil que no se puede aplicar',
         context: 'El equipo dibujó estereotipos fuera del paquete y extendió metaclases hacia estereotipos.',
         diagram: broken,
-        expectedProblems: 2,
+        expectedProblems: 8,
         question: {
           id: 'profile-fix',
           prompt: '¿Cuál es la corrección UML imprescindible?',
@@ -474,7 +474,7 @@ export const compositeSemantics: SimpleModuleSemantics = {
         title: 'Una API que no entra',
         context: 'El servicio muestra partes internas, pero el puerto HTTP quedó decorativo.',
         diagram: broken,
-        expectedProblems: 1,
+        expectedProblems: 2,
         question: {
           id: 'composite-fix',
           prompt: '¿Qué falta para que el puerto cumpla su papel?',
@@ -599,7 +599,7 @@ export const communicationSemantics: SimpleModuleSemantics = {
         title: 'Una red mudada',
         context: 'Al pasar de secuencia a comunicación se perdieron los números.',
         diagram: broken,
-        expectedProblems: 1,
+        expectedProblems: 4,
         question: {
           id: 'communication-fix',
           prompt: '¿Qué restaura el orden del escenario?',
@@ -885,7 +885,7 @@ export const timingSemantics: SimpleModuleSemantics = {
         title: 'Un vencimiento borroso',
         context: 'El préstamo cambia de estado, pero nadie fijó cuánto dura cada tramo.',
         diagram: broken,
-        expectedProblems: 2,
+        expectedProblems: 9,
         question: {
           id: 'timing-fix',
           prompt: '¿Qué recupera el significado temporal?',
