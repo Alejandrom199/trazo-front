@@ -16,3 +16,4 @@ export * from './layers';
 export * from './umlTaxonomy';
 export * from './fixes';
 export * from './project';
+export * from './nodeName';

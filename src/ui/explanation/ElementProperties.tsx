@@ -1,4 +1,4 @@
-import { absolutePosition, EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type NodePatch } from '@/core/model';
+import { absolutePosition, nodeName, EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type NodePatch } from '@/core/model';
 import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { canReverseEdge, reverseEdge } from '@/canvas/edgeActions';
@@ -99,7 +99,7 @@ export function EdgeProperties({
   diagram: Diagram;
   module: DiagramModule;
 }) {
-  const nameOf = (id: string) => diagram.nodes.find((node) => node.id === id)?.label.trim() || 'nodo sin nombre';
+  const nameOf = (id: string) => nodeName(diagram.nodes.find((node) => node.id === id), 'nodo sin nombre');
   const kind = module.edgeKinds[edge.artifactType];
   const isHorizontal = kind?.layout === 'horizontal';
   const labelOffset = readLabelOffset(edge);

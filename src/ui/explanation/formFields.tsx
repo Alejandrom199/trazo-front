@@ -58,13 +58,15 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={value === option.value}
           disabled={option.disabled}
+          title={option.label}
           onClick={() => onChange(option.value)}
           className={`flex min-w-0 flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
             value === option.value ? 'bg-surface font-medium text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'
           }`}
         >
           {option.icon}
-          {option.label}
+          {/* En un span: un texto suelto dentro de un flex no se recorta con «…». */}
+          <span className="max-w-full truncate">{option.label}</span>
         </button>
       ))}
     </div>

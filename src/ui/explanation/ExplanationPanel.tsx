@@ -1,7 +1,7 @@
 import { faChevronLeft, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState, type ReactNode } from 'react';
-import type { ArtifactDefinition, Diagram, DiagramEdge, DiagramNode } from '@/core/model';
+import { nodeName, type ArtifactDefinition, type Diagram, type DiagramEdge, type DiagramNode } from '@/core/model';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
@@ -190,10 +190,7 @@ function NodeInstance({ node, diagram }: { node: DiagramNode; diagram: Diagram }
 }
 
 function EdgeInstance({ edge, diagram }: { edge: DiagramEdge; diagram: Diagram }) {
-  const nameOf = (id: string) => {
-    const node = diagram.nodes.find((candidate) => candidate.id === id);
-    return node?.label || 'nodo sin nombre';
-  };
+  const nameOf = (id: string) => nodeName(diagram.nodes.find((candidate) => candidate.id === id), 'nodo sin nombre');
   return (
     <InstanceBox>
       <p>
