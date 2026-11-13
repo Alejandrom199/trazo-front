@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { PackageArtifact as P } from './artifactTypes';
+import { packageWorkshop } from './workshop';
 
 /** Guía del diagrama de paquetes para la página Aprender. */
 export const packageGuide: DiagramGuide = {
@@ -34,4 +35,5 @@ export const packageGuide: DiagramGuide = {
     { title: 'Sigue las flechas', text: 'Una flecha discontinua va del que usa al usado. «import» y «access» son importaciones de nombres: pública y privada.', artifactTypes: [P.dependency, P.packageImport, P.packageAccess] },
     { title: 'Busca círculos', text: 'Si siguiendo flechas vuelves al punto de partida, hay un ciclo: esos paquetes no se pueden separar.', artifactTypes: [P.dependency] },
   ],
+  workshop: packageWorkshop,
 };

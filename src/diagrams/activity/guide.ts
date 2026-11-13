@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { ActivityArtifact as A } from './artifactTypes';
+import { activityWorkshop } from './workshop';
 
 /** Guía del diagrama de actividades para la página Aprender. */
 export const activityGuide: DiagramGuide = {
@@ -60,4 +61,5 @@ export const activityGuide: DiagramGuide = {
       artifactTypes: [A.activityFinal, A.flowFinal],
     },
   ],
+  workshop: activityWorkshop,
 };

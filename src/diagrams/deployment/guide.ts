@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { DeploymentArtifact as D } from './artifactTypes';
+import { deploymentWorkshop } from './workshop';
 
 /** Guía del diagrama de despliegue para la página Aprender. */
 export const deploymentGuide: DiagramGuide = {
@@ -34,4 +35,5 @@ export const deploymentGuide: DiagramGuide = {
     { title: 'Busca los archivos', text: 'Los artefactos son lo que se instala: api.jar, sitio.zip. Van dentro de donde corren o unidos con «deploy».', artifactTypes: [D.artifact, D.deployment] },
     { title: 'Sigue la red', text: 'Las líneas entre máquinas son caminos de comunicación, rotulados con el protocolo.', artifactTypes: [D.communicationPath] },
   ],
+  workshop: deploymentWorkshop,
 };

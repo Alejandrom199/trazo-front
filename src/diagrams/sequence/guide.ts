@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { SequenceArtifact as S } from './artifactTypes';
+import { sequenceWorkshop } from './workshop';
 
 /** Guía del diagrama de secuencia para la página Aprender. */
 export const sequenceGuide: DiagramGuide = {
@@ -56,4 +57,5 @@ export const sequenceGuide: DiagramGuide = {
       artifactTypes: [S.altFragment, S.optFragment, S.loopFragment, S.parFragment],
     },
   ],
+  workshop: sequenceWorkshop,
 };

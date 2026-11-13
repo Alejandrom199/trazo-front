@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { StateArtifact as S } from './artifactTypes';
+import { stateWorkshop } from './workshop';
 
 /** Guía del diagrama de máquina de estados para la página Aprender. */
 export const stateGuide: DiagramGuide = {
@@ -35,4 +36,5 @@ export const stateGuide: DiagramGuide = {
     { title: 'Abre los compuestos', text: 'Un estado compuesto agrupa subestados: lo que sale de su borde vale para todos; la H recuerda dónde estaba.', artifactTypes: [S.compositeState, S.history] },
     { title: 'Busca el final', text: 'La diana marca dónde termina la vida del objeto. Algunos, como una puerta, nunca terminan.', artifactTypes: [S.final] },
   ],
+  workshop: stateWorkshop,
 };

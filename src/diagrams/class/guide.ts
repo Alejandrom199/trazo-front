@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { ClassArtifact as C } from './artifactTypes';
+import { classWorkshop } from './workshop';
 
 export const classGuide: DiagramGuide = {
   summary: 'Un diagrama de clases muestra la estructura estable del sistema: conceptos, datos, operaciones y relaciones.',
@@ -15,4 +16,5 @@ export const classGuide: DiagramGuide = {
     { title: 'Distingue propiedad', text: 'El rombo blanco agrega partes independientes; el negro compone partes dependientes.', artifactTypes: [C.aggregation, C.composition] },
     { title: 'Reconoce contratos y herencia', text: 'El triángulo continuo generaliza; el discontinuo realiza una interfaz.', artifactTypes: [C.generalization, C.realization] },
   ],
+  workshop: classWorkshop,
 };

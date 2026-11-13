@@ -1,5 +1,6 @@
 import type { DiagramGuide } from '@/core/registry';
 import { ComponentArtifact as C } from './artifactTypes';
+import { componentWorkshop } from './workshop';
 
 /** Guía del diagrama de componentes para la página Aprender. */
 export const componentGuide: DiagramGuide = {
@@ -36,4 +37,5 @@ export const componentGuide: DiagramGuide = {
     { title: 'Sigue los ensambles', text: 'Donde un enchufe se une a una piruleta, una pieza le da a otra lo que necesita.', artifactTypes: [C.assembly] },
     { title: 'Revisa las dependencias y los grupos', text: 'La flecha discontinua «use» es una dependencia directa; el subsistema agrupa piezas de un mismo área.', artifactTypes: [C.dependency, C.subsystem] },
   ],
+  workshop: componentWorkshop,
 };
