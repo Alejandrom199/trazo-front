@@ -51,7 +51,8 @@ export function AppShell() {
                 <InspectorToggle />
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
-                <div className="glass-panel pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-xl p-1">
+                <div className="glass-panel pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-xl p-1">
+                  {/* Sin overflow: recortaría los menús «Vista» y «Cuadrícula», que se abren hacia arriba. */}
                   <CanvasSelectionToolbar embedded />
                   <ZoomControls />
                   <CanvasViewControl />
