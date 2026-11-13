@@ -216,29 +216,30 @@ interface HandleProps {
   onDoubleClick?: () => void;
 }
 
-/** Tirador de edición del recorrido, en coordenadas del lienzo. */
+const HANDLE_SIZE = 11;
+
+/**
+ * Tirador de edición del recorrido, en coordenadas del lienzo. La posición va en
+ * un contenedor sin tamaño y el agrandado al pasar el ratón en el tirador: si
+ * `scale` y la traslación compartieran elemento, el escalado multiplicaría también
+ * la traslación y el tirador saltaría lejos de su punto.
+ */
 function Handle({ point, kind, title, onPointerDown, onDoubleClick }: HandleProps) {
-  const size = 11;
   return (
-    <div
-      title={title}
-      onPointerDown={onPointerDown}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        onDoubleClick?.();
-      }}
-      className={`nodrag nopan pointer-events-auto absolute border-[1.5px] border-accent transition-transform hover:scale-125 ${
-        kind === 'end' ? 'rounded-[2px] bg-surface' : 'rounded-full'
-      } ${
-        kind === 'height' ? 'cursor-ns-resize' : 'cursor-move'
-      } bg-accent`}
-      style={{
-        width: size,
-        height: size,
-        transform: `translate(-50%, -50%) translate(${point.x}px, ${point.y}px)`,
-        zIndex: 1001,
-      }}
-    />
+    <div className="absolute" style={{ transform: `translate(${point.x}px, ${point.y}px)`, zIndex: 1001 }}>
+      <div
+        title={title}
+        onPointerDown={onPointerDown}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          onDoubleClick?.();
+        }}
+        className={`nodrag nopan pointer-events-auto absolute border-[1.5px] border-accent transition-transform hover:scale-125 ${
+          kind === 'end' ? 'rounded-[2px] bg-surface' : 'rounded-full bg-accent'
+        } ${kind === 'height' ? 'cursor-ns-resize' : 'cursor-move'}`}
+        style={{ width: HANDLE_SIZE, height: HANDLE_SIZE, left: -HANDLE_SIZE / 2, top: -HANDLE_SIZE / 2 }}
+      />
+    </div>
   );
 }
 
