@@ -5,6 +5,7 @@ import type { ArtifactDefinition } from '@/core/model';
 import type { DiagramModule, EdgeKind } from '@/core/registry';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
+import { readQuizScore, writeQuizScore } from './learningProgress';
 
 const OPTIONS = 3;
 
@@ -70,7 +71,8 @@ export function newQuestion(module: DiagramModule, previous?: ArtifactDefinition
 export function ArtifactQuiz({ module }: { module: DiagramModule }) {
   const [question, setQuestion] = useState(() => newQuestion(module));
   const [picked, setPicked] = useState<string | null>(null);
-  const [score, setScore] = useState({ right: 0, total: 0 });
+  // Los aciertos se guardan por tipo de diagrama: se conservan al volver a la guía.
+  const [score, setScore] = useState(() => readQuizScore(module.diagramType));
 
   const next = useCallback(() => {
     setQuestion((current) => newQuestion(module, current.answer));
@@ -80,7 +82,9 @@ export function ArtifactQuiz({ module }: { module: DiagramModule }) {
   function pick(type: string) {
     if (picked) return;
     setPicked(type);
-    setScore((current) => ({ right: current.right + (type === question.answer.type ? 1 : 0), total: current.total + 1 }));
+    const next = { right: score.right + (type === question.answer.type ? 1 : 0), total: score.total + 1 };
+    setScore(next);
+    writeQuizScore(module.diagramType, next);
   }
 
   const isRight = picked === question.answer.type;

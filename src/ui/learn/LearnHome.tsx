@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { navigate } from '@/ui/navigation/route';
+import { useLearningProgress, workshopDone, workshopTotal } from './learningProgress';
 import { UmlMap } from './UmlMap';
 
 /** Inicio de Aprender: el mapa de UML y una tarjeta por tipo de diagrama, agrupadas por familia. */
@@ -94,10 +95,30 @@ function GuideCard({ module }: { module: DiagramModule }) {
       <p className="mt-4 text-xs text-ink-400">
         {module.artifacts.length} artefactos, {module.templates.length} ejemplos y {module.rules.length} reglas
       </p>
+      {module.guide.workshop && <WorkshopProgress module={module} />}
       <span className="mt-3 flex items-center gap-1.5 text-sm font-medium text-accent">
         Empezar la guía
         <FontAwesomeIcon icon={faArrowRight} className="text-xs transition-transform group-hover:translate-x-0.5" />
       </span>
     </button>
+  );
+}
+
+/** Avance del taller en la tarjeta: así se ve dónde retomar sin entrar en cada guía. */
+function WorkshopProgress({ module }: { module: DiagramModule }) {
+  const completed = useLearningProgress(module.diagramType);
+  const total = workshopTotal(module.guide.workshop!);
+  const done = Math.min(workshopDone(completed), total);
+  if (done === 0) return null;
+  return (
+    <span className="mt-3 block">
+      <span className="flex justify-between text-[11px]">
+        <span className="text-ink-400">Taller</span>
+        <span className="font-medium text-ink-900">{done} de {total}</span>
+      </span>
+      <span className="mt-1 block h-1 overflow-hidden rounded-full bg-raised">
+        <span className="block h-full bg-brand" style={{ width: `${(done / total) * 100}%` }} />
+      </span>
+    </span>
   );
 }

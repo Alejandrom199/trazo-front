@@ -7,6 +7,7 @@ import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { registerDiagramModules } from '@/diagrams';
+import { startChallengeTracking } from '@/ui/learn/challengeTracking';
 import { useUiStore } from '@/ui/uiStore';
 import { App } from './App';
 import './index.css';
@@ -34,6 +35,7 @@ usePersistenceStore.subscribe((state, previous) => {
 // 3. Se reabre el último diagrama; si no hay, uno vacío detrás del selector de nuevo diagrama.
 openInitialDiagram(repository);
 startAutosave();
+startChallengeTracking();
 
 function openInitialDiagram(repo: DiagramRepository | null): void {
   const lastId = repo?.lastOpenedId();
