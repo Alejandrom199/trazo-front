@@ -44,7 +44,15 @@ export function AppShell() {
               {/* Herramientas compactas; los botones de restaurar laterales aparecen solo al plegarlos. */}
               <div className="absolute top-3 left-3 z-10 flex items-start gap-2">
                 <ProjectSidebarToggle />
-                <ArtifactsToggle />
+                {/* El panel cuelga de su botón: queda debajo de «Artefactos» aunque antes haya otros botones. */}
+                <div className="relative">
+                  <ArtifactsToggle />
+                  {artifactToolsVisible && (
+                    <div className="absolute top-full left-0 mt-2">
+                      <PalettePanel />
+                    </div>
+                  )}
+                </div>
                 <LayersControl />
               </div>
               <div className="absolute top-3 right-3 z-10">
@@ -60,13 +68,6 @@ export function AppShell() {
                 </div>
               </div>
               <EditorTutorial />
-
-              {/* Herramientas de dibujo, bajo las de selección (se ocultan con su botón o la tecla A). */}
-              {artifactToolsVisible && (
-                <div className="absolute top-[4.25rem] left-3 z-10">
-                  <PalettePanel />
-                </div>
-              )}
 
               {notice && (
                 <div
