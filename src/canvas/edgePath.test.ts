@@ -48,6 +48,24 @@ describe('buildEdgePath', () => {
     expect(route.at(-1)).toEqual({ x: 105, y: 320 });
   });
 
+  it('Dada una ortogonal con un vértice en diagonal, Entonces sale del origen en recto (orienta el rombo)', () => {
+    const upper = { x: 0, y: 0, width: 210, height: 150 };
+    const lower = { x: 0, y: 320, width: 210, height: 150 };
+    const result = buildEdgePath(upper, lower, 'orthogonal', [{ x: 320, y: 240 }]);
+    const start = result.controlPoints[0]!;
+
+    // Sale por abajo, hacia abajo: misma x que el origen y más abajo; no hacia el vértice.
+    expect(result.sourceHeading.x).toBe(start.x);
+    expect(result.sourceHeading.y).toBeGreaterThan(start.y);
+  });
+
+  it('Dada una flecha sin vértices, Entonces sale perpendicular al lado del origen', () => {
+    const result = buildEdgePath(box(0, 0), box(0, 200), 'orthogonal', []);
+    const start = result.controlPoints[0]!;
+
+    expect(result.sourceHeading).toEqual({ x: start.x, y: start.y + 1 });
+  });
+
   it('Dada una flecha sin vértices, Entonces tiene dos puntos de control: sus extremos', () => {
     expect(buildEdgePath(box(0, 0), box(0, 200), 'orthogonal', []).controlPoints).toHaveLength(2);
     expect(buildEdgePath(box(0, 0), box(0, 200), 'curved', []).controlPoints).toHaveLength(2);

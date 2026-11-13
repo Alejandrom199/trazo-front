@@ -18,6 +18,11 @@ export interface EdgePath {
   /** Extremos y vértices en orden; sirven para dibujar los tiradores de edición. */
   controlPoints: Position[];
   /**
+   * Un punto en la dirección en que la línea dibujada sale del origen (no el siguiente
+   * vértice, que puede quedar en diagonal tras un codo). Orienta el rombo del origen.
+   */
+  sourceHeading: Position;
+  /**
    * Recorrido aproximado (polilínea) de cada tramo entre puntos de control. Al
    * arrastrar la línea sobre el tramo i, el vértice nuevo se inserta en la posición i.
    */
@@ -47,6 +52,7 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
       d: roundedPolylinePath(points, CORNER_RADIUS),
       label: pointAtHalf(points),
       controlPoints: [start.point, ...waypoints, end.point],
+      sourceHeading: points[1] ?? end.point,
       legs,
     };
   }
@@ -60,6 +66,8 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
       d: curvePath(start, segments),
       label: pointAtHalf(points),
       controlPoints: points,
+      // La tangente de salida de la curva apunta a su primer punto de control.
+      sourceHeading: segments[0]![1],
       legs: segments.map(sampleBezier),
     };
   }
@@ -67,6 +75,7 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
     d: polylinePath(points),
     label: pointAtHalf(points),
     controlPoints: points,
+    sourceHeading: points[1]!,
     legs: points.slice(1).map((point, index) => [points[index]!, point]),
   };
 }
@@ -89,6 +98,8 @@ function buildWithoutWaypoints(source: Rect, target: Rect, routing: EdgeRouting)
     d,
     label: { x: labelX, y: labelY },
     controlPoints: [start, end],
+    // Sin vértices, la ortogonal y la curva salen perpendiculares al lado del origen.
+    sourceHeading: awayFrom(start, endpoints.sourcePosition),
     legs: [approximate],
   };
 }
@@ -109,6 +120,20 @@ export function dashArrayFor(style: LineStyle): string | undefined {
 
 function centerOf(rect: Rect): Position {
   return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+}
+
+/** Un punto a un paso de `point`, hacia fuera del lado `side`. */
+function awayFrom(point: Position, side: Side): Position {
+  switch (side) {
+    case Side.Top:
+      return { x: point.x, y: point.y - 1 };
+    case Side.Bottom:
+      return { x: point.x, y: point.y + 1 };
+    case Side.Left:
+      return { x: point.x - 1, y: point.y };
+    case Side.Right:
+      return { x: point.x + 1, y: point.y };
+  }
 }
 
 function axisOf(side: Side): Axis {

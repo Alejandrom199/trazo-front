@@ -61,6 +61,7 @@ export function buildHorizontalPath(source: Rect, target: Rect, y: number, optio
       d: `M${start},${y} L${loopX},${y} L${loopX},${bottom} L${end},${bottom}`,
       label: { x: (start + loopX) / 2, y },
       controlPoints: [{ x: start, y }, { x: end, y: bottom }],
+      sourceHeading: { x: loopX, y },
       legs: [],
     };
   }
@@ -71,6 +72,7 @@ export function buildHorizontalPath(source: Rect, target: Rect, y: number, optio
     d: `M${start},${y} L${end},${y}`,
     label: { x: (start + end) / 2, y },
     controlPoints: [{ x: start, y }, { x: end, y }],
+    sourceHeading: { x: end, y },
     legs: [],
   };
 }

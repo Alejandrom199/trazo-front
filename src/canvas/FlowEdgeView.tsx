@@ -47,7 +47,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const isHorizontal = kind?.layout === 'horizontal';
   const labelOffset = readLabelOffset(edge);
   const start = path.controlPoints[0];
-  const toward = path.controlPoints[1] ?? path.controlPoints.at(-1);
+  const toward = path.sourceHeading;
   const stroke = typeof style?.stroke === 'string' ? style.stroke : 'var(--color-edge)';
 
   return (
