@@ -1,5 +1,6 @@
 import type { Diagram, ValidationIssue, ValidationRule } from '@/core/model';
 import { CLASSIFIER_TYPES, ClassArtifact as C } from '../artifactTypes';
+import { generalizationCycle, sharedCompositePart } from './semantics';
 
 const make = (id: string, severity: ValidationIssue['severity'], title: string, explanation: string, check: (diagram: Diagram) => ValidationIssue[]): ValidationRule => ({ id, diagramType: 'class', severity, title, explanation, check });
 const issue = (ruleId: string, severity: ValidationIssue['severity'], message: string, suggestion: string, nodeIds: string[] = [], edgeIds: string[] = []): ValidationIssue => ({ ruleId, severity, message, suggestion, nodeIds, edgeIds });
@@ -10,4 +11,4 @@ const duplicated = make('class.duplicated', 'warning', 'Nombre duplicado', 'Dos 
 const isolated = make('class.isolated', 'info', 'Clasificador aislado', 'Un clasificador sin relaciones puede estar fuera del alcance o incompleto.', (diagram) => classifiers(diagram).filter((node) => !diagram.edges.some((edge) => edge.sourceId === node.id || edge.targetId === node.id)).map((node) => issue('class.isolated', 'info', `«${node.label.split('\n')[0]}» no tiene relaciones.`, 'Relaciona el concepto o comprueba si pertenece al diagrama.', [node.id])));
 const noteLoose = make('class.note-loose', 'info', 'Nota sin anclar', 'Una nota suelta puede interpretarse como comentario de cualquier elemento.', (diagram) => diagram.nodes.filter((node) => node.artifactType === C.note && !diagram.edges.some((edge) => edge.artifactType === C.annotationLink && (edge.sourceId === node.id || edge.targetId === node.id))).map((node) => issue('class.note-loose', 'info', 'Hay una nota sin anclar.', 'Conéctala con el elemento que explica.', [node.id])));
 
-export const classRules = [unnamed, duplicated, isolated, noteLoose];
+export const classRules = [unnamed, duplicated, isolated, noteLoose, generalizationCycle, sharedCompositePart];
