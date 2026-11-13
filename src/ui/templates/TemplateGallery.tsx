@@ -11,7 +11,9 @@ import { createDiagramFromTemplate, groupByUmlFamily, umlKindOf, type Difficulty
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { useProjectStore } from '@/core/store/projectStore';
 import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
+import { addCurrentToProject, saveCurrentNow } from '@/ui/projects/projectActions';
 import { useUiStore } from '@/ui/uiStore';
 import { SavedDiagrams } from './SavedDiagrams';
 import { TemplatePreview } from './TemplatePreview';
@@ -43,10 +45,13 @@ function shortDiagramName(module: DiagramModule): string {
 /**
  * Flujo para crear o abrir diagramas. Las plantillas viven en un recorrido
  * secundario para que "Nuevo" no presente de golpe todos los ejemplos.
+ * Abierta desde el proyecto, lo que se crea o abre se agrega a él.
  */
 export function TemplateGallery() {
   const isOpen = useUiStore((state) => state.galleryOpen);
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
+  const projectName = useProjectStore((state) => state.project?.name);
+  const forProject = useUiStore((state) => state.galleryForProject) && projectName !== undefined;
   const persistenceAvailable = usePersistenceStore((state) => state.repository !== null);
   const [view, setView] = useState<GalleryView>({ step: 'start' });
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -64,19 +69,37 @@ export function TemplateGallery() {
 
   const selectedModule = view.step === 'examples' ? diagramRegistry.get(view.diagramType) : null;
   const { title, subtitle } = {
-    start: { title: 'Nuevo diagrama', subtitle: 'Empieza en blanco, retoma un trabajo o explora un ejemplo cuando lo necesites.' },
+    start: forProject
+      ? { title: 'Agregar diagrama al proyecto', subtitle: `Lo que crees o abras aquí se agrega a «${projectName}».` }
+      : { title: 'Nuevo diagrama', subtitle: 'Empieza en blanco, retoma un trabajo o explora un ejemplo cuando lo necesites.' },
     saved: { title: 'Tus diagramas', subtitle: 'Todo lo que guardaste en este navegador, del más reciente al más antiguo.' },
     examples: { title: 'Ejemplos', subtitle: 'Elige un tipo y abre una copia editable para practicar.' },
   }[view.step];
 
-  function openBlank(module: DiagramModule) {
-    useDiagramStore.getState().newDiagram({ diagramType: module.diagramType, name: 'Diagrama sin título' });
+  /** Desde el proyecto, el diagrama que se deja guarda antes lo último. */
+  function beforeOpening() {
+    if (forProject) saveCurrentNow();
+  }
+
+  /** Desde el proyecto, el diagrama recién abierto pasa a formar parte de él. */
+  function afterOpening() {
+    if (forProject) {
+      addCurrentToProject();
+      useUiStore.getState().setProjectSidebarOpen(true);
+    }
     setGalleryOpen(false);
   }
 
+  function openBlank(module: DiagramModule) {
+    beforeOpening();
+    useDiagramStore.getState().newDiagram({ diagramType: module.diagramType, name: 'Diagrama sin título' });
+    afterOpening();
+  }
+
   function openTemplate(template: Template) {
+    beforeOpening();
     useDiagramStore.getState().openDiagram(createDiagramFromTemplate(template));
-    setGalleryOpen(false);
+    afterOpening();
   }
 
   function goBack() {
@@ -134,12 +157,13 @@ export function TemplateGallery() {
                 const firstModule = modules[0];
                 if (firstModule) setView({ step: 'examples', diagramType: firstModule.diagramType });
               }}
-              onSavedOpened={() => setGalleryOpen(false)}
+              onBeforeSavedOpen={beforeOpening}
+              onSavedOpened={afterOpening}
               onShowAllSaved={() => setView({ step: 'saved' })}
             />
           )}
 
-          {view.step === 'saved' && <SavedDiagrams onOpened={() => setGalleryOpen(false)} />}
+          {view.step === 'saved' && <SavedDiagrams onBeforeOpen={beforeOpening} onOpened={afterOpening} />}
 
           {view.step === 'examples' && selectedModule && (
             <section aria-label="Ejemplos por tipo de diagrama" className="md:flex md:items-start md:gap-6">
@@ -258,18 +282,20 @@ function StartView({
   modules,
   onOpenBlank,
   onShowExamples,
+  onBeforeSavedOpen,
   onSavedOpened,
   onShowAllSaved,
 }: {
   modules: DiagramModule[];
   onOpenBlank: (module: DiagramModule) => void;
   onShowExamples: () => void;
+  onBeforeSavedOpen: () => void;
   onSavedOpened: () => void;
   onShowAllSaved: () => void;
 }) {
   return (
     <>
-      <SavedDiagrams onOpened={onSavedOpened} limit={RECENT_LIMIT} onShowAll={onShowAllSaved} />
+      <SavedDiagrams onBeforeOpen={onBeforeSavedOpen} onOpened={onSavedOpened} limit={RECENT_LIMIT} onShowAll={onShowAllSaved} />
 
       <section aria-labelledby="blank-diagrams-title">
         <h3 id="blank-diagrams-title" className="text-sm font-semibold text-ink-900">

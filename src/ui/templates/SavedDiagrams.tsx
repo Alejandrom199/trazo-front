@@ -10,6 +10,8 @@ const PREVIEW = { width: 220, height: 110 };
 const dateFormat = new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' });
 
 interface SavedDiagramsProps {
+  /** Justo antes de abrir uno (p. ej. para guardar el que se deja). */
+  onBeforeOpen?: () => void;
   onOpened: () => void;
   /**
    * En el inicio de «Nuevo» se muestran solo los más recientes y «Ver todos»
@@ -21,7 +23,7 @@ interface SavedDiagramsProps {
 }
 
 /** "Tus diagramas": los guardados en este navegador (los más recientes primero), para reabrirlos o borrarlos. */
-export function SavedDiagrams({ onOpened, limit, onShowAll }: SavedDiagramsProps) {
+export function SavedDiagrams({ onBeforeOpen, onOpened, limit, onShowAll }: SavedDiagramsProps) {
   const repository = usePersistenceStore((state) => state.repository);
   const summaries = usePersistenceStore((state) => state.summaries);
   const refresh = usePersistenceStore((state) => state.refresh);
@@ -91,6 +93,7 @@ export function SavedDiagrams({ onOpened, limit, onShowAll }: SavedDiagramsProps
               <button
                 type="button"
                 onClick={() => {
+                  onBeforeOpen?.();
                   useDiagramStore.getState().openDiagram(diagram!);
                   onOpened();
                 }}

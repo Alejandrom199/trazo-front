@@ -31,6 +31,11 @@ export function ProjectPanel() {
     setOpen(false);
   }
 
+  function addNewDiagram() {
+    setOpen(false);
+    useUiStore.getState().setGalleryOpen(true, { forProject: true });
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]" onMouseDown={(event) => event.target === event.currentTarget && close()}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="project-title" tabIndex={-1} className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel outline-none">
@@ -53,7 +58,7 @@ export function ProjectPanel() {
               <label className="text-xs font-medium text-ink-400" htmlFor="active-project-name">Nombre del proyecto</label>
               <input id="active-project-name" value={name} onChange={(event) => setName(event.target.value)} onBlur={() => useProjectStore.getState().renameProject(name)} className="mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm font-semibold text-ink-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20" />
 
-              <div className="mt-5 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-ink-900">Diagramas del proyecto</h3>{currentId && !project.diagramIds.includes(currentId) && <button type="button" onClick={addCurrentToProject} className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent"><FontAwesomeIcon icon={faPlus} /> Añadir el abierto</button>}</div>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-ink-900">Diagramas del proyecto</h3><div className="flex flex-wrap gap-2">{currentId && !project.diagramIds.includes(currentId) && <button type="button" onClick={addCurrentToProject} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent-soft">Añadir el abierto</button>}<button type="button" onClick={addNewDiagram} className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent"><FontAwesomeIcon icon={faPlus} /> Agregar nuevo diagrama</button></div></div>
               {projectDiagrams.length === 0 ? <p className="mt-3 rounded-lg border border-dashed border-line p-4 text-sm text-ink-600">Este proyecto todavía no tiene diagramas guardados.</p> : <div className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line">{projectDiagrams.map((summary) => <div key={summary.id} className="flex items-center gap-3 bg-surface px-3 py-2.5"><button type="button" onClick={() => openDiagram(summary.id)} className="min-w-0 flex-1 text-left"><span className="block truncate text-sm font-medium text-ink-900">{summary.name}</span><span className="text-[11px] text-ink-400">{diagramRegistry.get(summary.diagramType).displayName}</span></button><button type="button" aria-label={`Quitar ${summary.name} del proyecto`} onClick={() => useProjectStore.getState().removeDiagram(summary.id)} className="flex size-11 items-center justify-center rounded-lg text-ink-400 hover:bg-danger-soft hover:text-danger"><FontAwesomeIcon icon={faTrash} className="text-xs" /></button></div>)}</div>}
 
               <div className="mt-5 border-t border-line pt-4"><button type="button" onClick={() => { useProjectStore.getState().closeProject(); setSidebarOpen(false); setOpen(false); }} className="text-xs text-danger hover:underline">Cerrar proyecto en Trazo</button><p className="mt-1 text-[11px] text-ink-400">No borra los diagramas guardados ni el archivo que hayas exportado.</p></div>

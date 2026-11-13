@@ -30,6 +30,18 @@ export interface DiagramProject {
   updatedAt: string;
 }
 
+/**
+ * Orden de los diagramas del proyecto con `diagramId` movido a la posición `toIndex`
+ * (se acota a la lista). Si el diagrama no está en el proyecto, el orden no cambia.
+ */
+export function moveDiagramInOrder(diagramIds: readonly string[], diagramId: string, toIndex: number): string[] {
+  const from = diagramIds.indexOf(diagramId);
+  if (from === -1) return [...diagramIds];
+  const rest = diagramIds.filter((id) => id !== diagramId);
+  const to = Math.max(0, Math.min(rest.length, toIndex));
+  return [...rest.slice(0, to), diagramId, ...rest.slice(to)];
+}
+
 /** Contenido autocontenido que viaja en un archivo .trazo-project. */
 export interface DiagramProjectFile {
   format: typeof PROJECT_FILE_FORMAT;

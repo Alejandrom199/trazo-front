@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { DiagramProject, TraceEndpoint, TraceLink, TraceRelation } from '@/core/model';
+import { moveDiagramInOrder, type DiagramProject, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
 import { createId } from '@/core/utils/id';
 
 const STORAGE_KEY = 'trazo.activeProject';
@@ -11,6 +11,8 @@ interface ProjectState {
   renameProject: (name: string) => void;
   addDiagram: (diagramId: string) => void;
   removeDiagram: (diagramId: string) => void;
+  /** Cambia el lugar de un diagrama en el orden del proyecto. */
+  moveDiagram: (diagramId: string, toIndex: number) => void;
   addTraceLink: (source: TraceEndpoint, target: TraceEndpoint, relation: TraceRelation) => void;
   removeTraceLink: (linkId: string) => void;
   closeProject: () => void;
@@ -71,6 +73,14 @@ export const useProjectStore = create<ProjectState>()((set) => ({
       diagramIds: state.project.diagramIds.filter((id) => id !== diagramId),
       traceLinks: state.project.traceLinks.filter((link) => link.source.diagramId !== diagramId && link.target.diagramId !== diagramId),
     });
+    persist(project);
+    return { project };
+  }),
+  moveDiagram: (diagramId, toIndex) => set((state) => {
+    if (!state.project) return state;
+    const diagramIds = moveDiagramInOrder(state.project.diagramIds, diagramId, toIndex);
+    if (diagramIds.every((id, index) => id === state.project!.diagramIds[index])) return state;
+    const project = update(state.project, { diagramIds });
     persist(project);
     return { project };
   }),

@@ -22,7 +22,10 @@ interface UiState {
   setTheme: (theme: Theme) => void;
   /** Selector para crear, reabrir o explorar ejemplos: se muestra al abrir la app y con "Nuevo". */
   galleryOpen: boolean;
-  setGalleryOpen: (open: boolean) => void;
+  /** La galería se abrió desde el proyecto: lo que se cree o abra se agrega a él. */
+  galleryForProject: boolean;
+  /** Abre o cierra la galería. Al cerrarla vuelve al modo normal. */
+  setGalleryOpen: (open: boolean, options?: { forProject?: boolean }) => void;
   /** Gestor del proyecto activo y sus diagramas. */
   projectOpen: boolean;
   setProjectOpen: (open: boolean) => void;
@@ -146,7 +149,8 @@ export const useUiStore = create<UiState>()((set) => ({
     set({ theme });
   },
   galleryOpen: true,
-  setGalleryOpen: (open) => set({ galleryOpen: open }),
+  galleryForProject: false,
+  setGalleryOpen: (open, options) => set({ galleryOpen: open, galleryForProject: open && (options?.forProject ?? false) }),
   projectOpen: false,
   setProjectOpen: (open) => set({ projectOpen: open }),
   projectSidebarOpen: readProjectSidebarOpen(),
