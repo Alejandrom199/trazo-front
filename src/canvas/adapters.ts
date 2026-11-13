@@ -61,6 +61,10 @@ export function toFlowNodes(
       position: node.position,
       width: node.size.width,
       height: node.size.height,
+      // Cada cambio del diagrama crea nodos nuevos. Sin `measured`, React Flow los da por
+      // no medidos, descarta sus tiradores y deja de dibujar las flechas hasta volver a
+      // medirlos: parpadeaban al arrastrar un vértice. El tamaño ya lo fija el modelo.
+      measured: { width: node.size.width, height: node.size.height },
       parentId: node.parentId ?? undefined,
       selected: selected.has(node.id),
       connectable: module.nodeKinds[node.artifactType]?.connectable ?? false,
