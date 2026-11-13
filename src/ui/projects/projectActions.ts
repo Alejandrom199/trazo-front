@@ -23,6 +23,21 @@ export function openSavedDiagram(id: string): void {
   if (diagram) useDiagramStore.getState().openDiagram(diagram);
 }
 
+/**
+ * Abre otro proyecto guardado. Antes guarda el diagrama abierto; si no es de ese
+ * proyecto, abre el primero del proyecto (en su orden) que siga guardado.
+ */
+export function openStoredProject(projectId: string): void {
+  saveCurrentNow();
+  useProjectStore.getState().switchProject(projectId);
+  const project = useProjectStore.getState().project;
+  const currentId = useDiagramStore.getState().diagram?.id;
+  if (!project || (currentId && project.diagramIds.includes(currentId))) return;
+  const saved = new Set(usePersistenceStore.getState().summaries.map((summary) => summary.id));
+  const first = project.diagramIds.find((id) => saved.has(id));
+  if (first) openSavedDiagram(first);
+}
+
 /** Agrega al proyecto activo el diagrama abierto (guardándolo para que se liste). */
 export function addCurrentToProject(): void {
   const id = useDiagramStore.getState().diagram?.id;

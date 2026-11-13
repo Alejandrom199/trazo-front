@@ -25,6 +25,7 @@ export function FileMenu() {
   const setGalleryOpen = useUiStore((state) => state.setGalleryOpen);
   const setProjectOpen = useUiStore((state) => state.setProjectOpen);
   const project = useProjectStore((state) => state.project);
+  const savedProjects = useProjectStore((state) => state.projects.length);
 
   useEffect(() => {
     if (!open) return;
@@ -153,7 +154,7 @@ export function FileMenu() {
             label="Nuevo o abrir…"
             hint="En blanco, tus diagramas o un ejemplo"
           />
-          <MenuItem onClick={() => { setOpen(false); setProjectOpen(true); }} label={project ? `Proyecto: ${project.name}` : 'Nuevo proyecto…'} hint={project ? `${project.diagramIds.length} diagramas; administrar y cambiar entre ellos` : 'Agrupa varios diagramas en un solo trabajo'} />
+          <MenuItem onClick={() => { setOpen(false); setProjectOpen(true); }} label={project ? `Proyecto: ${project.name}` : savedProjects > 0 ? 'Proyectos…' : 'Nuevo proyecto…'} hint={project ? `${project.diagramIds.length} diagramas; administrar y cambiar entre ellos` : savedProjects > 0 ? `${savedProjects} guardados; abre uno o crea otro` : 'Agrupa varios diagramas en un solo trabajo'} />
           <div className="my-1 h-px bg-line" />
           <MenuItem onClick={exportJson} label="Exportar JSON" hint="Para respaldar o moverlo de equipo" />
           <MenuItem onClick={exportProject} label="Exportar proyecto…" hint="Un archivo .trazo-project con todos sus diagramas" />

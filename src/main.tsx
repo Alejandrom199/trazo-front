@@ -5,6 +5,7 @@ import { browserStorage, createDiagramRepository, type DiagramRepository } from 
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { useProjectStore } from '@/core/store/projectStore';
 import { registerDiagramModules } from '@/diagrams';
 import { useUiStore } from '@/ui/uiStore';
 import { App } from './App';
@@ -17,6 +18,18 @@ registerDiagramModules(diagramRegistry);
 const storage = browserStorage();
 const repository = storage ? createDiagramRepository(storage) : null;
 usePersistenceStore.getState().setRepository(repository);
+
+// 2b. El proyecto activo olvida los diagramas que ya no están guardados (borrados desde
+// «Tus diagramas» o perdidos con el almacenamiento). Sin almacenamiento no se toca:
+// la lista vacía no significa que se hayan borrado.
+function forgetMissingProjectDiagrams(): void {
+  const { repository: repo, summaries } = usePersistenceStore.getState();
+  if (repo) useProjectStore.getState().forgetMissingDiagrams(new Set(summaries.map((summary) => summary.id)));
+}
+forgetMissingProjectDiagrams();
+usePersistenceStore.subscribe((state, previous) => {
+  if (state.summaries !== previous.summaries) forgetMissingProjectDiagrams();
+});
 
 // 3. Se reabre el último diagrama; si no hay, uno vacío detrás del selector de nuevo diagrama.
 openInitialDiagram(repository);

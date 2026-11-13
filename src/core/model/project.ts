@@ -42,6 +42,21 @@ export function moveDiagramInOrder(diagramIds: readonly string[], diagramId: str
   return [...rest.slice(0, to), diagramId, ...rest.slice(to)];
 }
 
+/**
+ * Diagramas y vínculos que quedan en el proyecto al quitarle `removed`: un vínculo
+ * de trazabilidad se va si toca alguno de esos diagramas. null si no hay nada que quitar.
+ */
+export function withoutDiagrams(
+  project: Pick<DiagramProject, 'diagramIds' | 'traceLinks'>,
+  removed: ReadonlySet<string>,
+): Pick<DiagramProject, 'diagramIds' | 'traceLinks'> | null {
+  if (!project.diagramIds.some((id) => removed.has(id))) return null;
+  return {
+    diagramIds: project.diagramIds.filter((id) => !removed.has(id)),
+    traceLinks: project.traceLinks.filter((link) => !removed.has(link.source.diagramId) && !removed.has(link.target.diagramId)),
+  };
+}
+
 /** Contenido autocontenido que viaja en un archivo .trazo-project. */
 export interface DiagramProjectFile {
   format: typeof PROJECT_FILE_FORMAT;
