@@ -42,19 +42,24 @@ export function Segmented<T extends string>({
   onChange,
 }: {
   value: T | null;
-  options: { value: T; label: string; icon: ReactNode }[];
+  options: { value: T; label: string; icon?: ReactNode; disabled?: boolean }[];
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="radiogroup" className="grid grid-cols-3 gap-1 rounded-lg bg-canvas p-1">
+    <div
+      role="radiogroup"
+      className="grid gap-1 rounded-lg bg-canvas p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           role="radio"
           aria-checked={value === option.value}
+          disabled={option.disabled}
           onClick={() => onChange(option.value)}
-          className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] transition-colors ${
+          className={`flex min-w-0 flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
             value === option.value ? 'bg-surface font-medium text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'
           }`}
         >

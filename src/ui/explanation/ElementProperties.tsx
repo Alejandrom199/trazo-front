@@ -1,6 +1,7 @@
-import { EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type NodePatch } from '@/core/model';
+import { absolutePosition, EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdgeOffset, readLabelOffset, type Diagram, type DiagramEdge, type DiagramNode, type EdgePatch, type NodePatch } from '@/core/model';
 import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { canReverseEdge, reverseEdge } from '@/canvas/edgeActions';
 import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from './formFields';
 
 /**
@@ -111,6 +112,20 @@ export function EdgeProperties({
           «{nameOf(edge.sourceId)}» → «{nameOf(edge.targetId)}»
         </p>
       </Field>
+      {kind?.sourceMarker && edge.sourceId !== edge.targetId && (
+        // El rombo marca el todo y va siempre en el origen: elegir dónde va invierte la flecha.
+        <Field label="Rombo en" hint="La clase que es el todo: la que contiene a la otra.">
+          <Segmented
+            value={edge.sourceId}
+            options={[edge.sourceId, edge.targetId].map((id) => ({
+              value: id,
+              label: `«${nameOf(id)}» ${placeOf(diagram, id, id === edge.sourceId ? edge.targetId : edge.sourceId)}`,
+              disabled: id !== edge.sourceId && !canReverseEdge(module, diagram, edge),
+            }))}
+            onChange={(id) => id !== edge.sourceId && reverseEdge(module, edge.id)}
+          />
+        </Field>
+      )}
       {kind?.text === 'guard' && (
         <Field label={kind.textCaption ?? 'Guarda'} hint="Condición para tomar este camino, sin corchetes">
           <TextInput
@@ -167,4 +182,23 @@ export function EdgeProperties({
       )}
     </div>
   );
+}
+
+/**
+ * Dónde está un nodo respecto de otro (arriba, abajo, a la izquierda, a la derecha),
+ * por sus centros. Distingue dos extremos con el mismo nombre, p. ej. «Clase» y «Clase».
+ */
+function placeOf(diagram: Diagram, nodeId: string, otherId: string): string {
+  const center = (id: string) => {
+    const node = diagram.nodes.find((candidate) => candidate.id === id);
+    if (!node) return { x: 0, y: 0 };
+    const origin = absolutePosition(diagram, node);
+    return { x: origin.x + node.size.width / 2, y: origin.y + node.size.height / 2 };
+  };
+  const a = center(nodeId);
+  const b = center(otherId);
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  if (Math.abs(dy) >= Math.abs(dx)) return dy < 0 ? '(arriba)' : '(abajo)';
+  return dx < 0 ? '(izquierda)' : '(derecha)';
 }
