@@ -8,7 +8,8 @@ import { connectionPath } from './connectionPath';
 import { EditableText } from './EditableText';
 import type { Rect } from './edgeGeometry';
 import { sourceDiamondPath } from './edgeMarkers';
-import { useGridStore } from './gridStore';
+import { insertWaypoint, type EdgePath } from './edgePath';
+import { snapPoint, useGridStore } from './gridStore';
 import { useActiveModule } from './useActiveModule';
 
 function rectOf(node: InternalNode): Rect {
@@ -21,9 +22,9 @@ function rectOf(node: InternalNode): Rect {
 
 /**
  * Conexión entre dos nodos, con el recorrido que declara su tipo y su texto
- * (guarda [condición] o etiqueta libre). Seleccionada, muestra los tiradores:
- *   - recorrido libre: ● vértice (se arrastra; doble clic lo quita) y ○ punto
- *     sobre cada tramo (se arrastra o se pulsa para crear un vértice).
+ * (guarda [condición] o etiqueta libre). Seleccionada:
+ *   - recorrido libre: arrastrar cualquier punto de la línea crea ahí un vértice y
+ *     lo lleva con el puntero; cada vértice ● se arrastra y con doble clic se quita.
  *   - horizontal (mensaje): un tirador en su origen que la sube o la baja.
  */
 export function FlowEdgeView({ id, source, target, data, style, markerEnd, selected }: EdgeProps<FlowEdge>) {
@@ -33,6 +34,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const targetNode = useInternalNode(target);
   const isEditing = useDiagramStore((state) => state.editingEdgeId === id);
   const startDrag = useWaypointDrag(id);
+  const startLineDrag = useLineDrag(id);
   const startHeightDrag = useHeightDrag(id);
   const startLabelDrag = useLabelDrag();
   const reconnect = useReconnect(id);
@@ -48,9 +50,6 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const toward = path.controlPoints[1] ?? path.controlPoints.at(-1);
   const stroke = typeof style?.stroke === 'string' ? style.stroke : 'var(--color-edge)';
 
-  // Un punto sobre la línea por cada tramo: ahí nace un vértice nuevo.
-  const insertionPoints = path.insertionPoints.map((point, index) => ({ ...point, insertAt: index }));
-
   return (
     <>
       <BaseEdge
@@ -60,6 +59,15 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
         markerEnd={markerEnd}
         interactionWidth={16}
       />
+      {selected && !isHorizontal && !reconnect.preview && (
+        // Franja invisible sobre la línea seleccionada: arrastrarla crea un vértice donde se agarra.
+        <path
+          d={path.d}
+          className="nodrag nopan"
+          style={{ fill: 'none', stroke: 'transparent', strokeWidth: 16, cursor: 'grab', pointerEvents: 'stroke' }}
+          onPointerDown={(event) => startLineDrag(event, edge.waypoints, path)}
+        />
+      )}
       {kind?.sourceMarker && start && toward && !reconnect.preview && (
         <path
           d={sourceDiamondPath(start, toward)}
@@ -118,16 +126,6 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
                 />
               );
             })}
-        {selected &&
-          insertionPoints.map((point) => (
-            <Handle
-              key={`insert-${point.insertAt}`}
-              point={point}
-              kind="insert"
-              title="Arrastra para crear un vértice"
-              onPointerDown={(event) => startDrag(event, edge.waypoints, point.insertAt, point)}
-            />
-          ))}
         {selected &&
           !isHorizontal &&
           edge.waypoints.map((point, index) => (
@@ -212,7 +210,7 @@ function EdgeText({ edge, textKind, at, above, isEditing, onDragStart }: EdgeTex
 
 interface HandleProps {
   point: Position;
-  kind: 'vertex' | 'insert' | 'height' | 'end';
+  kind: 'vertex' | 'height' | 'end';
   title: string;
   onPointerDown: (event: ReactPointerEvent) => void;
   onDoubleClick?: () => void;
@@ -220,7 +218,7 @@ interface HandleProps {
 
 /** Tirador de edición del recorrido, en coordenadas del lienzo. */
 function Handle({ point, kind, title, onPointerDown, onDoubleClick }: HandleProps) {
-  const size = kind === 'insert' ? 9 : 11;
+  const size = 11;
   return (
     <div
       title={title}
@@ -233,7 +231,7 @@ function Handle({ point, kind, title, onPointerDown, onDoubleClick }: HandleProp
         kind === 'end' ? 'rounded-[2px] bg-surface' : 'rounded-full'
       } ${
         kind === 'height' ? 'cursor-ns-resize' : 'cursor-move'
-      } ${kind === 'insert' ? 'bg-surface opacity-80 hover:opacity-100' : 'bg-accent'}`}
+      } bg-accent`}
       style={{
         width: size,
         height: size,
@@ -252,27 +250,51 @@ function useSnap() {
 }
 
 /**
- * Arrastre de un vértice. Al empezar se guarda un checkpoint (todo el gesto se
- * deshace de una vez); con `inserting`, primero se crea el vértice nuevo en esa
- * posición. Con la cuadrícula visible, el vértice se ajusta a sus celdas.
+ * Arrastre de un vértice existente. Al empezar se guarda un checkpoint (todo el
+ * gesto se deshace de una vez). Con la cuadrícula visible, se ajusta a sus celdas.
  */
 function useWaypointDrag(edgeId: string) {
   const { screenToFlowPosition } = useReactFlow();
-  const snapValue = useSnap();
 
-  return (event: ReactPointerEvent, waypoints: Position[], index: number, inserting?: Position) => {
+  return (event: ReactPointerEvent, waypoints: Position[], index: number) => {
     event.stopPropagation();
     event.preventDefault();
     store().checkpoint();
-
-    const snap = (point: Position) => ({ x: snapValue(point.x), y: snapValue(point.y) });
-    let points = inserting
-      ? [...waypoints.slice(0, index), snap(inserting), ...waypoints.slice(index)]
-      : [...waypoints];
-    if (inserting) store().setEdgeWaypoints(edgeId, points);
+    let points = [...waypoints];
 
     followPointer((moveEvent) => {
-      const position = snap(screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY }));
+      const position = snapPoint(screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY }));
+      points = points.map((point, i) => (i === index ? position : point));
+      store().setEdgeWaypoints(edgeId, points);
+    });
+  };
+}
+
+/**
+ * Arrastre desde la línea: pasado el umbral, crea un vértice en el punto donde se
+ * agarró (en el tramo que corresponde) y lo lleva con el puntero. Un clic sin
+ * arrastrar no crea nada, así el clic y el doble clic sobre la flecha siguen igual.
+ */
+function useLineDrag(edgeId: string) {
+  const { screenToFlowPosition } = useReactFlow();
+
+  return (event: ReactPointerEvent, waypoints: Position[], path: EdgePath) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    event.preventDefault();
+    const origin = { x: event.clientX, y: event.clientY };
+    let points = waypoints;
+    let index: number | null = null;
+
+    followPointer((moveEvent) => {
+      if (index === null) {
+        if (Math.hypot(moveEvent.clientX - origin.x, moveEvent.clientY - origin.y) < DRAG_THRESHOLD) return;
+        store().checkpoint();
+        const inserted = insertWaypoint(path, waypoints, screenToFlowPosition(origin));
+        points = inserted.waypoints;
+        index = inserted.index;
+      }
+      const position = snapPoint(screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY }));
       points = points.map((point, i) => (i === index ? position : point));
       store().setEdgeWaypoints(edgeId, points);
     });

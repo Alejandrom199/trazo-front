@@ -41,6 +41,13 @@ export function clampGridSize(size: number): number {
   return Math.min(GRID_SIZE_MAX, Math.max(GRID_SIZE_MIN, Math.round(size)));
 }
 
+/** Ajusta un punto del lienzo a la cuadrícula si está visible; si no, al píxel. */
+export function snapPoint(point: { x: number; y: number }): { x: number; y: number } {
+  const { visible, size } = useGridStore.getState();
+  const step = visible ? size : 1;
+  return { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step };
+}
+
 export const useGridStore = create<GridState>()((set, get) => ({
   ...readGrid(),
   setVisible: (visible) => {

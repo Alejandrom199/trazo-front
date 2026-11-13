@@ -18,16 +18,16 @@ export interface EdgePath {
   /** Extremos y vértices en orden; sirven para dibujar los tiradores de edición. */
   controlPoints: Position[];
   /**
-   * Un punto sobre la línea dibujada por cada tramo entre puntos de control: ahí se
-   * arrastra para crear un vértice nuevo (el del tramo i se inserta en la posición i).
+   * Recorrido aproximado (polilínea) de cada tramo entre puntos de control. Al
+   * arrastrar la línea sobre el tramo i, el vértice nuevo se inserta en la posición i.
    */
-  insertionPoints: Position[];
+  legs: Position[][];
 }
 
 const CORNER_RADIUS = 10;
 const ORTHOGONAL_OFFSET = 18;
-/** Con un solo tramo, el tirador va al 30 % para no tapar la guarda, que va a la mitad. */
-const SINGLE_SEGMENT_HANDLE = 0.3;
+/** Muestras por tramo curvo para aproximarlo con una polilínea. */
+const CURVE_SAMPLES = 16;
 
 type Axis = 'h' | 'v';
 type Anchor = { point: Position; axis: Axis };
@@ -47,28 +47,27 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
       d: roundedPolylinePath(points, CORNER_RADIUS),
       label: pointAtHalf(points),
       controlPoints: [start.point, ...waypoints, end.point],
-      insertionPoints: legs.map((leg) => pointAtFraction(leg, legs.length === 1 ? SINGLE_SEGMENT_HANDLE : 0.5)),
+      legs,
     };
   }
 
   const start = boundaryPoint(source, first);
   const end = boundaryPoint(target, last);
   const points = [start, ...waypoints, end];
-  const fraction = points.length === 2 ? SINGLE_SEGMENT_HANDLE : 0.5;
   if (routing === 'curved') {
     const segments = catmullRomSegments(points);
     return {
       d: curvePath(start, segments),
       label: pointAtHalf(points),
       controlPoints: points,
-      insertionPoints: segments.map((segment) => bezierPoint(segment, fraction)),
+      legs: segments.map(sampleBezier),
     };
   }
   return {
     d: polylinePath(points),
     label: pointAtHalf(points),
     controlPoints: points,
-    insertionPoints: points.slice(1).map((point, index) => pointAtFraction([points[index]!, point], fraction)),
+    legs: points.slice(1).map((point, index) => [points[index]!, point]),
   };
 }
 
@@ -81,7 +80,7 @@ function buildWithoutWaypoints(source: Rect, target: Rect, routing: EdgeRouting)
     routing === 'curved'
       ? getBezierPath(endpoints)
       : getSmoothStepPath({ ...endpoints, borderRadius: CORNER_RADIUS, offset: ORTHOGONAL_OFFSET });
-  // Recorrido aproximado (sin redondeos) para ubicar el tirador sobre la línea.
+  // Un solo tramo: cualquier punto de la línea inserta el primer vértice; basta con aproximarlo.
   const approximate =
     routing === 'curved'
       ? [start, end]
@@ -90,7 +89,7 @@ function buildWithoutWaypoints(source: Rect, target: Rect, routing: EdgeRouting)
     d,
     label: { x: labelX, y: labelY },
     controlPoints: [start, end],
-    insertionPoints: [pointAtFraction(approximate, SINGLE_SEGMENT_HANDLE)],
+    legs: [approximate],
   };
 }
 
@@ -143,35 +142,57 @@ function sideAnchor(rect: Rect, toward: Position): Anchor {
 
 /**
  * Recorrido ortogonal por los vértices, como un tramo por cada par de puntos de
- * control: sale perpendicular al lado de origen, pasa por cada vértice con un codo
- * y entra perpendicular al lado de destino.
+ * control: sale perpendicular al lado de origen, dobla en cada vértice y entra
+ * perpendicular al lado de destino.
+ *
+ * Cada tramo es una L que arranca por el eje de salida del origen y llega al vértice
+ * por el otro eje; así el siguiente vuelve a arrancar perpendicular y cada vértice es
+ * un codo visible. Si el destino pide entrar por el mismo eje con el que se salió
+ * (p. ej. de abajo de un nodo a arriba de otro), el último tramo es una Z: con una L
+ * la línea volvería sobre sí misma y el vértice quedaría fuera de ella.
  */
 function orthogonalLegs(start: Anchor, waypoints: Position[], end: Anchor): Position[][] {
   const legs: Position[][] = [];
   let previous = start.point;
-  let axis = start.axis;
-  const stops = [...waypoints, end.point];
-  stops.forEach((stop, index) => {
-    const isLast = index === stops.length - 1;
-    // Para entrar perpendicular al destino, el último codo se orienta según su lado.
-    const legAxis: Axis = isLast ? (end.axis === 'h' ? 'v' : 'h') : axis;
-    const corner = legAxis === 'h' ? { x: stop.x, y: previous.y } : { x: previous.x, y: stop.y };
-    legs.push([previous, corner, stop]);
+  for (const stop of waypoints) {
+    legs.push(lLeg(previous, stop, start.axis));
     previous = stop;
-    axis = legAxis === 'h' ? 'v' : 'h';
-  });
+  }
+  legs.push(end.axis === start.axis ? zLeg(previous, end.point, start.axis) : lLeg(previous, end.point, start.axis));
   return legs;
 }
 
-/** Quita puntos repetidos y los que están en medio de un tramo recto. */
+/** Primero por el eje `first` y luego por el otro. */
+function lLeg(from: Position, to: Position, first: Axis): Position[] {
+  const corner = first === 'h' ? { x: to.x, y: from.y } : { x: from.x, y: to.y };
+  return [from, corner, to];
+}
+
+/** Por `axis` hasta la mitad, cruza por el otro eje y termina otra vez por `axis`. */
+function zLeg(from: Position, to: Position, axis: Axis): Position[] {
+  if (axis === 'v') {
+    const middle = (from.y + to.y) / 2;
+    return [from, { x: from.x, y: middle }, { x: to.x, y: middle }, to];
+  }
+  const middle = (from.x + to.x) / 2;
+  return [from, { x: middle, y: from.y }, { x: middle, y: to.y }, to];
+}
+
+/**
+ * Quita puntos repetidos y los que están en medio de un tramo recto. Un punto
+ * alineado donde la línea da la vuelta (ida y vuelta por el mismo eje) se conserva:
+ * es un extremo del recorrido, no un punto intermedio.
+ */
 function withoutRedundantPoints(points: Position[]): Position[] {
   const distinct = points.filter((point, index) => index === 0 || !samePoint(point, points[index - 1]!));
   return distinct.filter((point, index) => {
     const previous = distinct[index - 1];
     const next = distinct[index + 1];
     if (!previous || !next) return true;
-    const collinear = (previous.x === point.x && point.x === next.x) || (previous.y === point.y && point.y === next.y);
-    return !collinear;
+    const between = (a: number, b: number, c: number) => Math.min(a, c) <= b && b <= Math.max(a, c);
+    const inVertical = previous.x === point.x && point.x === next.x && between(previous.y, point.y, next.y);
+    const inHorizontal = previous.y === point.y && point.y === next.y && between(previous.x, point.x, next.x);
+    return !inVertical && !inHorizontal;
   });
 }
 
@@ -225,6 +246,39 @@ function bezierPoint([p0, p1, p2, p3]: CubicSegment, t: number): Position {
   const u = 1 - t;
   const blend = (a: number, b: number, c: number, d: number) => u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
   return { x: blend(p0.x, p1.x, p2.x, p3.x), y: blend(p0.y, p1.y, p2.y, p3.y) };
+}
+
+function sampleBezier(segment: CubicSegment): Position[] {
+  return Array.from({ length: CURVE_SAMPLES + 1 }, (_, i) => bezierPoint(segment, i / CURVE_SAMPLES));
+}
+
+/**
+ * Vértices de la flecha con uno nuevo en `point`, insertado en el tramo más cercano
+ * a ese punto: así queda entre los dos puntos de control que lo rodean.
+ */
+export function insertWaypoint(path: EdgePath, waypoints: Position[], point: Position): { waypoints: Position[]; index: number } {
+  const index = nearestLeg(path.legs, point);
+  return { waypoints: [...waypoints.slice(0, index), point, ...waypoints.slice(index)], index };
+}
+
+function nearestLeg(legs: Position[][], point: Position): number {
+  let best = 0;
+  let bestDistance = Infinity;
+  legs.forEach((leg, index) => {
+    const legDistance = Math.min(...leg.slice(1).map((to, i) => distanceToSegment(point, leg[i]!, to)));
+    if (legDistance < bestDistance) {
+      best = index;
+      bestDistance = legDistance;
+    }
+  });
+  return best;
+}
+
+function distanceToSegment(point: Position, from: Position, to: Position): number {
+  const length = distance(from, to);
+  if (length === 0) return distance(point, from);
+  const t = Math.max(0, Math.min(1, ((point.x - from.x) * (to.x - from.x) + (point.y - from.y) * (to.y - from.y)) / (length * length)));
+  return distance(point, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t });
 }
 
 function distance(a: Position, b: Position): number {

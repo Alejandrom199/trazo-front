@@ -3,6 +3,7 @@ import {
   faAnglesUp,
   faAngleDown,
   faAngleUp,
+  faBezierCurve,
   faBookOpen,
   faCircleInfo,
   faClone,
@@ -17,6 +18,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useContextMenuStore, type CanvasContextMenu as MenuState } from '@/canvas/contextMenuStore';
 import { duplicate } from '@/canvas/clipboardActions';
+import { acceptsWaypoints, addWaypointAt } from '@/canvas/edgeActions';
 import { LAYER_SHORTCUTS, moveLayers } from '@/canvas/layerActions';
 import { placeArtifact, useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
@@ -378,9 +380,14 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
     if (!edge) return [];
     const edgeKind = module.edgeKinds[edge.artifactType];
     const editLabel = edgeKind?.text === 'guard' ? 'Escribir guarda' : `Escribir ${(edgeKind?.textCaption ?? 'texto').toLowerCase()}`;
+    // Solo con clic derecho sobre la línea: sin ese punto no hay dónde ponerlo.
+    const clicked = menu.flow;
     return [
       explain,
       ...(edgeKind?.text ? [{ id: 'edit', label: editLabel, icon: faPen, shortcut: 'Doble clic', run: () => store.startEditingEdge(id) }] : []),
+      ...(clicked && acceptsWaypoints(module, edge.artifactType)
+        ? [{ id: 'add-vertex', label: 'Agregar vértice aquí', icon: faBezierCurve, run: () => addWaypointAt(module, id, clicked) }]
+        : []),
       { id: 'delete', label: 'Eliminar', icon: faTrashCan, shortcut: 'Supr', danger: true, run: () => store.removeElements({ nodeIds: [], edgeIds: [id] }) },
     ];
   }

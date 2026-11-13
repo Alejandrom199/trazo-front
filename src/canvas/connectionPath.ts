@@ -61,7 +61,7 @@ export function buildHorizontalPath(source: Rect, target: Rect, y: number, optio
       d: `M${start},${y} L${loopX},${y} L${loopX},${bottom} L${end},${bottom}`,
       label: { x: (start + loopX) / 2, y },
       controlPoints: [{ x: start, y }, { x: end, y: bottom }],
-      insertionPoints: [],
+      legs: [],
     };
   }
   const direction = Math.sign(centerX(target) - sourceX) || 1;
@@ -71,7 +71,7 @@ export function buildHorizontalPath(source: Rect, target: Rect, y: number, optio
     d: `M${start},${y} L${end},${y}`,
     label: { x: (start + end) / 2, y },
     controlPoints: [{ x: start, y }, { x: end, y }],
-    insertionPoints: [],
+    legs: [],
   };
 }
 

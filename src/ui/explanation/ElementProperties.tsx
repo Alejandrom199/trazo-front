@@ -148,7 +148,7 @@ export function EdgeProperties({
           />
         </Field>
       ) : (
-      <FieldGroup label="Trazado" hint="Selecciona la flecha y arrastra los puntos ○ para agregar vértices; doble clic en un vértice ● lo quita.">
+      <FieldGroup label="Trazado" hint="Con la flecha seleccionada, arrastra la línea desde cualquier punto para crear un vértice (o clic derecho → Agregar vértice). Doble clic en un vértice ● lo quita.">
         <Segmented
           value={edge.routing}
           options={ROUTING_OPTIONS}

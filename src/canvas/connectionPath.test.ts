@@ -9,7 +9,7 @@ describe('buildHorizontalPath', () => {
 
     expect(path.d).toBe('M50,120 L350,120');
     expect(path.label).toEqual({ x: 200, y: 120 });
-    expect(path.insertionPoints).toEqual([]);
+    expect(path.legs).toEqual([]);
   });
 
   it('Dado un mensaje hacia la izquierda con activaciones, Entonces sale y llega a sus bordes', () => {
