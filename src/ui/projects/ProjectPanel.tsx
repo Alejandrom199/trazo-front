@@ -7,6 +7,7 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { useUiStore } from '@/ui/uiStore';
+import { addCurrentToProject, openSavedDiagram, saveCurrentNow } from './projectActions';
 
 export function ProjectPanel() {
   const open = useUiStore((state) => state.projectOpen);
@@ -25,18 +26,8 @@ export function ProjectPanel() {
   if (!open) return null;
   const projectDiagrams = project?.diagramIds.map((id) => summaries.find((item) => item.id === id)).filter((item) => item !== undefined) ?? [];
 
-  function saveCurrentNow() {
-    const diagram = useDiagramStore.getState().diagram;
-    const persistence = usePersistenceStore.getState();
-    if (!diagram || !persistence.repository) return;
-    persistence.repository.save(diagram);
-    persistence.refresh();
-  }
-
   function openDiagram(id: string) {
-    saveCurrentNow();
-    const diagram = usePersistenceStore.getState().repository?.load(id);
-    if (diagram) useDiagramStore.getState().openDiagram(diagram);
+    openSavedDiagram(id);
     setOpen(false);
   }
 
@@ -62,7 +53,7 @@ export function ProjectPanel() {
               <label className="text-xs font-medium text-ink-400" htmlFor="active-project-name">Nombre del proyecto</label>
               <input id="active-project-name" value={name} onChange={(event) => setName(event.target.value)} onBlur={() => useProjectStore.getState().renameProject(name)} className="mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm font-semibold text-ink-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20" />
 
-              <div className="mt-5 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-ink-900">Diagramas del proyecto</h3>{currentId && !project.diagramIds.includes(currentId) && <button type="button" onClick={() => { saveCurrentNow(); useProjectStore.getState().addDiagram(currentId); }} className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent"><FontAwesomeIcon icon={faPlus} /> Añadir el abierto</button>}</div>
+              <div className="mt-5 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-ink-900">Diagramas del proyecto</h3>{currentId && !project.diagramIds.includes(currentId) && <button type="button" onClick={addCurrentToProject} className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent"><FontAwesomeIcon icon={faPlus} /> Añadir el abierto</button>}</div>
               {projectDiagrams.length === 0 ? <p className="mt-3 rounded-lg border border-dashed border-line p-4 text-sm text-ink-600">Este proyecto todavía no tiene diagramas guardados.</p> : <div className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line">{projectDiagrams.map((summary) => <div key={summary.id} className="flex items-center gap-3 bg-surface px-3 py-2.5"><button type="button" onClick={() => openDiagram(summary.id)} className="min-w-0 flex-1 text-left"><span className="block truncate text-sm font-medium text-ink-900">{summary.name}</span><span className="text-[11px] text-ink-400">{diagramRegistry.get(summary.diagramType).displayName}</span></button><button type="button" aria-label={`Quitar ${summary.name} del proyecto`} onClick={() => useProjectStore.getState().removeDiagram(summary.id)} className="flex size-11 items-center justify-center rounded-lg text-ink-400 hover:bg-danger-soft hover:text-danger"><FontAwesomeIcon icon={faTrash} className="text-xs" /></button></div>)}</div>}
 
               <div className="mt-5 border-t border-line pt-4"><button type="button" onClick={() => { useProjectStore.getState().closeProject(); setSidebarOpen(false); setOpen(false); }} className="text-xs text-danger hover:underline">Cerrar proyecto en Trazo</button><p className="mt-1 text-[11px] text-ink-400">No borra los diagramas guardados ni el archivo que hayas exportado.</p></div>

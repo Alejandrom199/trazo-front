@@ -5,6 +5,7 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useUiStore } from '@/ui/uiStore';
+import { addCurrentToProject, openSavedDiagram } from './projectActions';
 
 /** Navegación permanente de los diagramas que forman el proyecto activo. */
 export function ProjectSidebar() {
@@ -20,27 +21,6 @@ export function ProjectSidebar() {
   const diagrams = project.diagramIds
     .map((id) => summaries.find((summary) => summary.id === id))
     .filter((summary) => summary !== undefined);
-
-  function saveCurrentNow() {
-    const diagram = useDiagramStore.getState().diagram;
-    const persistence = usePersistenceStore.getState();
-    if (!diagram || !persistence.repository) return;
-    persistence.repository.save(diagram);
-    persistence.refresh();
-  }
-
-  function openDiagram(id: string) {
-    if (id === currentId) return;
-    saveCurrentNow();
-    const diagram = usePersistenceStore.getState().repository?.load(id);
-    if (diagram) useDiagramStore.getState().openDiagram(diagram);
-  }
-
-  function addCurrent() {
-    if (!currentId) return;
-    saveCurrentNow();
-    useProjectStore.getState().addDiagram(currentId);
-  }
 
   const sidebar = (
     <aside
@@ -88,7 +68,7 @@ export function ProjectSidebar() {
                 <li key={summary.id}>
                   <button
                     type="button"
-                    onClick={() => openDiagram(summary.id)}
+                    onClick={() => openSavedDiagram(summary.id)}
                     aria-current={active ? 'page' : undefined}
                     className={`group flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
                       active ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'
@@ -111,7 +91,7 @@ export function ProjectSidebar() {
         {currentId && !project.diagramIds.includes(currentId) && (
           <button
             type="button"
-            onClick={addCurrent}
+            onClick={addCurrentToProject}
             className="mt-2 flex w-full items-center gap-2 rounded-lg border border-dashed border-accent/40 px-3 py-2 text-left text-xs font-medium text-accent hover:bg-accent-soft"
           >
             <FontAwesomeIcon icon={faPlus} />
