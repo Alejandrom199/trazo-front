@@ -1,12 +1,12 @@
 import { faBullseye, faChevronDown, faEye } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState } from 'react';
-import { useCanvasViewStore, type CanvasDetailMode } from '@/canvas/canvasViewStore';
+import { DEFAULT_DETAIL, useCanvasViewStore, type CanvasDetailMode } from '@/canvas/canvasViewStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
 
 const DETAIL_OPTIONS: { value: CanvasDetailMode; label: string; help: string }[] = [
-  { value: 'auto', label: 'Automático', help: 'Al alejarte se ocultan los textos de las flechas y se atenúan las notas.' },
   { value: 'full', label: 'Siempre completo', help: 'Todo se ve a cualquier distancia.' },
+  { value: 'auto', label: 'Automático', help: 'Al alejarte se ocultan los textos de las flechas y se atenúan las notas.' },
   { value: 'compact', label: 'Siempre simple', help: 'Sin textos de flechas ni notas destacadas, incluso de cerca.' },
 ];
 
@@ -21,7 +21,7 @@ export function CanvasViewControl() {
   const detail = useCanvasViewStore((state) => state.detail);
   const focus = useCanvasViewStore((state) => state.focus);
   const selected = useDiagramStore((state) => state.selection.nodeIds.length + state.selection.edgeIds.length);
-  const customized = focus || detail !== 'auto';
+  const customized = focus || detail !== DEFAULT_DETAIL;
 
   useEffect(() => {
     const close = (event: PointerEvent) => {

@@ -10,6 +10,9 @@ export type CanvasDetailMode = 'auto' | 'full' | 'compact';
 const DETAIL_KEY = 'trazo.viewDetail';
 const DETAIL_MODES: readonly CanvasDetailMode[] = ['auto', 'full', 'compact'];
 
+/** Sin preferencia guardada, el lienzo muestra siempre todo el detalle. */
+export const DEFAULT_DETAIL: CanvasDetailMode = 'full';
+
 interface CanvasViewState {
   /** Preferencia del usuario: se recuerda en el navegador. */
   detail: CanvasDetailMode;
@@ -28,7 +31,7 @@ function readDetail(): CanvasDetailMode {
   } catch {
     // Sin almacenamiento: valor por defecto.
   }
-  return 'auto';
+  return DEFAULT_DETAIL;
 }
 
 export const useCanvasViewStore = create<CanvasViewState>()((set) => ({
