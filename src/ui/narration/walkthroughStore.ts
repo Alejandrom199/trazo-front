@@ -34,6 +34,8 @@ interface WalkthroughState {
    * y agrega el paso con el que continúa después del subproceso.
    */
   returnTo: (parent: Diagram, next: WalkState) => void;
+  /** El diagrama del nivel actual cambió a propósito (p. ej. se enlazó su subproceso): sigue vigente. */
+  refreshTop: (diagram: Diagram) => void;
   reset: () => void;
 }
 
@@ -54,5 +56,6 @@ export const useWalkthroughStore = create<WalkthroughState>()((set) => ({
     set((current) => ({
       frames: replaceTop(current.frames.slice(0, -1), (frame) => ({ ...frame, startedOn: parent, history: [...frame.history, next] })),
     })),
+  refreshTop: (diagram) => set((current) => ({ frames: replaceTop(current.frames, (frame) => (frame.diagramId === diagram.id ? { ...frame, startedOn: diagram } : frame)) })),
   reset: () => set({ frames: [] }),
 }));

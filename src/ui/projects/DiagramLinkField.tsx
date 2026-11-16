@@ -1,11 +1,12 @@
 import { faArrowUpRightFromSquare, faLinkSlash, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { nodeName, readLinkedDiagramId, type DiagramNode } from '@/core/model';
+import { linkedTemplateId, nodeName, readLinkedDiagramId, type DiagramNode } from '@/core/model';
+import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import type { NodeKind } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { Field, inputClass } from '@/ui/explanation/formFields';
-import { createLinkedDiagram, linkNodeToDiagram, unlinkNode } from './diagramLinkActions';
+import { createFromLinkedTemplate, createLinkedDiagram, findTemplate, linkNodeToDiagram, unlinkNode } from './diagramLinkActions';
 import { openSavedDiagram } from './projectActions';
 import { useProjectDiagrams } from './useProjectDiagrams';
 
@@ -22,11 +23,35 @@ export function DiagramLinkField({ node, link }: { node: DiagramNode; link: Diag
   const project = useProjectStore((state) => state.project);
   const currentId = useDiagramStore((state) => state.diagram?.id);
   const diagrams = useProjectDiagrams();
+  const summaries = usePersistenceStore((state) => state.summaries);
+  // El ejemplo que detalla este paso (en los ejemplos de Trazo): se puede crear como diagrama.
+  const template = findTemplate(linkedTemplateId(node.props));
+  const fromTemplate = () => {
+    const child = createFromLinkedTemplate(node.id);
+    if (child) openSavedDiagram(child.id);
+  };
+  const templateButton = template && (
+    <button type="button" onClick={fromTemplate} title={`Crea un diagrama con el ejemplo «${template.name}» y lo enlaza a este paso`} className={`${actionClass} bg-accent-soft text-accent hover:bg-accent hover:text-white`}>
+      <FontAwesomeIcon icon={faPlus} className="text-[10px]" /> Crear desde su ejemplo
+    </button>
+  );
 
   if (!project) {
+    const saved = summaries.find((summary) => summary.id === readLinkedDiagramId(node));
     return (
-      <Field label={link.caption} hint="Crea un proyecto (Archivo › Proyecto) para enlazar el subproceso con otro diagrama.">
-        <p className="text-xs text-ink-400">Sin proyecto abierto.</p>
+      <Field label={link.caption} hint={saved || template ? undefined : 'Crea un proyecto (Archivo › Proyecto) para enlazar el subproceso con otro diagrama.'}>
+        {saved ? (
+          <button type="button" onClick={() => openSavedDiagram(saved.id)} className={`${actionClass} bg-accent-soft text-accent hover:bg-accent hover:text-white`}>
+            <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="text-[10px]" /> Abrir «{saved.name}»
+          </button>
+        ) : template ? (
+          <div className="space-y-1.5">
+            <p className="text-xs text-ink-600">Su detalle es el ejemplo «{template.name}».</p>
+            {templateButton}
+          </div>
+        ) : (
+          <p className="text-xs text-ink-400">Sin proyecto abierto.</p>
+        )}
       </Field>
     );
   }
@@ -67,9 +92,12 @@ export function DiagramLinkField({ node, link }: { node: DiagramNode; link: Diag
             </button>
           </>
         ) : (
+          <>
+          {templateButton}
           <button type="button" onClick={() => createLinkedDiagram(node.id, nodeName(node, 'Subproceso'), link.diagramTypes[0]!, true)} className={`${actionClass} bg-accent-soft text-accent hover:bg-accent hover:text-white`}>
-            <FontAwesomeIcon icon={faPlus} className="text-[10px]" /> Crear «{nodeName(node, 'Subproceso')}»
+            <FontAwesomeIcon icon={faPlus} className="text-[10px]" /> {template ? 'Crear vacío' : `Crear «${nodeName(node, 'Subproceso')}»`}
           </button>
+          </>
         )}
       </div>
     </Field>

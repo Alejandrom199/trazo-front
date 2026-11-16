@@ -1,4 +1,4 @@
-import { readLinkedDiagramId, type Diagram, type DiagramEdge, type DiagramNode, type WalkEntry, type WalkState, type WalkthroughEngine } from '@/core/model';
+import { linkedTemplateId, readLinkedDiagramId, type Diagram, type DiagramEdge, type DiagramNode, type WalkEntry, type WalkState, type WalkthroughEngine } from '@/core/model';
 import { ActivityArtifact as A } from './artifactTypes';
 import { buildFlowGraph, describeNode, incomingOf, outgoingOf, startNodeIds, type FlowGraph } from './rules/flowGraph';
 
@@ -142,11 +142,13 @@ class Walk {
     const outputs = outgoingOf(this.graph, token.nodeId);
     if (!node) return;
 
-    const linked = node.artifactType === A.callBehavior ? readLinkedDiagramId(node) : null;
-    if (linked && !pastCall) {
+    const isCall = node.artifactType === A.callBehavior;
+    const linked = isCall ? readLinkedDiagramId(node) : null;
+    const template = isCall && !linked ? linkedTemplateId(node.props) : null;
+    if ((linked || template) && !pastCall) {
       this.state.tokens.unshift(token);
       this.state.status = 'call';
-      this.state.call = { tokenId: token.id, nodeId: node.id, diagramId: linked };
+      this.state.call = { tokenId: token.id, nodeId: node.id, diagramId: linked, templateId: template };
       this.say(entry(`${describeNode(node, 'el subproceso')} tiene su propio diagrama: ¿entrar a recorrerlo o seguir sin entrar?`, 'choice', [node.id]));
       return;
     }

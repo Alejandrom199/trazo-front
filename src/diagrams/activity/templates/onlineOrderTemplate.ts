@@ -1,3 +1,4 @@
+import { LINKED_TEMPLATE_ID_KEY } from '@/core/model';
 import { ActivityArtifact as A } from '../artifactTypes';
 import { createTemplateBuilder } from './templateBuilder';
 
@@ -26,7 +27,8 @@ function buildOnlineOrderTemplate() {
   const inStock = t.node(A.decision, '¿Hay stock?', { ...system, y: 350 });
   const noStockNotice = t.node(A.action, 'Ver aviso de falta de stock', { ...customer, y: 350 });
   const cancelled = t.node(A.activityFinal, '', { ...customer, y: 440 });
-  const charge = t.node(A.callBehavior, 'Procesar pago', { ...system, y: 450 });
+  // Su detalle es el ejemplo «Procesar pago»: se crea al pedirlo (Propiedades o recorrido).
+  const charge = t.node(A.callBehavior, 'Procesar pago', { ...system, y: 450 }, undefined, { [LINKED_TEMPLATE_ID_KEY]: 'activity.process-payment' });
   const pack = t.node(A.action, 'Preparar paquete', { ...warehouse, y: 450 });
   const ship = t.node(A.action, 'Despachar pedido', { ...warehouse, y: 550 });
   const receive = t.node(A.action, 'Recibir pedido', { ...customer, y: 550 });

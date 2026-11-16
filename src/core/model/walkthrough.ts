@@ -34,11 +34,15 @@ export interface WalkOption {
  */
 export type WalkStatus = 'running' | 'choice' | 'call' | 'finished' | 'stuck';
 
-/** Subproceso al que llegó un token: el nodo que lo invoca y el diagrama que lo detalla. */
+/**
+ * Subproceso al que llegó un token: el nodo que lo invoca y lo que lo detalla,
+ * su diagrama enlazado o, si aún no existe, el ejemplo del que se puede crear.
+ */
 export interface WalkCall {
   tokenId: number;
   nodeId: string;
-  diagramId: string;
+  diagramId: string | null;
+  templateId: string | null;
 }
 
 export interface WalkState {

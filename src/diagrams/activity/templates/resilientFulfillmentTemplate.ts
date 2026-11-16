@@ -20,7 +20,7 @@ const join = t.node(A.join, '', { x: 405, y: 480 }, { width: 250, height: 12 });
 const approved = t.node(A.decision, '¿Pago aprobado?', { x: 405, y: 555 });
 // Cada rama sale por un lado distinto del rombo: [aprobado] hacia abajo, [rechazado] a la derecha.
 // Preparar el envío es un proceso propio (embalar, etiquetar, coordinar al transportista): subproceso ⋔.
-const prepare = t.node(A.callBehavior, 'Preparar envío', { x: 405, y: 690 });
+const prepare = t.node(A.callBehavior, 'Preparar envío', { x: 405, y: 690 }, undefined, { [LINKED_TEMPLATE_ID_KEY]: 'activity.prepare-shipment' });
 const dispatch = t.node(A.sendSignal, 'Solicitar despacho', { x: 405, y: 810 }, { width: 180, height: 56 });
 const confirmation = t.node(A.acceptEvent, 'Entrega confirmada', { x: 110, y: 950 }, { width: 175, height: 56 });
 const close = t.node(A.action, 'Cerrar pedido', { x: 405, y: 1070 });

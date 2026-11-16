@@ -1,4 +1,5 @@
-import { createEmptyDiagram, withLinkedDiagram, type Diagram, type DiagramType } from '@/core/model';
+import { createDiagramFromTemplate, createEmptyDiagram, linkedTemplateId, withLinkedDiagram, type Diagram, type DiagramType, type Template } from '@/core/model';
+import { diagramRegistry } from '@/core/registry';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
@@ -34,4 +35,32 @@ export function createLinkedDiagram(nodeId: string, name: string, diagramType: D
   useProjectStore.getState().addDiagram(diagram.id);
   if (open) openSavedDiagram(diagram.id);
   return diagram;
+}
+
+/** El ejemplo (plantilla) con ese id, de cualquier tipo de diagrama. */
+export function findTemplate(templateId: string | null): Template | undefined {
+  if (!templateId) return undefined;
+  return diagramRegistry.list().flatMap((module) => module.templates).find((template) => template.id === templateId);
+}
+
+/**
+ * Crea el diagrama de un subproceso desde el ejemplo que lo detalla (el
+ * `linkedTemplateId` del nodo, p. ej. «Procesar pago» en «Pedido en línea»):
+ * lo guarda, lo suma al proyecto si el diagrama abierto es de él y lo enlaza
+ * al nodo. Se hace al pedirlo, no al abrir el ejemplo, para no llenar «Tus
+ * diagramas» de copias que nadie usa. Devuelve el diagrama creado.
+ */
+export function createFromLinkedTemplate(nodeId: string): Diagram | null {
+  const current = useDiagramStore.getState().diagram;
+  const node = current?.nodes.find((candidate) => candidate.id === nodeId);
+  const template = node ? findTemplate(linkedTemplateId(node.props)) : undefined;
+  const repository = usePersistenceStore.getState().repository;
+  if (!current || !node || !template || !repository) return null;
+  const child = createDiagramFromTemplate(template);
+  repository.save(child);
+  useDiagramStore.getState().updateNode(nodeId, { props: withLinkedDiagram(node.props, child.id) });
+  saveCurrentNow();
+  const project = useProjectStore.getState().project;
+  if (project?.diagramIds.includes(current.id)) useProjectStore.getState().addDiagram(child.id);
+  return child;
 }

@@ -6,6 +6,7 @@ import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useHighlightStore } from '@/canvas/highlightStore';
+import { createFromLinkedTemplate, findTemplate } from '@/ui/projects/diagramLinkActions';
 import { openSavedDiagram } from '@/ui/projects/projectActions';
 import { useWalkthroughStore, type WalkFrame } from './walkthroughStore';
 
@@ -82,13 +83,24 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
   function skipCall() {
     if (current && engine.resumeCall) store().push(engine.resumeCall(diagram, current, 'skipped'));
   }
-  /** Entra al subproceso: abre su diagrama y empieza a recorrerlo encima del actual. */
+  /**
+   * Entra al subproceso: abre su diagrama y empieza a recorrerlo encima del
+   * actual. Si todavía no existe pero tiene un ejemplo que lo detalla, primero
+   * lo crea desde ese ejemplo y lo enlaza (el recorrido de este nivel sigue vigente).
+   */
   function enterCall() {
     const call = current?.call;
     if (!call) return;
-    openSavedDiagram(call.diagramId);
+    let targetId = call.diagramId && usePersistenceStore.getState().summaries.some((summary) => summary.id === call.diagramId) ? call.diagramId : null;
+    if (!targetId && call.templateId) {
+      targetId = createFromLinkedTemplate(call.nodeId)?.id ?? null;
+      const updated = useDiagramStore.getState().diagram;
+      if (updated) store().refreshTop(updated);
+    }
+    if (!targetId) return;
+    openSavedDiagram(targetId);
     const child = useDiagramStore.getState().diagram;
-    const childEngine = child && child.id === call.diagramId ? engineFor(child) : undefined;
+    const childEngine = child && child.id === targetId ? engineFor(child) : undefined;
     if (child && childEngine) store().enter(child, childEngine.start(child));
   }
   /** Vuelve al proceso que invocó este subproceso y continúa después del ⋔. */
@@ -120,7 +132,9 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
   const inSubprocess = frames.length > 1;
   const button = 'flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium disabled:opacity-40';
   const callNode = current.call ? diagram.nodes.find((node) => node.id === current.call!.nodeId) : undefined;
-  const callTarget = current.call ? usePersistenceStore.getState().summaries.find((summary) => summary.id === current.call!.diagramId) : undefined;
+  const callSaved = current.call?.diagramId ? usePersistenceStore.getState().summaries.find((summary) => summary.id === current.call!.diagramId) : undefined;
+  const callTemplate = !callSaved ? findTemplate(current.call?.templateId ?? null) : undefined;
+  const canEnter = callSaved !== undefined || callTemplate !== undefined;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -184,10 +198,14 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
           <li className="rounded-lg border border-accent/40 bg-accent-soft/40 p-2.5">
             <p className="px-1 text-[11px] font-semibold text-accent">Subproceso «{nodeName(callNode)}» ⋔</p>
             <p className="mt-0.5 px-1 text-xs text-ink-600">
-              {callTarget ? `Su detalle está en «${callTarget.name}».` : 'Su diagrama ya no está guardado: solo puedes seguir sin entrar.'}
+              {callSaved
+                ? `Su detalle está en «${callSaved.name}».`
+                : callTemplate
+                  ? `Su detalle es el ejemplo «${callTemplate.name}»: al entrar se crea como diagrama y queda enlazado.`
+                  : 'Su diagrama ya no está guardado: solo puedes seguir sin entrar.'}
             </p>
             <div className="mt-2 flex flex-col gap-1">
-              {callTarget && (
+              {canEnter && (
                 <button type="button" onClick={enterCall} className="flex items-center gap-2 rounded-md bg-brand px-2.5 py-1.5 text-left text-sm font-medium text-white hover:opacity-90">
                   <FontAwesomeIcon icon={faRightToBracket} className="text-xs" /> Entrar al subproceso
                 </button>
