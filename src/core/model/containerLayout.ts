@@ -3,8 +3,8 @@ import { absolutePosition } from './operations';
 
 /**
  * Geometría entre contenedores vecinos (p. ej. carriles): el "imán" que los pega
- * al acercarlos y cómo dibujar la unión. Solo cuentan los contenedores sueltos en
- * el lienzo (sin padre).
+ * al acercarlos y cómo dibujar la unión. Son vecinos los contenedores hermanos
+ * (con el mismo padre): sueltos en el lienzo, o carriles dentro de un mismo marco.
  */
 
 export interface Sides {
@@ -51,9 +51,9 @@ function rectOf(diagram: Diagram, node: DiagramNode): Rect {
   return { ...absolutePosition(diagram, node), ...node.size };
 }
 
-function neighbors(diagram: Diagram, isContainer: (node: DiagramNode) => boolean, excludeId: string | null): Rect[] {
+function neighbors(diagram: Diagram, isContainer: (node: DiagramNode) => boolean, excludeId: string | null, parentId: string | null = null): Rect[] {
   return diagram.nodes
-    .filter((node) => node.id !== excludeId && node.parentId === null && isContainer(node))
+    .filter((node) => node.id !== excludeId && node.parentId === parentId && isContainer(node))
     .map((node) => rectOf(diagram, node));
 }
 
@@ -124,14 +124,14 @@ function covers(intervals: [number, number][], from: number, to: number): boolea
  * enderezan las esquinas a las que el vecino realmente llega.
  */
 export function containerJoints(diagram: Diagram, node: DiagramNode, isContainer: (node: DiagramNode) => boolean): ContainerJoints {
-  if (node.parentId !== null || !isContainer(node)) return NO_JOINTS;
+  if (!isContainer(node)) return NO_JOINTS;
   const self = rectOf(diagram, node);
   const right = self.x + self.width;
   const bottom = self.y + self.height;
   const touches = (a: number, b: number) => Math.abs(a - b) <= TOUCH_TOLERANCE;
 
   const along = { top: [] as [number, number][], right: [] as [number, number][], bottom: [] as [number, number][], left: [] as [number, number][] };
-  for (const other of neighbors(diagram, isContainer, node.id)) {
+  for (const other of neighbors(diagram, isContainer, node.id, node.parentId)) {
     const otherRight = other.x + other.width;
     const otherBottom = other.y + other.height;
     if (overlaps(self.y, self.height, other.y, other.height)) {
@@ -148,12 +148,26 @@ export function containerJoints(diagram: Diagram, node: DiagramNode, isContainer
   const reaches = (intervals: [number, number][], corner: number) =>
     intervals.some(([start, end]) => start <= corner + TOUCH_TOLERANCE && end >= corner - TOUCH_TOLERANCE);
 
+  // Dentro de un marco, el borde del marco hace de vecino: la esquina que llega a
+  // él queda recta. Ese lado no se da por cubierto: el carril dibuja su borde
+  // sobre la misma línea que el marco.
+  const parent = node.parentId ? diagram.nodes.find((candidate) => candidate.id === node.parentId) : undefined;
+  const frame = parent ? rectOf(diagram, parent) : null;
+  const frameSides = {
+    left: frame !== null && touches(self.x, frame.x),
+    right: frame !== null && touches(right, frame.x + frame.width),
+    bottom: frame !== null && touches(bottom, frame.y + frame.height),
+  };
+  if (frameSides.left) along.left.push([self.y, bottom]);
+  if (frameSides.right) along.right.push([self.y, bottom]);
+  if (frameSides.bottom) along.bottom.push([self.x, right]);
+
   return {
     coveredSides: {
       top: covers(along.top, self.x, right),
-      right: covers(along.right, self.y, bottom),
-      bottom: covers(along.bottom, self.x, right),
-      left: covers(along.left, self.y, bottom),
+      right: !frameSides.right && covers(along.right, self.y, bottom),
+      bottom: !frameSides.bottom && covers(along.bottom, self.x, right),
+      left: !frameSides.left && covers(along.left, self.y, bottom),
     },
     squareCorners: {
       topLeft: reaches(along.left, self.y) || reaches(along.top, self.x),
@@ -162,4 +176,76 @@ export function containerJoints(diagram: Diagram, node: DiagramNode, isContainer
       bottomLeft: reaches(along.left, bottom) || reaches(along.bottom, self.x),
     },
   };
+}
+
+/** Alto mínimo del cuerpo de un carril dentro de un marco. */
+const MIN_LANE_BODY = 120;
+
+/**
+ * Acomoda como columnas los contenedores hijos de un marco de carriles: en su
+ * orden de izquierda a derecha (por su centro), uno junto a otro desde el borde
+ * izquierdo, bajo el encabezado y con todo el alto del marco. Si no caben, el
+ * marco crece; nunca se encoge. Sin carriles, devuelve el diagrama tal cual.
+ */
+export function packLanes(
+  diagram: Diagram,
+  frameId: string,
+  headerHeight: number,
+  isContainer: (node: DiagramNode) => boolean,
+): Diagram {
+  const frame = diagram.nodes.find((node) => node.id === frameId);
+  const lanes = lanesOf(diagram, frameId, isContainer);
+  if (!frame || lanes.length === 0) return diagram;
+
+  const body = Math.max(frame.size.height - headerHeight, MIN_LANE_BODY, ...lanes.map((lane) => lane.size.height));
+  const placed = new Map<string, { position: Position; size: { width: number; height: number } }>();
+  let x = 0;
+  for (const lane of lanes) {
+    placed.set(lane.id, { position: { x, y: headerHeight }, size: { width: lane.size.width, height: body } });
+    x += lane.size.width;
+  }
+  const frameSize = { width: Math.max(frame.size.width, x), height: headerHeight + body };
+
+  return {
+    ...diagram,
+    nodes: diagram.nodes.map((node) => {
+      if (node.id === frameId) return { ...node, size: frameSize };
+      const lane = placed.get(node.id);
+      return lane ? { ...node, ...lane } : node;
+    }),
+  };
+}
+
+/** Carriles de un marco, de izquierda a derecha (el orden en que packLanes los acomoda). */
+export function lanesOf(diagram: Diagram, frameId: string, isContainer: (node: DiagramNode) => boolean): DiagramNode[] {
+  return diagram.nodes
+    .filter((node) => node.parentId === frameId && isContainer(node))
+    .sort((a, b) => a.position.x + a.size.width / 2 - (b.position.x + b.size.width / 2));
+}
+
+/**
+ * Cambia el lugar de un carril dentro de su marco (`toIndex` se acota a la
+ * cantidad de carriles) y vuelve a acomodar las columnas.
+ */
+export function moveLaneInFrame(
+  diagram: Diagram,
+  frameId: string,
+  laneId: string,
+  toIndex: number,
+  headerHeight: number,
+  isContainer: (node: DiagramNode) => boolean,
+): Diagram {
+  const lanes = lanesOf(diagram, frameId, isContainer);
+  const moving = lanes.find((lane) => lane.id === laneId);
+  if (!moving) return diagram;
+  const rest = lanes.filter((lane) => lane.id !== laneId);
+  const index = Math.max(0, Math.min(rest.length, toIndex));
+  const ordered = [...rest.slice(0, index), moving, ...rest.slice(index)];
+  if (ordered.every((lane, position) => lane.id === lanes[position]!.id)) return diagram;
+
+  // Posiciones provisionales en el nuevo orden; packLanes las deja en columnas.
+  const x = new Map<string, number>();
+  ordered.reduce((left, lane) => (x.set(lane.id, left), left + lane.size.width), 0);
+  const reordered = { ...diagram, nodes: diagram.nodes.map((node) => (x.has(node.id) ? { ...node, position: { ...node.position, x: x.get(node.id)! } } : node)) };
+  return packLanes(reordered, frameId, headerHeight, isContainer);
 }

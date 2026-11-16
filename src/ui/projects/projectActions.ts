@@ -1,6 +1,9 @@
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
+import { createId } from '@/core/utils/id';
+import { buildSampleProject } from '@/diagrams/sampleProject';
+import { useUiStore } from '@/ui/uiStore';
 
 /**
  * Guarda ya el diagrama abierto, sin esperar al guardado automático. Se llama antes
@@ -44,4 +47,24 @@ export function addCurrentToProject(): void {
   if (!id || !useProjectStore.getState().project) return;
   saveCurrentNow();
   useProjectStore.getState().addDiagram(id);
+}
+
+/**
+ * Crea y abre una copia nueva del proyecto de ejemplo «Biblioteca Digital»
+ * (carpetas, subproceso, MER, relaciones y vínculos), con su primer diagrama
+ * abierto y la barra del proyecto visible. Devuelve false si el navegador no
+ * permite guardar varios diagramas.
+ */
+export function openSampleProject(): boolean {
+  const repository = usePersistenceStore.getState().repository;
+  if (!repository) return false;
+  saveCurrentNow();
+  const { project, diagrams } = buildSampleProject(createId);
+  for (const diagram of diagrams) repository.save(diagram);
+  usePersistenceStore.getState().refresh();
+  const now = new Date().toISOString();
+  useProjectStore.getState().openProject({ ...project, id: createId(), createdAt: now, updatedAt: now });
+  useDiagramStore.getState().openDiagram(diagrams[1] ?? diagrams[0]!);
+  useUiStore.getState().setProjectSidebarOpen(true);
+  return true;
 }

@@ -222,6 +222,29 @@ const join: ArtifactDefinition = {
   connectionRules: { minIn: 2, maxIn: UNLIMITED, minOut: 1, maxOut: 1 },
 };
 
+const callBehavior: ArtifactDefinition = {
+  type: A.callBehavior,
+  diagramType: 'activity',
+  category: 'nodo ejecutable',
+  name: 'Acción de subproceso',
+  umlName: 'CallBehaviorAction',
+  notation: 'Acción con un tridente (⋔) en la esquina inferior derecha.',
+  whatIs: 'Un paso que, por sí solo, es otro proceso completo dibujado en su propio diagrama.',
+  whatFor: 'Mantener legible un proceso grande: el paso se ve como uno solo y su detalle se abre aparte.',
+  whyExists: 'Un diagrama con cientos de nodos no se lee. Dividirlo en subprocesos permite ver el todo y entrar al detalle solo donde hace falta.',
+  whenToUse: ['Cuando un paso tiene su propio flujo con varias acciones y decisiones.', 'Cuando el mismo proceso se reutiliza desde varios diagramas.'],
+  whenNotToUse: ['Para un paso simple: usa una acción normal.'],
+  rules: [
+    'Se nombra como el proceso que invoca, con un verbo en infinitivo.',
+    'Enlaza el diagrama que lo detalla (en Propiedades): su nombre y el del subproceso deberían coincidir.',
+    'Se comporta como una acción: espera a todas sus entradas y ofrece un token por cada salida.',
+  ],
+  commonMistakes: ['Dejarlo sin diagrama enlazado: el lector ve el ⋔ y no encuentra el detalle.', 'Abrir un subproceso para un solo paso.'],
+  example: '"Procesar pago" en el proceso de pedido, detallado en el diagrama "Procesar pago".',
+  relatedArtifacts: [A.action],
+  connectionRules: { minIn: 0, maxIn: UNLIMITED, minOut: 0, maxOut: UNLIMITED },
+};
+
 const objectNode: ArtifactDefinition = {
   type: A.objectNode,
   diagramType: 'activity',
@@ -303,7 +326,29 @@ const partition: ArtifactDefinition = {
   ],
   commonMistakes: ['Conectar flechas al carril.', 'Nombrarlo con una tarea en vez de un actor.'],
   example: 'Carriles "Usuario", "Sistema" y "Pago de terceros".',
-  relatedArtifacts: [A.action],
+  relatedArtifacts: [A.action, A.activityFrame],
+  connectionRules: NO_CONNECTIONS,
+};
+
+const activityFrame: ArtifactDefinition = {
+  type: A.activityFrame,
+  diagramType: 'activity',
+  category: 'agrupación',
+  name: 'Marco de actividad',
+  umlName: 'Activity',
+  notation: 'Rectángulo con una franja superior que nombra la actividad; dentro van sus carriles, uno junto a otro.',
+  whatIs: 'El borde de la actividad completa: dice cómo se llama el proceso y encierra a todos sus responsables.',
+  whatFor: 'Dar nombre y límite al proceso, y ordenar sus carriles como columnas de una misma tabla.',
+  whyExists: 'Cuando hay varios carriles, el lector necesita saber qué proceso está viendo y dónde empieza y termina.',
+  whenToUse: ['Cuando el diagrama tiene carriles y quieres presentarlo como un proceso con nombre.', 'Al documentar o entregar el diagrama.'],
+  whenNotToUse: ['En bocetos rápidos sin carriles: el nombre del diagrama ya basta.'],
+  rules: [
+    'No es un nodo: los flujos no conectan con el marco, sino con los nodos que contiene.',
+    'Los carriles que sueltas dentro se acomodan solos, uno junto a otro, con el alto del marco.',
+  ],
+  commonMistakes: ['Nombrarlo con un responsable en vez de con el proceso.', 'Dejar carriles fuera del marco de su propia actividad.'],
+  example: 'Marco "Gráfico de actividad de pago de pedidos" con los carriles "Usuario", "Sistema" y "Pago de terceros".',
+  relatedArtifacts: [A.partition],
   connectionRules: NO_CONNECTIONS,
 };
 
@@ -391,6 +436,7 @@ export const activityArtifacts: ArtifactDefinition[] = [
   activityFinal,
   flowFinal,
   action,
+  callBehavior,
   decision,
   merge,
   fork,
@@ -399,6 +445,7 @@ export const activityArtifacts: ArtifactDefinition[] = [
   sendSignal,
   acceptEvent,
   partition,
+  activityFrame,
   note,
   controlFlow,
   objectFlow,

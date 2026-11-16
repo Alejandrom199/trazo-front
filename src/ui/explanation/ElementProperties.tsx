@@ -2,6 +2,8 @@ import { absolutePosition, nodeName, EDGE_OFFSET_KEY, LABEL_OFFSET_KEY, readEdge
 import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { canReverseEdge, reverseEdge } from '@/canvas/edgeActions';
+import { DiagramLinkField } from '@/ui/projects/DiagramLinkField';
+import { FrameLanes } from './FrameLanes';
 import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from './formFields';
 
 /**
@@ -83,6 +85,10 @@ export function NodeProperties({ node, diagram, module }: { node: DiagramNode; d
         );
       })}
 
+      {kind?.diagramLink && <DiagramLinkField node={node} link={kind.diagramLink} />}
+
+      {kind?.laneFrame && <FrameLanes frame={node} diagram={diagram} module={module} />}
+
       <Field label="Notas">
         <TextInput value={node.notes} multiline placeholder="Comentario para ti o tu equipo" onCommit={(notes) => update({ notes })} />
       </Field>
@@ -163,7 +169,7 @@ export function EdgeProperties({
           />
         </Field>
       ) : (
-      <FieldGroup label="Trazado" hint="Con la flecha seleccionada, arrastra la línea desde cualquier punto para crear un vértice (o clic derecho → Agregar vértice). Doble clic en un vértice ● lo quita.">
+      <FieldGroup label="Trazado" hint="Con la flecha seleccionada, arrastra un tramo para moverlo. Doble clic sobre la línea crea un vértice (o clic derecho → Agregar vértice); doble clic en un vértice ● lo quita.">
         <Segmented
           value={edge.routing}
           options={ROUTING_OPTIONS}

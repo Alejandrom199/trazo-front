@@ -6,6 +6,7 @@ import { narrateActivity } from './narrator';
 import { activityEdgeKinds, activityNodeKinds } from './nodeKinds';
 import { activityRules } from './rules';
 import { activityTemplates } from './templates';
+import { activityWalkthrough } from './walkthrough';
 
 /** Módulo del Diagrama de Actividades (UML 2.5). */
 export const activityModule: DiagramModule = {
@@ -17,6 +18,7 @@ export const activityModule: DiagramModule = {
   resolveConnection: resolveActivityConnection,
   rules: activityRules,
   narrate: narrateActivity,
+  walkthrough: activityWalkthrough,
   templates: activityTemplates,
   guide: activityGuide,
 };

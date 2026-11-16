@@ -13,6 +13,36 @@ export function ActionShape({ selected, label }: ArtifactNodeProps) {
   );
 }
 
+/**
+ * Acción de subproceso (CallBehaviorAction): una acción con el tridente ⋔ abajo a
+ * la derecha, que indica que su detalle está en otro diagrama. En miniatura
+ * (paleta, Aprender) no hay texto: el tridente va centrado y a escala de la figura.
+ */
+export function CallBehaviorShape({ selected, label, preview }: ArtifactNodeProps) {
+  const stroke = strokeFor(selected);
+  return (
+    <div className="relative size-full rounded-2xl" style={{ border: `${STROKE_WIDTH}px solid ${stroke}`, background: SHAPE_FILL }}>
+      {preview ? (
+        <RakeIcon stroke={stroke} className="absolute inset-0 m-auto" style={{ height: '55%', aspectRatio: '16 / 14' }} />
+      ) : (
+        <>
+          <div className={centeredLabelClass} style={{ paddingBottom: 12 }}>{label}</div>
+          <RakeIcon stroke={stroke} className="absolute right-2.5 bottom-2 size-4" />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Tridente ⋔ de UML: un mango que se abre en tres púas. El trazo no cambia de grosor al escalar. */
+function RakeIcon({ stroke, className, style }: { stroke: string; className: string; style?: React.CSSProperties }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 14" className={className} style={style} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1v12M2 13V7h12v6" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
 /** Nodo de objeto: rectángulo de esquinas rectas (lo distingue de la acción). */
 export function ObjectNodeShape({ selected, label }: ArtifactNodeProps) {
   return (

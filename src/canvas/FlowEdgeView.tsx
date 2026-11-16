@@ -8,7 +8,8 @@ import { connectionPath } from './connectionPath';
 import { EditableText } from './EditableText';
 import type { Rect } from './edgeGeometry';
 import { sourceDiamondPath } from './edgeMarkers';
-import { insertWaypoint, type EdgePath } from './edgePath';
+import { moveOrthogonalSegment, nearestSegment, type EdgePath } from './edgePath';
+import { addWaypointAt } from './edgeActions';
 import { snapPoint, useGridStore } from './gridStore';
 import { useActiveModule } from './useActiveModule';
 
@@ -23,8 +24,9 @@ function rectOf(node: InternalNode): Rect {
 /**
  * Conexión entre dos nodos, con el recorrido que declara su tipo y su texto
  * (guarda [condición] o etiqueta libre). Seleccionada:
- *   - recorrido libre: arrastrar cualquier punto de la línea crea ahí un vértice y
- *     lo lleva con el puntero; cada vértice ● se arrastra y con doble clic se quita.
+ *   - recorrido libre: arrastrar un tramo de la línea lo desplaza (sin crear
+ *     vértices); doble clic sobre la línea crea un vértice ahí; cada vértice ● se
+ *     arrastra y con doble clic se quita.
  *   - horizontal (mensaje): un tirador en su origen que la sube o la baja.
  */
 export function FlowEdgeView({ id, source, target, data, style, markerEnd, selected }: EdgeProps<FlowEdge>) {
@@ -35,6 +37,7 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
   const isEditing = useDiagramStore((state) => state.editingEdgeId === id);
   const startDrag = useWaypointDrag(id);
   const startLineDrag = useLineDrag(id);
+  const { screenToFlowPosition } = useReactFlow();
   const startHeightDrag = useHeightDrag(id);
   const startLabelDrag = useLabelDrag();
   const reconnect = useReconnect(id);
@@ -60,12 +63,17 @@ export function FlowEdgeView({ id, source, target, data, style, markerEnd, selec
         interactionWidth={16}
       />
       {selected && !isHorizontal && !reconnect.preview && (
-        // Franja invisible sobre la línea seleccionada: arrastrarla crea un vértice donde se agarra.
+        // Franja invisible sobre la línea seleccionada: arrastrarla desplaza el tramo;
+        // doble clic crea un vértice donde se hace (no edita el texto: eso, sobre el texto).
         <path
           d={path.d}
           className="nodrag nopan"
-          style={{ fill: 'none', stroke: 'transparent', strokeWidth: 16, cursor: 'grab', pointerEvents: 'stroke' }}
-          onPointerDown={(event) => startLineDrag(event, edge.waypoints, path)}
+          style={{ fill: 'none', stroke: 'transparent', strokeWidth: 16, cursor: 'move', pointerEvents: 'stroke' }}
+          onPointerDown={(event) => startLineDrag(event, edge, path)}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            addWaypointAt(module, id, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+          }}
         />
       )}
       {kind?.sourceMarker && start && toward && !reconnect.preview && (
@@ -272,32 +280,45 @@ function useWaypointDrag(edgeId: string) {
 }
 
 /**
- * Arrastre desde la línea: pasado el umbral, crea un vértice en el punto donde se
- * agarró (en el tramo que corresponde) y lo lleva con el puntero. Un clic sin
- * arrastrar no crea nada, así el clic y el doble clic sobre la flecha siguen igual.
+ * Arrastre de un tramo de la línea: lo desplaza, sin crear vértices por sí solo.
+ *   - ortogonal: el tramo agarrado se mueve perpendicular a sí mismo (uno
+ *     horizontal sube o baja); junto a un nodo se agrega un codo corto.
+ *   - recta y curva: se mueven los vértices que limitan el tramo; un tramo de
+ *     nodo a nodo, sin vértices, no se mueve (doble clic para agregar uno).
+ * Un clic sin arrastrar no cambia nada. Todo el gesto es un paso de deshacer.
  */
 function useLineDrag(edgeId: string) {
   const { screenToFlowPosition } = useReactFlow();
 
-  return (event: ReactPointerEvent, waypoints: Position[], path: EdgePath) => {
+  return (event: ReactPointerEvent, edge: DiagramEdge, path: EdgePath) => {
     if (event.button !== 0) return;
     event.stopPropagation();
     event.preventDefault();
     const origin = { x: event.clientX, y: event.clientY };
-    let points = waypoints;
-    let index: number | null = null;
+    const grabbed = screenToFlowPosition(origin);
+    const orthogonal = edge.routing === 'orthogonal';
+    const segment = nearestSegment(path.points, grabbed);
+    // En recta y curva, los vértices que limitan el tramo (índices en edge.waypoints).
+    const bounding = [segment - 1, segment].filter((index) => index >= 0 && index < edge.waypoints.length);
+    if (!orthogonal && bounding.length === 0) return;
+    let started = false;
 
     followPointer((moveEvent) => {
-      if (index === null) {
+      if (!started) {
         if (Math.hypot(moveEvent.clientX - origin.x, moveEvent.clientY - origin.y) < DRAG_THRESHOLD) return;
         store().checkpoint();
-        const inserted = insertWaypoint(path, waypoints, screenToFlowPosition(origin));
-        points = inserted.waypoints;
-        index = inserted.index;
+        started = true;
       }
-      const position = snapPoint(screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY }));
-      points = points.map((point, i) => (i === index ? position : point));
-      store().setEdgeWaypoints(edgeId, points);
+      const pointer = snapPoint(screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY }));
+      if (orthogonal) {
+        store().setEdgeWaypoints(edgeId, moveOrthogonalSegment(path.points, segment, pointer));
+        return;
+      }
+      const delta = { x: pointer.x - grabbed.x, y: pointer.y - grabbed.y };
+      store().setEdgeWaypoints(
+        edgeId,
+        edge.waypoints.map((point, index) => (bounding.includes(index) ? snapPoint({ x: point.x + delta.x, y: point.y + delta.y }) : point)),
+      );
     });
   };
 }

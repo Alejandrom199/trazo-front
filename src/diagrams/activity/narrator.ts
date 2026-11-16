@@ -180,6 +180,8 @@ class ActivityNarrator {
     switch (node.artifactType) {
       case A.action:
         return this.sayStep(depth, `se ejecuta ${named}.`, node, edge);
+      case A.callBehavior:
+        return this.sayStep(depth, `se ejecuta el subproceso ${label ? `«${label}»` : 'sin nombre'}, detallado en su propio diagrama.`, node, edge);
       case A.sendSignal:
         return this.sayStep(depth, `se envía la señal ${label ? `«${label}»` : 'sin nombre'}.`, node, edge);
       case A.acceptEvent:

@@ -384,7 +384,7 @@ function buildActions(menu: MenuState, module: DiagramModule, diagram: Diagram):
     const clicked = menu.flow;
     return [
       explain,
-      ...(edgeKind?.text ? [{ id: 'edit', label: editLabel, icon: faPen, shortcut: 'Doble clic', run: () => store.startEditingEdge(id) }] : []),
+      ...(edgeKind?.text ? [{ id: 'edit', label: editLabel, icon: faPen, shortcut: 'Doble clic en el texto', run: () => store.startEditingEdge(id) }] : []),
       ...(clicked && acceptsWaypoints(module, edge.artifactType)
         ? [{ id: 'add-vertex', label: 'Agregar vértice aquí', icon: faBezierCurve, run: () => addWaypointAt(module, id, clicked) }]
         : []),

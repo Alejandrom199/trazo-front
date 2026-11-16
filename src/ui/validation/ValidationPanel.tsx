@@ -1,11 +1,15 @@
 import { faCheck, faChevronDown, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useMemo, useState } from 'react';
-import { issueKey, validateDiagram, type Severity, type ValidationIssue, type ValidationRule } from '@/core/model';
+import { issueKey, projectIssueKey, validateDiagram, type Diagram, type ProjectIssue, type Severity, type ValidationIssue } from '@/core/model';
+import { projectRules } from '@/diagrams/crossDiagram';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { createId } from '@/core/utils/id';
 import { useHighlightStore } from '@/canvas/highlightStore';
+import { useProjectStore } from '@/core/store/projectStore';
+import { openProjectElements } from '@/ui/projects/openProjectElements';
+import { useProjectIssues } from './useProjectIssues';
 
 const SEVERITY_STYLE: Record<Severity, { singular: string; plural: string; dot: string; text: string }> = {
   error: { singular: 'error', plural: 'errores', dot: 'bg-danger', text: 'text-danger' },
@@ -14,6 +18,8 @@ const SEVERITY_STYLE: Record<Severity, { singular: string; plural: string; dot: 
 };
 const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
 const ISSUE_PREFIX = 'issue:';
+const PROJECT_ISSUE_PREFIX = 'project-issue:';
+const PROJECT_RULE_BY_ID = new Map(projectRules.map((rule) => [rule.id, rule]));
 
 /**
  * Panel de problemas, abajo al centro. Valida en vivo con las reglas del módulo
@@ -21,6 +27,9 @@ const ISSUE_PREFIX = 'issue:';
  * clic en un problema se seleccionan y resaltan sus elementos en el lienzo; si la
  * regla sabe corregirlo, «Arreglar» lo hace en un paso de deshacer y deja
  * seleccionado lo que agregó, para que se vea la corrección.
+ *
+ * Con un proyecto abierto, debajo van los problemas ENTRE diagramas (reglas de
+ * diagrams/crossDiagram): al hacer clic se abre el diagrama donde está el problema.
  */
 export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
   const module = useActiveModule();
@@ -34,14 +43,18 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
     () => (diagram && module ? validateDiagram(diagram, module.rules) : []),
     [diagram, module],
   );
+  const { issues: projectIssues, diagrams: projectDiagrams } = useProjectIssues();
   const ruleById = useMemo(() => new Map((module?.rules ?? []).map((rule) => [rule.id, rule])), [module]);
 
   // Si el problema resaltado se corrigió, el resaltado ya no tiene sentido.
   // Solo se tocan los resaltados que puso este panel (los de la narración son de otro).
   useEffect(() => {
-    if (!highlight?.sourceKey.startsWith(ISSUE_PREFIX)) return;
-    if (!issues.some((issue) => ISSUE_PREFIX + issueKey(issue) === highlight.sourceKey)) setHighlight(null);
-  }, [issues, highlight, setHighlight]);
+    if (highlight?.sourceKey.startsWith(ISSUE_PREFIX)) {
+      if (!issues.some((issue) => ISSUE_PREFIX + issueKey(issue) === highlight.sourceKey)) setHighlight(null);
+    } else if (highlight?.sourceKey.startsWith(PROJECT_ISSUE_PREFIX)) {
+      if (!projectIssues.some((issue) => PROJECT_ISSUE_PREFIX + projectIssueKey(issue) === highlight.sourceKey)) setHighlight(null);
+    }
+  }, [issues, projectIssues, highlight, setHighlight]);
 
   if (!diagram || !module) return null;
 
@@ -53,6 +66,18 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
   function focusIssue(issue: ValidationIssue) {
     setHighlight({ sourceKey: ISSUE_PREFIX + issueKey(issue), tone: issue.severity, nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
     useDiagramStore.getState().setSelection({ nodeIds: issue.nodeIds, edgeIds: issue.edgeIds });
+  }
+
+  function focusProjectIssue(issue: ProjectIssue) {
+    const opened = openProjectElements(issue.elements, projectDiagrams);
+    if (!opened) return;
+    const own = issue.elements.filter((element) => element.diagramId === opened.id);
+    setHighlight({
+      sourceKey: PROJECT_ISSUE_PREFIX + projectIssueKey(issue),
+      tone: issue.severity,
+      nodeIds: own.filter((element) => element.kind === 'node').map((element) => element.elementId),
+      edgeIds: own.filter((element) => element.kind === 'edge').map((element) => element.elementId),
+    });
   }
 
   function fixIssue(issue: ValidationIssue) {
@@ -73,23 +98,43 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
     <div className={embedded ? 'flex h-full w-full min-w-0 flex-col overflow-hidden bg-surface' : 'w-full min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-panel'}>
       {showingIssues && (
         <ul className={embedded ? 'order-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto' : 'max-h-[38vh] divide-y divide-line overflow-y-auto border-b border-line'}>
-          {issues.length === 0 ? (
+          {issues.length === 0 && projectIssues.length === 0 ? (
             <li className="px-4 py-4 text-sm text-ink-600">
               {diagram.nodes.length === 0
                 ? 'Agrega artefactos al lienzo: los problemas aparecerán aquí mientras dibujas.'
                 : 'Sin problemas: el diagrama cumple todas las reglas revisadas.'}
             </li>
           ) : (
-            issues.map((issue) => (
-              <IssueItem
-                key={issueKey(issue)}
-                issue={issue}
-                rule={ruleById.get(issue.ruleId)}
-                active={highlight?.sourceKey === ISSUE_PREFIX + issueKey(issue)}
-                onFocus={() => focusIssue(issue)}
-                onFix={() => fixIssue(issue)}
-              />
-            ))
+            <>
+              {issues.map((issue) => (
+                <IssueItem
+                  key={issueKey(issue)}
+                  issue={issue}
+                  rule={ruleById.get(issue.ruleId)}
+                  focusable={issue.nodeIds.length + issue.edgeIds.length > 0}
+                  fixHint="Se puede deshacer con Ctrl+Z"
+                  active={highlight?.sourceKey === ISSUE_PREFIX + issueKey(issue)}
+                  onFocus={() => focusIssue(issue)}
+                  onFix={() => fixIssue(issue)}
+                />
+              ))}
+              {projectIssues.length > 0 && (
+                <li className="bg-canvas px-4 py-2 text-[11px] font-semibold text-ink-600">Entre diagramas del proyecto</li>
+              )}
+              {projectIssues.map((issue) => (
+                <IssueItem
+                  key={projectIssueKey(issue)}
+                  issue={issue}
+                  rule={PROJECT_RULE_BY_ID.get(issue.ruleId)}
+                  context={diagramNames(issue, projectDiagrams)}
+                  focusable={issue.elements.length > 0}
+                  fixHint="Cambia los vínculos del proyecto"
+                  active={highlight?.sourceKey === PROJECT_ISSUE_PREFIX + projectIssueKey(issue)}
+                  onFocus={() => focusProjectIssue(issue)}
+                  onFix={() => { if (issue.fix) useProjectStore.getState().changeTraceLinks(issue.fix.apply); }}
+                />
+              ))}
+            </>
           )}
         </ul>
       )}
@@ -101,7 +146,7 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
         className={`flex h-11 w-full shrink-0 items-center gap-3 px-4 text-left sm:gap-4 ${embedded ? 'order-1 cursor-default border-b border-line' : 'hover:bg-raised'}`}
       >
         <span className="text-xs font-semibold text-ink-600">Problemas</span>
-        {issues.length === 0 ? (
+        {issues.length === 0 && projectIssues.length === 0 ? (
           <span className="flex items-center gap-1.5 text-xs font-medium text-success">
             <FontAwesomeIcon icon={faCheck} className="text-[11px]" />
             {diagram.nodes.length === 0 ? 'Nada que revisar' : 'Todo en orden'}
@@ -120,6 +165,12 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
               </span>
             ))
         )}
+        {projectIssues.length > 0 && (
+          <span className="shrink-0 whitespace-nowrap text-xs text-ink-400" title="Problemas entre los diagramas del proyecto">
+            <span className="font-medium text-ink-900">+{projectIssues.length}</span>
+            <span className="hidden sm:inline"> del proyecto</span>
+          </span>
+        )}
         {!embedded && (
           <FontAwesomeIcon
             icon={faChevronDown}
@@ -131,18 +182,27 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
+/** Nombres de los diagramas que toca un problema de proyecto, para ubicarlo. */
+function diagramNames(issue: ProjectIssue, diagrams: readonly Diagram[]): string {
+  const ids = [...new Set(issue.elements.map((element) => element.diagramId))];
+  return ids.map((id) => diagrams.find((diagram) => diagram.id === id)?.name).filter(Boolean).map((name) => `«${name}»`).join(' · ');
+}
+
 interface IssueItemProps {
-  issue: ValidationIssue;
-  rule: ValidationRule | undefined;
+  issue: Pick<ValidationIssue | ProjectIssue, 'severity' | 'message' | 'suggestion' | 'fix'>;
+  rule: { title: string; explanation: string } | undefined;
+  /** Dónde está el problema (los diagramas que toca), si no es solo el abierto. */
+  context?: string;
+  focusable: boolean;
+  fixHint: string;
   active: boolean;
   onFocus: () => void;
   onFix: () => void;
 }
 
-function IssueItem({ issue, rule, active, onFocus, onFix }: IssueItemProps) {
+function IssueItem({ issue, rule, context, focusable, fixHint, active, onFocus, onFix }: IssueItemProps) {
   const [showWhy, setShowWhy] = useState(false);
   const style = SEVERITY_STYLE[issue.severity];
-  const hasElements = issue.nodeIds.length + issue.edgeIds.length > 0;
 
   return (
     <li className={active ? 'bg-accent-soft/60' : undefined}>
@@ -152,18 +212,19 @@ function IssueItem({ issue, rule, active, onFocus, onFix }: IssueItemProps) {
           <button
             type="button"
             onClick={onFocus}
-            disabled={!hasElements}
+            disabled={!focusable}
             className="block text-left text-sm text-ink-900 enabled:hover:text-accent disabled:cursor-default"
-            title={hasElements ? 'Resaltar en el lienzo' : undefined}
+            title={focusable ? 'Resaltar en el lienzo' : undefined}
           >
             {issue.message}
           </button>
+          {context && <p className="mt-0.5 truncate text-[11px] text-ink-400">{context}</p>}
           <p className="mt-0.5 text-xs leading-relaxed text-ink-600">{issue.suggestion}</p>
           {issue.fix && (
             <button
               type="button"
               onClick={onFix}
-              title="Se puede deshacer con Ctrl+Z"
+              title={fixHint}
               className="mt-1.5 mr-3 inline-flex items-center gap-1.5 rounded-md bg-accent-soft px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent hover:text-white"
             >
               <FontAwesomeIcon icon={faWandMagicSparkles} className="text-[10px]" />

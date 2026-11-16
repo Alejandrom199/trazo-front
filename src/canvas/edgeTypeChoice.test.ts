@@ -44,8 +44,9 @@ describe('edgeTypeOptions', () => {
     ]);
   });
 
-  it('no ofrece alternativas para el flujo de control de actividades', () => {
-    expect(edgeTypeOptions(activityModule, A.controlFlow)).toEqual([]);
+  it('ofrece los flujos de actividades, pero no el anclaje de notas', () => {
+    expect(edgeTypeOptions(activityModule, A.controlFlow).map((artifact) => artifact.type)).toEqual([A.controlFlow, A.objectFlow]);
+    expect(edgeTypeOptions(activityModule, A.annotationLink)).toEqual([]);
   });
 });
 

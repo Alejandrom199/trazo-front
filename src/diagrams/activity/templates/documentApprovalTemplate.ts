@@ -13,6 +13,7 @@ function buildDocumentApprovalTemplate() {
   const authorReturn = { x: 320 };
   const approver = { x: 560 };
 
+  t.frame('Aprobación de documento');
   t.lane('Autor', 0, 410, laneHeight);
   t.lane('Aprobador', 410, 300, laneHeight);
 
@@ -55,7 +56,7 @@ function buildDocumentApprovalTemplate() {
     description:
       'El autor envía su borrador a aprobación con una señal y espera el dictamen; el aprobador reacciona a la solicitud y responde con otra señal.',
     difficulty: 'avanzado',
-    learningGoals: [A.sendSignal, A.acceptEvent, A.objectNode, A.objectFlow, A.merge, A.flowFinal, A.partition],
+    learningGoals: [A.sendSignal, A.acceptEvent, A.objectNode, A.objectFlow, A.merge, A.flowFinal, A.partition, A.activityFrame],
   });
 }
 

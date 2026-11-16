@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { moveDiagramInOrder, withoutDiagrams, type DiagramProject, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
+import { moveDiagramInOrder, withoutDiagrams, type DiagramProject, type DiagramRelation, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
 import { browserStorage } from '@/core/persistence/diagramRepository';
 import { readProjectLibrary, writeProjectLibrary, type ProjectLibrary } from '@/core/persistence/projectLibrary';
 import { createId } from '@/core/utils/id';
@@ -19,7 +19,8 @@ interface ProjectState {
   closeProject: () => void;
   /** Borra un proyecto guardado (su nombre, orden y trazabilidad); sus diagramas siguen guardados. */
   deleteProject: (projectId: string) => void;
-  renameProject: (name: string) => void;
+  /** Renombra el proyecto abierto, o el guardado con `projectId`. */
+  renameProject: (name: string, projectId?: string) => void;
   addDiagram: (diagramId: string) => void;
   removeDiagram: (diagramId: string) => void;
   /**
@@ -31,6 +32,18 @@ interface ProjectState {
   moveDiagram: (diagramId: string, toIndex: number) => void;
   addTraceLink: (source: TraceEndpoint, target: TraceEndpoint, relation: TraceRelation) => void;
   removeTraceLink: (linkId: string) => void;
+  /** Reemplaza los vínculos por los que devuelve `change` (p. ej. el arreglo de un problema de proyecto). */
+  changeTraceLinks: (change: (traceLinks: readonly TraceLink[]) => TraceLink[]) => void;
+  /** Crea una carpeta al final y devuelve su id (null sin proyecto abierto). */
+  createFolder: (name: string) => string | null;
+  renameFolder: (folderId: string, name: string) => void;
+  /** Borra la carpeta; sus diagramas siguen en el proyecto, sin carpeta. */
+  deleteFolder: (folderId: string) => void;
+  /** Mete un diagrama en una carpeta (o lo saca, con null). */
+  moveDiagramToFolder: (diagramId: string, folderId: string | null) => void;
+  /** Relaciona dos diagramas completos; no repite una relación igual ni une un diagrama consigo mismo. */
+  addDiagramRelation: (sourceDiagramId: string, targetDiagramId: string, relation: TraceRelation) => void;
+  removeDiagramRelation: (relationId: string) => void;
 }
 
 /** null en modo privado o con el almacenamiento bloqueado: los proyectos duran solo la sesión. */
@@ -80,7 +93,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
 
   createProject: (name, firstDiagramId) => set((state) => {
     const now = new Date().toISOString();
-    const project: DiagramProject = { id: createId(), name: name.trim() || 'Proyecto sin título', diagramIds: firstDiagramId ? [firstDiagramId] : [], traceLinks: [], createdAt: now, updatedAt: now };
+    const project: DiagramProject = { id: createId(), name: name.trim() || 'Proyecto sin título', diagramIds: firstDiagramId ? [firstDiagramId] : [], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], createdAt: now, updatedAt: now };
     return commit([...state.projects, project], project.id);
   }),
   openProject: (project) => set((state) => commit([...state.projects.filter((other) => other.id !== project.id), project], project.id)),
@@ -91,7 +104,13 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     return commit(state.projects.filter((project) => project.id !== projectId), activeId);
   }),
 
-  renameProject: (name) => set((state) => changeActive(state, () => ({ name: name.trim() || 'Proyecto sin título' }))),
+  renameProject: (name, projectId) => set((state) => {
+    const targetId = projectId ?? state.project?.id;
+    const target = state.projects.find((project) => project.id === targetId);
+    const trimmed = name.trim() || 'Proyecto sin título';
+    if (!target || target.name === trimmed) return state;
+    return commit(state.projects.map((project) => (project.id === target.id ? update(project, { name: trimmed }) : project)), state.project?.id ?? null);
+  }),
   addDiagram: (diagramId) => set((state) => changeActive(state, (project) => (project.diagramIds.includes(diagramId) ? null : { diagramIds: [...project.diagramIds, diagramId] }))),
   removeDiagram: (diagramId) => set((state) => changeActive(state, (project) => withoutDiagrams(project, new Set([diagramId])))),
   forgetMissingDiagrams: (savedIds) => set((state) => {
@@ -120,4 +139,46 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     return { traceLinks: [...project.traceLinks, link] };
   })),
   removeTraceLink: (linkId) => set((state) => changeActive(state, (project) => ({ traceLinks: project.traceLinks.filter((link) => link.id !== linkId) }))),
+  createFolder: (name) => {
+    const id = createId();
+    let created = false;
+    set((state) => changeActive(state, (project) => {
+      created = true;
+      return { folders: [...project.folders, { id, name: name.trim() || 'Carpeta nueva' }] };
+    }));
+    return created ? id : null;
+  },
+  renameFolder: (folderId, name) => set((state) => changeActive(state, (project) => {
+    const trimmed = name.trim();
+    if (!trimmed || !project.folders.some((folder) => folder.id === folderId && folder.name !== trimmed)) return null;
+    return { folders: project.folders.map((folder) => (folder.id === folderId ? { ...folder, name: trimmed } : folder)) };
+  })),
+  deleteFolder: (folderId) => set((state) => changeActive(state, (project) => {
+    if (!project.folders.some((folder) => folder.id === folderId)) return null;
+    return {
+      folders: project.folders.filter((folder) => folder.id !== folderId),
+      folderOf: Object.fromEntries(Object.entries(project.folderOf).filter(([, id]) => id !== folderId)),
+    };
+  })),
+  moveDiagramToFolder: (diagramId, folderId) => set((state) => changeActive(state, (project) => {
+    if (!project.diagramIds.includes(diagramId) || (project.folderOf[diagramId] ?? null) === folderId) return null;
+    if (folderId && !project.folders.some((folder) => folder.id === folderId)) return null;
+    const { [diagramId]: _previous, ...rest } = project.folderOf;
+    return { folderOf: folderId ? { ...rest, [diagramId]: folderId } : rest };
+  })),
+  addDiagramRelation: (sourceDiagramId, targetDiagramId, relation) => set((state) => changeActive(state, (project) => {
+    if (sourceDiagramId === targetDiagramId) return null;
+    if (![sourceDiagramId, targetDiagramId].every((id) => project.diagramIds.includes(id))) return null;
+    const duplicate = project.diagramRelations.some((item) =>
+      item.sourceDiagramId === sourceDiagramId && item.targetDiagramId === targetDiagramId && item.relation === relation);
+    if (duplicate) return null;
+    const created: DiagramRelation = { id: createId(), sourceDiagramId, targetDiagramId, relation, createdAt: new Date().toISOString() };
+    return { diagramRelations: [...project.diagramRelations, created] };
+  })),
+  removeDiagramRelation: (relationId) => set((state) => changeActive(state, (project) =>
+    (project.diagramRelations.some((item) => item.id === relationId) ? { diagramRelations: project.diagramRelations.filter((item) => item.id !== relationId) } : null))),
+  changeTraceLinks: (change) => set((state) => changeActive(state, (project) => {
+    const traceLinks = change(project.traceLinks);
+    return traceLinks.length === project.traceLinks.length && traceLinks.every((link, index) => link === project.traceLinks[index]) ? null : { traceLinks };
+  })),
 }));

@@ -27,6 +27,11 @@ export interface EdgePath {
    * arrastrar la línea sobre el tramo i, el vértice nuevo se inserta en la posición i.
    */
   legs: Position[][];
+  /**
+   * La línea como se ve, de extremo a extremo: en la ortogonal, con sus codos; en
+   * la recta y la curva, sus puntos de control. Al arrastrar un tramo se mueve este.
+   */
+  points: Position[];
 }
 
 const CORNER_RADIUS = 10;
@@ -54,6 +59,7 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
       controlPoints: [start.point, ...waypoints, end.point],
       sourceHeading: points[1] ?? end.point,
       legs,
+      points,
     };
   }
 
@@ -69,6 +75,7 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
       // La tangente de salida de la curva apunta a su primer punto de control.
       sourceHeading: segments[0]![1],
       legs: segments.map(sampleBezier),
+      points,
     };
   }
   return {
@@ -77,6 +84,7 @@ export function buildEdgePath(source: Rect, target: Rect, routing: EdgeRouting, 
     controlPoints: points,
     sourceHeading: points[1]!,
     legs: points.slice(1).map((point, index) => [points[index]!, point]),
+    points,
   };
 }
 
@@ -101,6 +109,7 @@ function buildWithoutWaypoints(source: Rect, target: Rect, routing: EdgeRouting)
     // Sin vértices, la ortogonal y la curva salen perpendiculares al lado del origen.
     sourceHeading: awayFrom(start, endpoints.sourcePosition),
     legs: [approximate],
+    points: routing === 'curved' ? [start, end] : withoutRedundantPoints(approximate),
   };
 }
 
@@ -331,4 +340,50 @@ export function pointAtFraction(points: Position[], fraction: number): Position 
     remaining -= length;
   }
   return points.at(-1) ?? { x: 0, y: 0 };
+}
+
+/** Índice del tramo (entre points[i] y points[i + 1]) más cercano a un punto. */
+export function nearestSegment(points: Position[], point: Position): number {
+  return nearestLeg(points.slice(1).map((to, index) => [points[index]!, to]), point);
+}
+
+/** Largo del codo que se agrega junto a un nodo al desplazar el tramo que sale de él. */
+const STUB = 18;
+
+/**
+ * Vértices de una flecha ortogonal tras desplazar su tramo `segment` (de la
+ * línea dibujada `points`) hasta `pointer`: un tramo horizontal sube o baja, uno
+ * vertical va a izquierda o derecha. Si el tramo sale o llega a un nodo, se le
+ * agrega antes un codo corto junto al nodo, para que la flecha siga saliendo
+ * perpendicular a su lado. Devuelve los puntos interiores, que son los vértices.
+ */
+export function moveOrthogonalSegment(points: Position[], segment: number, pointer: Position): Position[] {
+  const from = points[segment];
+  const to = points[segment + 1];
+  if (!from || !to) return points.slice(1, -1);
+  const horizontal = Math.abs(from.y - to.y) < Math.abs(from.x - to.x);
+  const along = (point: Position, length: number): Position => {
+    const total = distance(from, to);
+    const stub = Math.sign(length) * Math.min(Math.abs(length), total / 3);
+    return total === 0 ? point : { x: point.x + ((to.x - from.x) / total) * stub, y: point.y + ((to.y - from.y) / total) * stub };
+  };
+
+  let line = points.map((point) => ({ ...point }));
+  let first = segment;
+  // Junto a un nodo, el codo corto queda fijo y una copia suya es la que se mueve:
+  // así la flecha sale del nodo, dobla y sigue por el tramo desplazado.
+  if (segment === 0) {
+    const stub = along(from, STUB);
+    line = [line[0]!, stub, { ...stub }, ...line.slice(1)];
+    first += 2;
+  }
+  if (segment + 1 === points.length - 1) {
+    const end = line.length - 1;
+    const stub = along(to, -STUB);
+    line = [...line.slice(0, end), { ...stub }, stub, line[end]!];
+  }
+  for (const index of [first, first + 1]) {
+    line[index] = horizontal ? { x: line[index]!.x, y: pointer.y } : { x: pointer.x, y: line[index]!.y };
+  }
+  return withoutRedundantPoints(line).slice(1, -1);
 }

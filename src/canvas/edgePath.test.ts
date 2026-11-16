@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boundaryPoint, buildEdgePath, dashArrayFor, insertWaypoint, pointAtHalf } from './edgePath';
+import { boundaryPoint, buildEdgePath, dashArrayFor, insertWaypoint, pointAtHalf, moveOrthogonalSegment } from './edgePath';
 
 const box = (x: number, y: number) => ({ x, y, width: 100, height: 50 });
 
@@ -104,5 +104,23 @@ describe('utilidades', () => {
     expect(dashArrayFor('solid')).toBeUndefined();
     expect(dashArrayFor('dashed')).toBe('6 4');
     expect(dashArrayFor('dotted')).toBe('0.5 4');
+  });
+});
+
+describe('moveOrthogonalSegment', () => {
+  // Línea en escalón: sale a la derecha, baja y sigue a la derecha hasta el destino.
+  const line = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 200 }, { x: 300, y: 200 }];
+
+  it('Dado un tramo interior vertical, Entonces lo desplaza en horizontal sin agregar vértices', () => {
+    expect(moveOrthogonalSegment(line, 1, { x: 160, y: 999 })).toEqual([{ x: 160, y: 0 }, { x: 160, y: 200 }]);
+  });
+
+  it('Dado el tramo que sale del nodo, Entonces deja un codo corto junto al nodo y mueve el resto', () => {
+    expect(moveOrthogonalSegment(line, 0, { x: 50, y: -60 })).toEqual([{ x: 18, y: 0 }, { x: 18, y: -60 }, { x: 100, y: -60 }, { x: 100, y: 200 }]);
+  });
+
+  it('Dada una línea recta de nodo a nodo, Entonces la desvía con un codo en cada extremo', () => {
+    const straight = [{ x: 0, y: 0 }, { x: 300, y: 0 }];
+    expect(moveOrthogonalSegment(straight, 0, { x: 150, y: 80 })).toEqual([{ x: 18, y: 0 }, { x: 18, y: 80 }, { x: 282, y: 80 }, { x: 282, y: 0 }]);
   });
 });

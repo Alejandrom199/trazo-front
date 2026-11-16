@@ -4,7 +4,7 @@ import { projectFromJson, projectToJson } from './projectFormat';
 
 describe('formato de proyecto', () => {
   const diagram = createEmptyDiagram({ diagramType: 'activity', name: 'Préstamo' }, new Date(0));
-  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
 
   it('exporta e importa todos los diagramas', () => {
     const result = projectFromJson(projectToJson(project, [diagram]));
@@ -23,6 +23,35 @@ describe('formato de proyecto', () => {
     const linked: DiagramProject = { ...project, diagramIds: [first.id, second.id], traceLinks: [{ id: 't1', source: { diagramId: first.id, elementId: 'n1', kind: 'node' }, target: { diagramId: second.id, elementId: 'n2', kind: 'node' }, relation: 'implementa', createdAt: new Date(0).toISOString() }] };
     const result = projectFromJson(projectToJson(linked, [first, second]));
     expect(result.ok && result.project.traceLinks[0]?.relation).toBe('implementa');
+  });
+
+  it('conserva carpetas y relaciones entre diagramas, y descarta las que apuntan fuera del proyecto', () => {
+    const other = createEmptyDiagram({ diagramType: 'class', name: 'Dominio' }, new Date(0));
+    const organized: DiagramProject = {
+      ...project,
+      diagramIds: [diagram.id, other.id],
+      folders: [{ id: 'f1', name: 'Ventas' }],
+      folderOf: { [diagram.id]: 'f1', fantasma: 'f1' },
+      diagramRelations: [
+        { id: 'r1', sourceDiagramId: other.id, targetDiagramId: diagram.id, relation: 'detalla', createdAt: new Date(0).toISOString() },
+        { id: 'r2', sourceDiagramId: other.id, targetDiagramId: 'fantasma', relation: 'detalla', createdAt: new Date(0).toISOString() },
+      ],
+    };
+    const result = projectFromJson(projectToJson(organized, [diagram, other]));
+    expect(result.ok && result.project.folders).toEqual([{ id: 'f1', name: 'Ventas' }]);
+    expect(result.ok && result.project.folderOf).toEqual({ [diagram.id]: 'f1' });
+    expect(result.ok && result.project.diagramRelations.map((relation) => relation.id)).toEqual(['r1']);
+  });
+
+  it('abre proyectos v2 sin carpetas ni relaciones', () => {
+    const legacy = JSON.parse(projectToJson(project, [diagram]));
+    legacy.schemaVersion = 2;
+    delete legacy.folders;
+    delete legacy.folderOf;
+    delete legacy.diagramRelations;
+    const result = projectFromJson(JSON.stringify(legacy));
+    expect(result.ok && result.project.folders).toEqual([]);
+    expect(result.ok && result.project.diagramRelations).toEqual([]);
   });
 
   it('abre proyectos v1 sin vínculos', () => {

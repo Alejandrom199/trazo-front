@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveDiagramInOrder, withoutDiagrams, type TraceLink } from './project';
+import { groupByFolder, moveDiagramInOrder, withoutDiagrams, type DiagramRelation, type TraceLink } from './project';
 
 const link = (id: string, from: string, to: string): TraceLink => ({
   id,
@@ -9,11 +9,23 @@ const link = (id: string, from: string, to: string): TraceLink => ({
   createdAt: '2026-01-01T00:00:00.000Z',
 });
 
-describe('withoutDiagrams', () => {
-  const project = { diagramIds: ['a', 'b', 'c'], traceLinks: [link('ab', 'a', 'b'), link('bc', 'b', 'c'), link('ca', 'c', 'a')] };
+const relation = (id: string, from: string, to: string): DiagramRelation => ({ id, sourceDiagramId: from, targetDiagramId: to, relation: 'implementa', createdAt: '2026-01-01T00:00:00.000Z' });
 
-  it('Dado un diagrama quitado, Entonces se van él y los vínculos que lo tocan, por cualquier extremo', () => {
-    expect(withoutDiagrams(project, new Set(['b']))).toEqual({ diagramIds: ['a', 'c'], traceLinks: [link('ca', 'c', 'a')] });
+describe('withoutDiagrams', () => {
+  const project = {
+    diagramIds: ['a', 'b', 'c'],
+    traceLinks: [link('ab', 'a', 'b'), link('bc', 'b', 'c'), link('ca', 'c', 'a')],
+    folderOf: { a: 'f1', b: 'f1' },
+    diagramRelations: [relation('rb', 'b', 'c'), relation('rc', 'c', 'a')],
+  };
+
+  it('Dado un diagrama quitado, Entonces se van él, los vínculos y relaciones que lo tocan y su lugar en la carpeta', () => {
+    expect(withoutDiagrams(project, new Set(['b']))).toEqual({
+      diagramIds: ['a', 'c'],
+      traceLinks: [link('ca', 'c', 'a')],
+      folderOf: { a: 'f1' },
+      diagramRelations: [relation('rc', 'c', 'a')],
+    });
   });
 
   it('Dados ids que no son del proyecto, Entonces no hay nada que quitar', () => {
@@ -40,5 +52,20 @@ describe('moveDiagramInOrder', () => {
 
   it('Dado un diagrama que no es del proyecto, Entonces el orden no cambia', () => {
     expect(moveDiagramInOrder(order, 'x', 0)).toEqual(order);
+  });
+});
+
+describe('groupByFolder', () => {
+  it('Dadas carpetas, Entonces primero van los sin carpeta y después cada carpeta (también vacía), en el orden del proyecto', () => {
+    const groups = groupByFolder({
+      diagramIds: ['a', 'b', 'c', 'd'],
+      folders: [{ id: 'f1', name: 'Ventas' }, { id: 'f2', name: 'Vacía' }],
+      folderOf: { c: 'f1', a: 'f1', d: 'borrada' },
+    });
+    expect(groups.map((group) => [group.folder?.name ?? null, group.diagramIds])).toEqual([
+      [null, ['b', 'd']],
+      ['Ventas', ['a', 'c']],
+      ['Vacía', []],
+    ]);
   });
 });

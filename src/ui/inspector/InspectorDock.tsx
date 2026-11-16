@@ -8,6 +8,7 @@ import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { EdgeProperties, NodeProperties } from '@/ui/explanation/ElementProperties';
 import { EdgeTypeSelect } from '@/ui/explanation/EdgeTypeSelect';
+import { edgeTypeOptions } from '@/canvas/edgeTypeChoice';
 import { ExplanationPanel } from '@/ui/explanation/ExplanationPanel';
 import { NarrationPanel } from '@/ui/narration/NarrationPanel';
 import { SelectionPanel } from '@/ui/selection/SelectionPanel';
@@ -15,6 +16,7 @@ import { TraceabilityPanel } from '@/ui/traceability/TraceabilityPanel';
 import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { useUiStore, type InspectorTab } from '@/ui/uiStore';
 import { ValidationPanel } from '@/ui/validation/ValidationPanel';
+import { useProjectIssues } from '@/ui/validation/useProjectIssues';
 
 const TABS: { id: InspectorTab; label: string; icon: IconDefinition }[] = [
   { id: 'properties', label: 'Propiedades', icon: faSliders },
@@ -32,7 +34,8 @@ export function InspectorDock() {
   const setTab = useUiStore((state) => state.setInspectorTab);
   const diagram = useDiagramStore((state) => state.diagram);
   const module = useActiveModule();
-  const issueCount = useMemo(() => (diagram && module ? validateDiagram(diagram, module.rules).length : 0), [diagram, module]);
+  const projectIssueCount = useProjectIssues().issues.length;
+  const issueCount = useMemo(() => (diagram && module ? validateDiagram(diagram, module.rules).length : 0), [diagram, module]) + projectIssueCount;
   const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 1023px)').matches);
   const sheetRef = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), [setOpen]);
@@ -49,8 +52,8 @@ export function InspectorDock() {
   if (!open) return null;
 
   const dock = (sheet: boolean) => (
-    <aside aria-label="Inspector" className={`flex shrink-0 flex-col bg-surface ${sheet ? 'h-[min(78dvh,640px)] w-full' : 'h-full w-[22rem] border-l border-line'}`}>
-      <header className="flex h-14 shrink-0 items-center border-b border-line px-2">
+    <aside aria-label="Inspector" className={`flex shrink-0 flex-col bg-surface ${sheet ? 'h-[min(78dvh,640px)] w-full' : 'h-full w-[25rem] border-l border-line'}`}>
+      <header className="flex h-16 shrink-0 items-center gap-1 border-b border-line px-2">
         <div role="tablist" aria-label="Inspector del diagrama" className="grid min-w-0 flex-1 grid-cols-5 gap-0.5">
           {TABS.map((item) => {
             const active = item.id === tab;
@@ -62,14 +65,14 @@ export function InspectorDock() {
                 aria-selected={active}
                 title={item.label}
                 onClick={() => setTab(item.id)}
-                className={`relative flex h-10 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                className={`relative flex h-12 min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-lg px-0.5 text-[10px] font-medium tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
                   active ? 'bg-accent-soft text-accent' : 'text-ink-400 hover:bg-raised hover:text-ink-900'
                 }`}
               >
-                <FontAwesomeIcon icon={item.icon} className="text-xs" />
-                <span className="truncate">{item.label}</span>
+                <FontAwesomeIcon icon={item.icon} className="text-[13px]" />
+                <span className="block max-w-full truncate leading-none">{item.label}</span>
                 {item.id === 'problems' && issueCount > 0 && (
-                  <span className="absolute right-1.5 top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] leading-4 text-white">
+                  <span className="absolute right-1 top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] leading-4 text-white">
                     {issueCount > 99 ? '99+' : issueCount}
                   </span>
                 )}
@@ -82,7 +85,7 @@ export function InspectorDock() {
           onClick={() => setOpen(false)}
           aria-label="Ocultar inspector"
           title="Ocultar inspector"
-          className="ml-1 hidden size-11 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-raised hover:text-ink-900 lg:flex"
+          className="hidden h-12 w-8 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-raised hover:text-ink-900 lg:flex"
         >
           <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
         </button>
@@ -148,7 +151,7 @@ function PropertiesContent() {
                   module={module}
                   className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink-900 outline-none focus:border-accent/50"
                 />
-                {!module.edgeKinds[edge.artifactType]?.switchableTo?.length && (
+                {edgeTypeOptions(module, edge.artifactType).length === 0 && (
                   <p className="mt-1 text-sm font-semibold text-ink-900">{definition.name}</p>
                 )}
                 <p className="mt-0.5 truncate text-xs text-ink-400">{definition.umlName}</p>
