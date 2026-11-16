@@ -1,4 +1,5 @@
 import {
+  isTraceRelation,
   PROJECT_FILE_FORMAT,
   PROJECT_SCHEMA_VERSION,
   type Diagram,
@@ -6,6 +7,7 @@ import {
   type DiagramProjectFile,
 } from '@/core/model';
 import { parseDiagram } from './diagramFormat';
+import { parseOrganization } from './projectOrganization';
 
 export type ProjectParseResult = { ok: true; project: DiagramProjectFile } | { ok: false; error: string };
 
@@ -17,6 +19,9 @@ export function projectToJson(project: DiagramProject, diagrams: Diagram[]): str
     name: project.name,
     diagrams,
     traceLinks: project.traceLinks,
+    folders: project.folders,
+    folderOf: project.folderOf,
+    diagramRelations: project.diagramRelations,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };
@@ -33,7 +38,7 @@ export function projectFromJson(text: string): ProjectParseResult {
   if (!isRecord(raw) || raw.format !== PROJECT_FILE_FORMAT) {
     return { ok: false, error: 'El archivo no es un proyecto de Trazo.' };
   }
-  if (raw.schemaVersion !== 1 && raw.schemaVersion !== PROJECT_SCHEMA_VERSION) {
+  if (raw.schemaVersion !== 1 && raw.schemaVersion !== 2 && raw.schemaVersion !== PROJECT_SCHEMA_VERSION) {
     return { ok: false, error: 'El proyecto usa una versión que esta versión de Trazo no puede abrir.' };
   }
   if (typeof raw.id !== 'string' || typeof raw.name !== 'string' || !raw.name.trim()) {
@@ -62,6 +67,7 @@ export function projectFromJson(text: string): ProjectParseResult {
       name: raw.name.trim(),
       diagrams,
       traceLinks,
+      ...parseOrganization(raw, diagrams.map((diagram) => diagram.id)),
       createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date(0).toISOString(),
       updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date(0).toISOString(),
     },
@@ -71,14 +77,13 @@ export function projectFromJson(text: string): ProjectParseResult {
 function parseTraceLinks(value: unknown, diagrams: Diagram[]): DiagramProjectFile['traceLinks'] | string {
   if (!Array.isArray(value)) return 'El proyecto no contiene una lista válida de vínculos.';
   const elements = new Map(diagrams.map((diagram) => [diagram.id, new Set([...diagram.nodes.map((node) => node.id), ...diagram.edges.map((edge) => edge.id)])]));
-  const relations = new Set(['detalla', 'implementa', 'verifica', 'depende de', 'relacionado con']);
   const links: DiagramProjectFile['traceLinks'] = [];
   for (const link of value) {
     if (!isRecord(link) || typeof link.id !== 'string' || !isRecord(link.source) || !isRecord(link.target)
       || typeof link.source.diagramId !== 'string' || typeof link.source.elementId !== 'string'
       || typeof link.target.diagramId !== 'string' || typeof link.target.elementId !== 'string'
       || (link.source.kind !== 'node' && link.source.kind !== 'edge') || (link.target.kind !== 'node' && link.target.kind !== 'edge')
-      || !relations.has(String(link.relation))) return 'El proyecto contiene un vínculo de trazabilidad inválido.';
+      || !isTraceRelation(link.relation)) return 'El proyecto contiene un vínculo de trazabilidad inválido.';
     if (!elements.get(link.source.diagramId)?.has(link.source.elementId) || !elements.get(link.target.diagramId)?.has(link.target.elementId)) {
       return 'El proyecto contiene un vínculo hacia un elemento que no existe.';
     }

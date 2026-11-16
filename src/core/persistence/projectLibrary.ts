@@ -1,4 +1,5 @@
-import type { DiagramProject, TraceEndpoint, TraceLink } from '@/core/model';
+import { isTraceRelation, type DiagramProject, type TraceEndpoint, type TraceLink } from '@/core/model';
+import { parseOrganization } from './projectOrganization';
 import type { KeyValueStorage } from './diagramRepository';
 
 const PROJECTS_KEY = 'trazo.projects';
@@ -54,11 +55,13 @@ function parseJson(raw: string | null): unknown {
 /** Un proyecto guardado, o null si no tiene lo mínimo (id, nombre, lista de diagramas). */
 export function parseStoredProject(raw: unknown): DiagramProject | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string' || !Array.isArray(raw.diagramIds)) return null;
+  const diagramIds = raw.diagramIds.filter((id): id is string => typeof id === 'string');
   return {
     id: raw.id,
     name: raw.name,
-    diagramIds: raw.diagramIds.filter((id): id is string => typeof id === 'string'),
+    diagramIds,
     traceLinks: Array.isArray(raw.traceLinks) ? raw.traceLinks.filter(isTraceLink) : [],
+    ...parseOrganization(raw, diagramIds),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
   };
@@ -74,6 +77,6 @@ function isEndpoint(value: unknown): value is TraceEndpoint {
 
 function isTraceLink(value: unknown): value is TraceLink {
   return isRecord(value) && typeof value.id === 'string' && isEndpoint(value.source) && isEndpoint(value.target)
-    && ['detalla', 'implementa', 'verifica', 'depende de', 'relacionado con'].includes(String(value.relation))
+    && isTraceRelation(value.relation)
     && typeof value.createdAt === 'string';
 }

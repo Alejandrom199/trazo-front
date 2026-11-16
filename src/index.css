@@ -354,6 +354,77 @@ button:not(:disabled):active,
   rotate: -4deg;
 }
 
+/* ── Iconos ───────────────────────────────────────────────────────────────────
+   Cada icono reacciona cuando se pasa el ratón por el control que lo contiene,
+   con un gesto que dice lo que hace: el engranaje gira, la papelera se sacude,
+   la flecha avanza. Solo `scale` y `rotate` (nunca `transform`), y se saltan
+   los iconos que ya llevan un giro o un espejo propio (rotate-*, scale-*), como
+   el chevrón de una sección plegada. */
+@keyframes trazo-icon-wiggle {
+  25% { rotate: -12deg; }
+  50% { rotate: 10deg; }
+  75% { rotate: -6deg; }
+}
+@keyframes trazo-icon-hop {
+  40% { scale: 1.22; }
+  70% { scale: 0.96; }
+}
+
+.svg-inline--fa:not([class*=' rotate-'], [class*=' -rotate-'], [class*='scale-']) {
+  transition:
+    scale var(--duration-slow) var(--ease-spring),
+    rotate var(--duration-slow) var(--ease-spring);
+}
+
+/* Por defecto: el icono se asoma un poco. */
+:is(button, a, [role='button'], [role='tab'], label):not(:disabled):hover .svg-inline--fa:not([class*=' rotate-'], [class*=' -rotate-'], [class*='scale-']) {
+  scale: 1.14;
+}
+
+/* Gestos propios según lo que hace el icono. */
+:is(button, a, [role='button'], [role='tab']):not(:disabled):hover :is(.fa-gear, .fa-sliders, .fa-screwdriver-wrench):not([class*=' rotate-'], [class*=' -rotate-']) {
+  rotate: 75deg;
+}
+:is(button, a, [role='button']):not(:disabled):hover :is(.fa-plus, .fa-xmark):not([class*=' rotate-'], [class*=' -rotate-']) {
+  rotate: 90deg;
+}
+:is(button, a, [role='button']):not(:disabled):hover :is(.fa-trash-can, .fa-trash, .fa-lock, .fa-lock-open, .fa-wand-magic-sparkles, .fa-bell) {
+  animation: trazo-icon-wiggle 420ms var(--ease-out-expo);
+}
+:is(button, a, [role='button']):not(:disabled):hover :is(.fa-magnifying-glass, .fa-link, .fa-pen, .fa-pencil, .fa-pen-ruler, .fa-lightbulb):not([class*=' rotate-'], [class*=' -rotate-']) {
+  rotate: -14deg;
+}
+:is(button, a, [role='button']):not(:disabled):hover :is(.fa-rotate-left):not([class*=' rotate-'], [class*=' -rotate-']) {
+  rotate: -50deg;
+}
+:is(button, a, [role='button']):not(:disabled):hover :is(.fa-rotate-right, .fa-sun, .fa-moon):not([class*=' rotate-'], [class*=' -rotate-']) {
+  rotate: 40deg;
+}
+:is(button, a, [role='button'], [role='tab']):not(:disabled):hover :is(.fa-folder, .fa-folder-open, .fa-folder-plus, .fa-map, .fa-book-open, .fa-check, .fa-circle-check, .fa-play, .fa-route) {
+  animation: trazo-icon-hop 380ms var(--ease-out-back);
+}
+/* Las flechas «van»: crecen hacia donde apuntan con un leve giro. */
+:is(button, a, [role='button']):not(:disabled):hover :is(.fa-arrow-up-right-from-square, .fa-up-right-from-square):not([class*=' rotate-'], [class*=' -rotate-']) {
+  scale: 1.18;
+  rotate: -8deg;
+}
+
+/* La pestaña que se elige hace latir su icono. */
+[role='tab'][aria-selected='true'] .svg-inline--fa {
+  animation: trazo-icon-hop 360ms var(--ease-out-back);
+}
+
+/* Mapa del proyecto: las flechas resaltadas fluyen en su sentido. */
+@keyframes trazo-map-flow {
+  to { stroke-dashoffset: -24; }
+}
+.trazo-map-flow {
+  animation: trazo-map-flow 900ms linear infinite;
+}
+.trazo-map-card {
+  animation: trazo-pop-in var(--duration-slow) var(--ease-out-back) backwards;
+}
+
 /* Quien pide menos movimiento en su sistema lo recibe: sin rebotes ni saltos. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -362,6 +433,13 @@ button:not(:disabled):active,
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+  .svg-inline--fa {
+    scale: none !important;
+    rotate: none !important;
+  }
+  .trazo-map-flow {
+    animation: none !important;
   }
 }
 

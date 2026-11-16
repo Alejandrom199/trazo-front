@@ -24,6 +24,9 @@ export function resolveActivityConnection(diagram: Diagram, sourceId: string, ta
   if (source.artifactType === A.partition || target.artifactType === A.partition) {
     return reject('Los carriles no se conectan: conecta los nodos que están dentro de ellos.');
   }
+  if (source.artifactType === A.activityFrame || target.artifactType === A.activityFrame) {
+    return reject('El marco de la actividad no se conecta: conecta los nodos que están dentro de él.');
+  }
   if (isAlreadyConnected(diagram.edges, source.id, target.id)) {
     return reject('Estos dos nodos ya están conectados.');
   }

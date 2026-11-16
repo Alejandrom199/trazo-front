@@ -54,6 +54,12 @@ interface UiState {
   setPinnedExplanation: (artifactType: string | null) => void;
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+  /** Nodo recién colocado que espera elegir el diagrama que enlaza (p. ej. un subproceso). */
+  /** Mapa del proyecto: vista de sus diagramas y cómo se relacionan. */
+  projectMapOpen: boolean;
+  setProjectMapOpen: (open: boolean) => void;
+  linkPickerNodeId: string | null;
+  setLinkPickerNodeId: (nodeId: string | null) => void;
   tutorialStatus: TutorialStatus;
   tutorialStep: number;
   /** Paso en el que ocurrió la última exportación, para completar el recorrido. */
@@ -198,6 +204,10 @@ export const useUiStore = create<UiState>()((set) => ({
   setPinnedExplanation: (artifactType) => set({ pinnedExplanation: artifactType }),
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  projectMapOpen: false,
+  setProjectMapOpen: (open) => set({ projectMapOpen: open }),
+  linkPickerNodeId: null,
+  setLinkPickerNodeId: (nodeId) => set({ linkPickerNodeId: nodeId }),
   tutorialStatus: readTutorial(),
   tutorialStep: 0,
   tutorialExportOnStep: null,

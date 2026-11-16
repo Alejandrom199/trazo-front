@@ -1,9 +1,9 @@
 import type { EdgeKind, NodeKind } from '@/core/registry';
 import { ActivityArtifact as A } from './artifactTypes';
 import { BarShape, DiamondShape, FlowFinalShape, ActivityFinalShape, InitialNodeShape } from './nodes/ControlNodes';
-import { AcceptEventShape, ActionShape, ObjectNodeShape, SendSignalShape } from './nodes/ExecutableNodes';
+import { AcceptEventShape, ActionShape, CallBehaviorShape, ObjectNodeShape, SendSignalShape } from './nodes/ExecutableNodes';
 import { NoteShape } from '@/diagrams/shared/NoteShape';
-import { containerCornerRadius, PartitionShape } from './nodes/GroupingNodes';
+import { ACTIVITY_FRAME_HEADER, ActivityFrameShape, containerCornerRadius, PartitionShape } from './nodes/GroupingNodes';
 
 /** Valores comunes; cada artefacto declara solo lo que cambia. */
 const base: Omit<NodeKind, 'component' | 'defaultSize'> = {
@@ -30,6 +30,15 @@ export const activityNodeKinds: Record<string, NodeKind> = {
     defaultLabel: 'Nueva acción',
     hasLabel: true,
     resizable: true,
+  },
+  [A.callBehavior]: {
+    ...base,
+    component: CallBehaviorShape,
+    defaultSize: { width: 160, height: 64 },
+    defaultLabel: 'Subproceso',
+    hasLabel: true,
+    resizable: true,
+    diagramLink: { caption: 'Diagrama del subproceso', diagramTypes: ['activity'] },
   },
   // La decisión admite una pregunta, que se dibuja junto al rombo (no dentro, para que no crezca).
   [A.decision]: {
@@ -78,6 +87,24 @@ export const activityNodeKinds: Record<string, NodeKind> = {
     resizable: true,
     isContainer: true,
     connectable: false,
+    // Un carril puede ir dentro del marco de la actividad, pero nunca dentro de otro carril.
+    nestable: true,
+    nestsOnlyIn: [A.activityFrame],
+  },
+  // Marco con el nombre de la actividad: los carriles que entran se acomodan como columnas.
+  [A.activityFrame]: {
+    ...base,
+    component: ActivityFrameShape,
+    defaultSize: { width: 840, height: 560 },
+    previewSize: { width: 150, height: 100 },
+    defaultLabel: 'Nombre de la actividad',
+    labelCaption: 'Nombre de la actividad',
+    hasLabel: true,
+    resizable: true,
+    isContainer: true,
+    connectable: false,
+    magnetic: false,
+    laneFrame: { headerHeight: ACTIVITY_FRAME_HEADER },
   },
   [A.note]: {
     ...base,

@@ -20,7 +20,7 @@ import { TemplatePreview } from './TemplatePreview';
 
 const PREVIEW = { width: 300, height: 150 };
 
-const FAMILY_SHORT: Record<UmlFamily, string> = { structure: 'Estructura', behavior: 'Comportamiento' };
+const FAMILY_SHORT: Record<UmlFamily, string> = { structure: 'Estructura', behavior: 'Comportamiento', data: 'Datos' };
 
 const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   básico: 'bg-success-soft text-success',

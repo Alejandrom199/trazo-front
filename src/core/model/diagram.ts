@@ -18,7 +18,8 @@ export type DiagramType =
   | 'composite'
   | 'communication'
   | 'interactionOverview'
-  | 'timing';
+  | 'timing'
+  | 'er';
 
 /**
  * Versión actual del formato guardado. Súbela cuando cambie la forma de Diagram

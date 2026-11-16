@@ -1,30 +1,25 @@
 import { faArrowUpRightFromSquare, faLink, faPlus, faTrashCan } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useEffect, useMemo, useState } from 'react';
-import type { Diagram, TraceEndpoint, TraceLink, TraceRelation } from '@/core/model';
+import { useEffect, useState } from 'react';
+import { TRACE_RELATIONS, type Diagram, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
+import { DiagramRelations } from './DiagramRelations';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
-import { usePersistenceStore } from '@/core/persistence/persistenceStore';
+import { openProjectElements } from '@/ui/projects/openProjectElements';
+import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 
-const RELATIONS: TraceRelation[] = ['detalla', 'implementa', 'verifica', 'depende de', 'relacionado con'];
 
 /** Vínculos semánticos entre elementos de distintos diagramas del proyecto. */
 export function TraceabilityPanel() {
   const project = useProjectStore((state) => state.project);
-  const repository = usePersistenceStore((state) => state.repository);
   const current = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
   const [targetDiagramId, setTargetDiagramId] = useState('');
   const [targetElementKey, setTargetElementKey] = useState('');
   const [relation, setRelation] = useState<TraceRelation>('detalla');
 
-  const diagrams = useMemo(() => {
-    if (!project) return [];
-    return project.diagramIds
-      .map((id) => current?.id === id ? current : repository?.load(id))
-      .filter((diagram): diagram is Diagram => diagram !== null && diagram !== undefined);
-  }, [project, current, repository]);
+  const diagrams = useProjectDiagrams();
   const otherDiagrams = diagrams.filter((diagram) => diagram.id !== current?.id);
 
   useEffect(() => {
@@ -55,13 +50,15 @@ export function TraceabilityPanel() {
     <div className="flex h-full flex-col overflow-hidden">
       <header className="shrink-0 border-b border-line px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold text-ink-900">Trazabilidad del proyecto</p><p className="text-xs text-ink-400">{project.traceLinks.length} {project.traceLinks.length === 1 ? 'vínculo' : 'vínculos'}</p></div>
+          <div><p className="text-sm font-semibold text-ink-900">Trazabilidad del proyecto</p><p className="text-xs text-ink-400">{project.traceLinks.length} {project.traceLinks.length === 1 ? 'vínculo' : 'vínculos'} · {project.diagramRelations.length} {project.diagramRelations.length === 1 ? 'relación' : 'relaciones'}</p></div>
           <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-xs text-accent"><FontAwesomeIcon icon={faLink} /></span>
         </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Coverage diagrams={diagrams} links={project.traceLinks} />
+
+        <DiagramRelations project={project} current={current} diagrams={diagrams} />
 
         <section className="border-t border-line p-4">
           <h3 className="text-xs font-semibold text-ink-900">Elemento seleccionado</h3>
@@ -93,7 +90,7 @@ export function TraceabilityPanel() {
                 <h3 className="text-xs font-semibold text-ink-900">Crear vínculo</h3>
                 {otherDiagrams.length === 0 ? <p className="mt-2 text-xs leading-relaxed text-ink-600">Añade otro diagrama al proyecto para crear una correspondencia.</p> : (
                   <div className="mt-3 space-y-3">
-                    <Field label="Relación"><select value={relation} onChange={(event) => setRelation(event.target.value as TraceRelation)} className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent">{RELATIONS.map((item) => <option key={item}>{item}</option>)}</select></Field>
+                    <Field label="Relación"><select value={relation} onChange={(event) => setRelation(event.target.value as TraceRelation)} className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent">{TRACE_RELATIONS.map((item) => <option key={item}>{item}</option>)}</select></Field>
                     <Field label="Diagrama destino"><select value={targetDiagramId} onChange={(event) => setTargetDiagramId(event.target.value)} className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent">{otherDiagrams.map((diagram) => <option key={diagram.id} value={diagram.id}>{diagram.name}</option>)}</select></Field>
                     <Field label="Elemento destino"><select value={targetElementKey} onChange={(event) => setTargetElementKey(event.target.value)} className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent"><option value="">Elige un elemento…</option>{targetElements.map((element) => <option key={`${element.kind}:${element.id}`} value={`${element.kind}:${element.id}`}>{element.label}</option>)}</select></Field>
                     <button type="button" disabled={!targetElementKey} onClick={addLink} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-40"><FontAwesomeIcon icon={faPlus} className="text-xs" /> Crear vínculo</button>
@@ -136,13 +133,7 @@ function endpointLabel(endpoint: TraceEndpoint, diagrams: Diagram[]): string {
 function sameEndpoint(a: TraceEndpoint, b: TraceEndpoint) { return a.diagramId === b.diagramId && a.elementId === b.elementId && a.kind === b.kind; }
 
 function openEndpoint(endpoint: TraceEndpoint, diagrams: Diagram[]) {
-  const diagram = diagrams.find((item) => item.id === endpoint.diagramId);
-  if (!diagram) return;
-  const current = useDiagramStore.getState().diagram;
-  const persistence = usePersistenceStore.getState();
-  if (current && persistence.repository) persistence.repository.save(current);
-  useDiagramStore.getState().openDiagram(diagram);
-  useDiagramStore.getState().setSelection(endpoint.kind === 'node' ? { nodeIds: [endpoint.elementId], edgeIds: [] } : { nodeIds: [], edgeIds: [endpoint.elementId] });
+  openProjectElements([endpoint], diagrams);
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-1 block text-[11px] font-medium text-ink-400">{label}</span>{children}</label>; }

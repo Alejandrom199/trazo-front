@@ -3,6 +3,8 @@ import { useReactFlow } from '@xyflow/react';
 import { absolutePosition, findContainerAt, snapContainerPosition, type DiagramNode, type Position } from '@/core/model';
 import { createNode, isMagnetic, type DiagramModule } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { useUiStore } from '@/ui/uiStore';
+import { adoptLanes, containersFor, magneticContainers, repackLaneFrames } from './laneFrames';
 import { useActiveModule } from './useActiveModule';
 
 const store = () => useDiagramStore.getState();
@@ -21,13 +23,12 @@ export function placeArtifact(module: DiagramModule, artifactType: string, point
   const diagram = store().diagram;
   const kind = module.nodeKinds[artifactType];
   if (!diagram || !kind) return;
-  const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
 
   const row = kind.dragAxis === 'x' ? rowOf(module, diagram.nodes) : null;
   const centered = { x: point.x - kind.defaultSize.width / 2, y: row ?? point.y - kind.defaultSize.height / 2 };
-  const container = kind.isContainer && !kind.nestable ? null : findContainerAt(diagram, point, isContainer);
+  const container = kind.isContainer && !kind.nestable ? null : findContainerAt(diagram, point, containersFor(module, artifactType));
   const containerOrigin = container ? absolutePosition(diagram, container) : { x: 0, y: 0 };
-  const snapped = isMagnetic(kind) ? snapContainerPosition(diagram, null, centered, kind.defaultSize, isContainer) : centered;
+  const snapped = isMagnetic(kind) ? snapContainerPosition(diagram, null, centered, kind.defaultSize, magneticContainers(module)) : centered;
   const topLeft =
     container && kind.centerInContainer
       ? { x: containerOrigin.x + (container.size.width - kind.defaultSize.width) / 2, y: snapped.y }
@@ -40,7 +41,15 @@ export function placeArtifact(module: DiagramModule, artifactType: string, point
     parentId: container?.id ?? null,
   });
   store().addNode(node);
+  repackLaneFrames(module, [node.parentId]);
+  if (kind.laneFrame) adoptLanes(module, node.id);
   store().setSelection({ nodeIds: [node.id], edgeIds: [] });
+  // Lo que enlaza otro diagrama no se nombra a mano: se elige el diagrama y toma su nombre.
+  if (kind.diagramLink) {
+    store().startEditing(null);
+    useUiStore.getState().setLinkPickerNodeId(node.id);
+    return;
+  }
   store().startEditing(kind.hasLabel ? node.id : null);
 }
 

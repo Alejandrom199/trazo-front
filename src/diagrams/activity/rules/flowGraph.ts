@@ -13,7 +13,7 @@ export interface FlowGraph {
   nodeById: Map<string, DiagramNode>;
 }
 
-const NON_FLOW_NODES: ReadonlySet<string> = new Set([A.partition, A.note]);
+const NON_FLOW_NODES: ReadonlySet<string> = new Set([A.partition, A.activityFrame, A.note]);
 
 export function buildFlowGraph(diagram: Diagram): FlowGraph {
   const nodes = diagram.nodes.filter((node) => !NON_FLOW_NODES.has(node.artifactType));

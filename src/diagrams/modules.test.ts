@@ -19,7 +19,8 @@ describe('todos los módulos', () => {
 });
 
 describe('clasificación UML', () => {
-  it('Dado UML 2.5, Entonces hay 14 diagramas: 7 de estructura y 7 de comportamiento (4 de interacción)', () => {
+  it('Dado UML 2.5, Entonces hay 14 diagramas: 7 de estructura y 7 de comportamiento (4 de interacción); el MER va aparte', () => {
+    expect(UML_DIAGRAMS.filter((kind) => kind.family === 'data').map((kind) => kind.diagramType)).toEqual(['er']);
     expect(UML_DIAGRAMS.filter((kind) => kind.family === 'structure')).toHaveLength(7);
     expect(UML_DIAGRAMS.filter((kind) => kind.family === 'behavior')).toHaveLength(7);
     expect(UML_DIAGRAMS.filter((kind) => kind.interaction)).toHaveLength(4);

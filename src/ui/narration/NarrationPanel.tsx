@@ -19,9 +19,13 @@ import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { Panel } from '@/ui/layout/Panel';
 import { useUiStore } from '@/ui/uiStore';
+import { WalkthroughView } from './WalkthroughView';
+import { useWalkthroughStore } from './walkthroughStore';
 
 const NARRATION_PREFIX = 'narration:';
 type NarrationView = 'visual' | 'text';
+/** Qué muestra el panel: la narración completa o el recorrido paso a paso. */
+type NarrationMode = 'narration' | 'walkthrough';
 
 const KIND_PRESENTATION: Record<NarrationKind, { label: string; icon: IconDefinition; marker: string }> = {
   start: { label: 'Inicio', icon: faPlay, marker: 'border-accent/40 bg-accent-soft text-accent' },
@@ -51,6 +55,8 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
   const setHighlight = useHighlightStore((state) => state.setHighlight);
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState<NarrationView>('visual');
+  // Con un recorrido en curso (p. ej. tras entrar a un subproceso), el panel se abre en él.
+  const [mode, setMode] = useState<NarrationMode>(() => (useWalkthroughStore.getState().frames.length > 0 ? 'walkthrough' : 'narration'));
 
   const lines = useMemo(() => (diagram && module ? module.narrate(diagram) : []), [diagram, module]);
   const stepNumbers = useMemo(() => {
@@ -58,6 +64,8 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
     return lines.map((line) => (isNumbered(line) ? ++number : null));
   }, [lines]);
   if (!diagram || !module) return null;
+  const walkthrough = module.walkthrough;
+  const walking = mode === 'walkthrough' && walkthrough !== undefined;
 
   function focusLine(line: NarrationLine, index: number) {
     if (line.nodeIds.length + line.edgeIds.length === 0) return;
@@ -85,8 +93,26 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
   const content = (
     <>
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Narración</h2>
+        {walkthrough ? (
+          <div role="tablist" aria-label="Modo de la narración" className="flex gap-3">
+            {(['narration', 'walkthrough'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="tab"
+                aria-selected={mode === option}
+                onClick={() => setMode(option)}
+                className={`text-xs font-semibold uppercase tracking-wider ${mode === option ? 'text-accent' : 'text-ink-400 hover:text-ink-900'}`}
+              >
+                {option === 'narration' ? 'Narración' : 'Recorrido'}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Narración</h2>
+        )}
         <div className="ml-auto flex items-center gap-1">
+          {!walking && (
           <div role="group" aria-label="Vista de la narración" className="flex rounded-md bg-canvas p-0.5">
             {(['visual', 'text'] as const).map((option) => {
               const active = view === option;
@@ -105,7 +131,8 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
               );
             })}
           </div>
-          {lines.length > 0 && (
+          )}
+          {!walking && lines.length > 0 && (
             <button
               type="button"
               onClick={copyText}
@@ -127,6 +154,9 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
         </div>
       </header>
 
+      {walking ? (
+        <WalkthroughView engine={walkthrough} diagram={diagram} />
+      ) : (
       <div className="flex-1 overflow-y-auto px-3 py-2">
         {lines.length === 0 ? (
           <p className="px-1 text-sm leading-relaxed text-ink-600">
@@ -202,9 +232,12 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
           </ol>
         )}
       </div>
+      )}
 
       <footer className="border-t border-line px-4 py-2.5 text-[11px] leading-relaxed text-ink-400">
-        Narración automática y determinista: se genera recorriendo el diagrama, sin IA. Haz clic en una línea para verla en el lienzo.
+        {walking
+          ? 'Simulación de tokens según UML: un fork o una acción con varias salidas abre caminos en paralelo; un join o una acción con varias entradas espera a todos.'
+          : 'Narración automática y determinista: se genera recorriendo el diagrama, sin IA. Haz clic en una línea para verla en el lienzo.'}
       </footer>
     </>
   );

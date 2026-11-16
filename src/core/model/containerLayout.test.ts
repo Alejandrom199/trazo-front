@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { containerJoints, NO_JOINTS, snapContainerPosition } from './containerLayout';
+import { containerJoints, moveLaneInFrame, NO_JOINTS, packLanes, snapContainerPosition } from './containerLayout';
 import type { Diagram, DiagramNode } from './diagram';
 import { createEmptyDiagram } from './factories';
 
@@ -86,5 +86,41 @@ describe('containerJoints', () => {
     const diagram = diagramWith([lane('a', 0), lane('b', 200, 500)]);
 
     expect(containerJoints(diagram, diagram.nodes[0]!, isLane).squareCorners.topRight).toBe(false);
+  });
+});
+
+describe('carriles dentro de un marco', () => {
+  const isBox = (node: DiagramNode) => node.artifactType === 'partition' || node.artifactType === 'activityFrame';
+  const frame = (width = 500, height = 300) => lane('marco', 0, 0, { artifactType: 'activityFrame', size: { width, height } });
+  const inFrame = (id: string, x: number, width = 200) => lane(id, x, 7, { parentId: 'marco', size: { width, height: 150 } });
+
+  it('Dados carriles sueltos en un marco, Entonces quedan en columnas, en su orden, bajo el encabezado y con su alto', () => {
+    const packed = packLanes(diagramWith([frame(), inFrame('b', 260), inFrame('a', 30)]), 'marco', 40, isBox);
+    const byId = (id: string) => packed.nodes.find((node) => node.id === id)!;
+
+    expect(byId('a').position).toEqual({ x: 0, y: 40 });
+    expect(byId('b').position).toEqual({ x: 200, y: 40 });
+    expect(byId('a').size.height).toBe(260);
+  });
+
+  it('Dados carriles que no caben, Entonces el marco crece; nunca se encoge', () => {
+    const packed = packLanes(diagramWith([frame(300, 300), inFrame('a', 0), inFrame('b', 250)]), 'marco', 40, isBox);
+    expect(packed.nodes.find((node) => node.id === 'marco')!.size.width).toBe(400);
+  });
+
+  it('Dado un carril en el borde del marco, Entonces esa esquina queda recta sin ocultar su borde', () => {
+    const packed = packLanes(diagramWith([frame(400, 300), inFrame('a', 0), inFrame('b', 250)]), 'marco', 40, isBox);
+    const joints = containerJoints(packed, packed.nodes.find((node) => node.id === 'a')!, isBox);
+
+    expect(joints.squareCorners).toEqual({ topLeft: true, topRight: true, bottomRight: true, bottomLeft: true });
+    expect(joints.coveredSides.left).toBe(false);
+  });
+
+  it('Dado un carril que se mueve al primer lugar, Entonces los demás se corren a la derecha', () => {
+    const packed = packLanes(diagramWith([frame(), inFrame('a', 0), inFrame('b', 200), inFrame('c', 400)]), 'marco', 40, isBox);
+    const moved = moveLaneInFrame(packed, 'marco', 'c', 0, 40, isBox);
+    const xOf = (id: string) => moved.nodes.find((node) => node.id === id)!.position.x;
+
+    expect([xOf('c'), xOf('a'), xOf('b')]).toEqual([0, 200, 400]);
   });
 });

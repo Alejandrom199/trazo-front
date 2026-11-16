@@ -10,6 +10,7 @@ import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from '@/ui/explanation/formFields';
 import { Panel } from '@/ui/layout/Panel';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
+import { edgeTypeOptions } from '@/canvas/edgeTypeChoice';
 import { ArrangeTools } from './ArrangeTools';
 import { commonValue, summarizeSelection, type SelectionGroup } from './selectionSummary';
 
@@ -244,14 +245,12 @@ function SharedNodeProperties({ nodes, module }: { nodes: DiagramNode[]; module:
 function SharedEdgeProperties({ edges, module }: { edges: DiagramEdge[]; module: DiagramModule }) {
   const kind = module.edgeKinds[edges[0]!.artifactType];
   const update = (patchFor: (edge: DiagramEdge) => EdgePatch) => store().updateEdges(edges.map((edge) => ({ id: edge.id, patch: patchFor(edge) })));
-  const alternatives = (kind?.switchableTo ?? [])
-    .map((type) => module.artifacts.find((artifact) => artifact.type === type))
-    .filter((artifact) => artifact !== undefined);
+  const options = edgeTypeOptions(module, edges[0]!.artifactType);
   const current = module.artifacts.find((artifact) => artifact.type === edges[0]!.artifactType);
 
   return (
     <>
-      {alternatives.length > 0 && current && (
+      {options.length > 0 && current && (
         <Field label="Tipo">
           <select
             value={current.type}
@@ -263,7 +262,7 @@ function SharedEdgeProperties({ edges, module }: { edges: DiagramEdge[]; module:
             }}
             className={inputClass}
           >
-            {[current, ...alternatives.filter((artifact) => artifact.type !== current.type)].map((artifact) => (
+            {options.map((artifact) => (
               <option key={artifact.type} value={artifact.type}>
                 {artifact.name}
               </option>

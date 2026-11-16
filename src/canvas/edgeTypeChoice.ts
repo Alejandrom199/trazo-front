@@ -16,11 +16,21 @@ export function canSwitchEdgeTo(module: DiagramModule, fromType: string, toType:
   return module.edgeKinds[fromType]?.switchableTo?.includes(toType) ?? false;
 }
 
-/** Alternativas de tipo (incluido el actual) conocidas por el catálogo del módulo. */
+/**
+ * Tipos que se pueden elegir para una conexión en sus propiedades: todos los
+ * tipos de conexión de su diagrama, en el orden del catálogo (incluido el
+ * actual), salvo los anclajes de notas, que no son relaciones del modelo.
+ * Vacío si la conexión es un anclaje o el diagrama tiene un solo tipo. Si el
+ * tipo elegido no corresponde entre esos nodos, lo avisan las reglas del diagrama.
+ * (La paleta y el reconectar siguen usando `switchableTo`, más estricto.)
+ */
 export function edgeTypeOptions(module: DiagramModule, artifactType: string) {
-  const alternatives = module.edgeKinds[artifactType]?.switchableTo ?? [];
-  if (alternatives.length === 0) return [];
-  return [artifactType, ...alternatives.filter((type) => type !== artifactType)]
+  if (module.edgeKinds[artifactType]?.secondaryDetail) return [];
+  const types = Object.entries(module.edgeKinds)
+    .filter(([, kind]) => !kind.secondaryDetail)
+    .map(([type]) => type);
+  if (types.length < 2) return [];
+  return types
     .map((type) => module.artifacts.find((artifact) => artifact.type === type))
     .filter((artifact) => artifact !== undefined);
 }

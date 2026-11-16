@@ -5,6 +5,7 @@ import { createTemplateBuilder } from './templateBuilder';
 
 const t = createTemplateBuilder();
 const HEIGHT = 1270;
+t.frame('Preparación resiliente de un pedido');
 t.lane('Cliente', 0, 220, HEIGHT);
 t.lane('Comercio', 220, 520, HEIGHT);
 t.lane('Servicios externos', 740, 300, HEIGHT);
@@ -18,7 +19,8 @@ const authorize = t.node(A.action, 'Autorizar pago', { x: 890, y: 390 }, undefin
 const join = t.node(A.join, '', { x: 405, y: 480 }, { width: 250, height: 12 });
 const approved = t.node(A.decision, '¿Pago aprobado?', { x: 405, y: 555 });
 // Cada rama sale por un lado distinto del rombo: [aprobado] hacia abajo, [rechazado] a la derecha.
-const prepare = t.node(A.action, 'Preparar envío', { x: 405, y: 690 });
+// Preparar el envío es un proceso propio (embalar, etiquetar, coordinar al transportista): subproceso ⋔.
+const prepare = t.node(A.callBehavior, 'Preparar envío', { x: 405, y: 690 });
 const dispatch = t.node(A.sendSignal, 'Solicitar despacho', { x: 405, y: 810 }, { width: 180, height: 56 });
 const confirmation = t.node(A.acceptEvent, 'Entrega confirmada', { x: 110, y: 950 }, { width: 175, height: 56 });
 const close = t.node(A.action, 'Cerrar pedido', { x: 405, y: 1070 });
@@ -47,7 +49,7 @@ t.flow(close, end, null);
 export const resilientFulfillmentTemplate = t.build({
   id: 'activity.resilient-fulfillment',
   name: 'Preparación resiliente de un pedido',
-  description: 'Reserva inventario y autoriza el pago en paralelo; separa el camino aprobado de la compensación y coordina la entrega mediante señales externas.',
+  description: 'Dentro del marco de la actividad, reserva inventario y autoriza el pago en paralelo; separa el camino aprobado de la compensación, prepara el envío como subproceso y coordina la entrega mediante señales externas.',
   difficulty: 'avanzado',
-  learningGoals: [A.fork, A.join, A.decision, A.sendSignal, A.acceptEvent, A.objectNode, A.flowFinal, A.partition],
+  learningGoals: [A.fork, A.join, A.decision, A.sendSignal, A.acceptEvent, A.objectNode, A.flowFinal, A.partition, A.activityFrame, A.callBehavior],
 });

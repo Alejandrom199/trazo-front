@@ -8,10 +8,12 @@ import type {
   DiagramNode,
   DiagramType,
   Difficulty,
+  EdgeRouting,
   Narration,
   Size,
   Template,
   ValidationRule,
+  WalkthroughEngine,
 } from '@/core/model';
 
 /**
@@ -148,6 +150,21 @@ export interface NodeKind {
   /** Contenedor que a su vez puede ir dentro de otro (p. ej. un entorno de ejecución dentro de un servidor). */
   nestable?: boolean;
   /**
+   * Si es anidable, solo entra en contenedores de estos tipos (p. ej. un carril
+   * solo entra en un marco de actividad, nunca en otro carril). Sin valor, en cualquiera.
+   */
+  nestsOnlyIn?: readonly string[];
+  /**
+   * Marco de carriles: los contenedores que entran en él se acomodan como columnas
+   * bajo su encabezado y con su alto (ver packLanes).
+   */
+  laneFrame?: { headerHeight: number };
+  /**
+   * El nodo representa un proceso que se detalla en otro diagrama del proyecto
+   * (p. ej. una acción de subproceso). Propiedades ofrece elegirlo, crearlo y abrirlo.
+   */
+  diagramLink?: { caption: string; diagramTypes: readonly DiagramType[] };
+  /**
    * Cuánto se mete la figura visible dentro de su caja, por lado, para que las
    * flechas lleguen a ella y no al aire (p. ej. la cara frontal de un cubo 3D).
    */
@@ -173,6 +190,8 @@ export type EdgeTextKind = 'guard' | 'label';
 /** Cómo se dibuja un artefacto que es conexión. */
 export interface EdgeKind {
   dashed: boolean;
+  /** Trazado con el que nace (p. ej. recto en el MER). Por defecto, ortogonal. */
+  defaultRouting?: EdgeRouting;
   /** Punta en el destino; null = sin punta. */
   arrow: ArrowHead | null;
   /** Rombo en el origen para agregación y composición. */
@@ -285,6 +304,8 @@ export interface DiagramModule {
   initialEdge?: (diagram: Diagram, edgeType: string, sourceId: string, targetId: string) => Pick<DiagramEdge, 'label' | 'props'>;
   rules: ValidationRule[];
   narrate: (diagram: Diagram) => Narration;
+  /** Recorrido paso a paso (simulación de tokens), si el tipo de diagrama lo admite. */
+  walkthrough?: WalkthroughEngine;
   templates: Template[];
   /** Guía para la página Aprender. */
   guide: DiagramGuide;

@@ -2,6 +2,28 @@ import { NO_JOINTS } from '@/core/model';
 import { CONTAINER_GRIP_CLASS, readNumberProperty, type ArtifactNodeProps, type NumberPropertyDefinition } from '@/core/registry';
 import { MUTED_STROKE, STROKE_WIDTH, strokeFor } from '@/diagrams/shared/shapeStyles';
 
+/** Alto de la franja con el nombre de la actividad en su marco. */
+export const ACTIVITY_FRAME_HEADER = 40;
+
+/**
+ * Marco de la actividad: una franja superior con su nombre y, debajo, los
+ * carriles como columnas. El cuerpo es transparente (las flechas lo cruzan).
+ */
+export function ActivityFrameShape({ node, selected, label }: ArtifactNodeProps) {
+  const color = selected ? strokeFor(true) : MUTED_STROKE;
+  const headerHeight = Math.min(ACTIVITY_FRAME_HEADER, node.size.height * 0.25);
+  return (
+    <div className="flex size-full flex-col overflow-hidden" style={{ border: `${STROKE_WIDTH}px solid ${color}` }}>
+      <div
+        className={`${CONTAINER_GRIP_CLASS} flex shrink-0 items-center justify-center bg-surface px-3 text-center text-[15px] font-semibold text-ink-900`}
+        style={{ height: headerHeight, borderBottom: `${STROKE_WIDTH}px solid ${color}` }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
 /** Alto del encabezado de un carril de tamaño normal. */
 const HEADER_HEIGHT = 40;
 

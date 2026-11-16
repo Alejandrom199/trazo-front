@@ -17,3 +17,7 @@ export * from './umlTaxonomy';
 export * from './fixes';
 export * from './project';
 export * from './nodeName';
+export * from './projectValidation';
+export * from './diagramLink';
+export * from './walkthrough';
+export * from './projectMap';

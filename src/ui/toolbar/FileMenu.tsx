@@ -2,6 +2,7 @@ import { faChevronDown, faFolderOpen } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useDiagramImageExport, type ImageExportOptions } from '@/canvas/exportImage';
+import { readLinkedDiagramId, withLinkedDiagram } from '@/core/model';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
@@ -108,7 +109,16 @@ export function FileMenu() {
     if (!persistence.repository) return showNotice('Este navegador no permite guardar un proyecto con varios diagramas.');
     const now = new Date().toISOString();
     const diagramIds = new Map(parsed.project.diagrams.map((diagram) => [diagram.id, createId()]));
-    const diagrams = parsed.project.diagrams.map((diagram) => ({ ...diagram, id: diagramIds.get(diagram.id)!, updatedAt: now }));
+    // Los subprocesos enlazan diagramas por id: también se traducen a los ids nuevos.
+    const diagrams = parsed.project.diagrams.map((diagram) => ({
+      ...diagram,
+      id: diagramIds.get(diagram.id)!,
+      updatedAt: now,
+      nodes: diagram.nodes.map((node) => {
+        const linked = readLinkedDiagramId(node);
+        return linked ? { ...node, props: withLinkedDiagram(node.props, diagramIds.get(linked) ?? null) } : node;
+      }),
+    }));
     const traceLinks = parsed.project.traceLinks.map((link) => ({
       ...link,
       id: createId(),
@@ -117,7 +127,24 @@ export function FileMenu() {
     }));
     for (const diagram of diagrams) persistence.repository.save(diagram);
     persistence.refresh();
-    useProjectStore.getState().openProject({ id: createId(), name: parsed.project.name, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, createdAt: now, updatedAt: now });
+    const folderOf = Object.fromEntries(Object.entries(parsed.project.folderOf).map(([diagramId, folderId]) => [diagramIds.get(diagramId)!, folderId]));
+    const diagramRelations = parsed.project.diagramRelations.map((relation) => ({
+      ...relation,
+      id: createId(),
+      sourceDiagramId: diagramIds.get(relation.sourceDiagramId)!,
+      targetDiagramId: diagramIds.get(relation.targetDiagramId)!,
+    }));
+    useProjectStore.getState().openProject({
+      id: createId(),
+      name: parsed.project.name,
+      diagramIds: diagrams.map((diagram) => diagram.id),
+      traceLinks,
+      folders: parsed.project.folders,
+      folderOf,
+      diagramRelations,
+      createdAt: now,
+      updatedAt: now,
+    });
     useDiagramStore.getState().openDiagram(diagrams[0]!);
     showNotice(`Se importó el proyecto «${parsed.project.name}» con ${diagrams.length} diagramas.`);
   }

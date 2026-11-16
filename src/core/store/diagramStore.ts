@@ -74,6 +74,11 @@ interface DiagramState {
   removeElements: (ids: ElementIds) => void;
   /** Aplica un cambio puro cualquiera (p. ej. la corrección de un problema). Un paso de deshacer. */
   applyChange: (change: (diagram: Diagram) => Diagram) => void;
+  /**
+   * Ajuste de acomodo que forma parte del gesto en curso (p. ej. ordenar los
+   * carriles al soltar uno en un marco): sin paso propio de deshacer.
+   */
+  adjustLayout: (change: (diagram: Diagram) => Diagram) => void;
   /** Cambia el orden de los nodos (capas: qué se dibuja encima). Un paso de deshacer. */
   reorderNodes: (reorder: (nodes: DiagramNode[]) => DiagramNode[]) => void;
 
@@ -198,6 +203,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
         true,
       ),
     applyChange: (change) => apply(change, true),
+    adjustLayout: (change) => apply(change, false),
     reorderNodes: (reorder) =>
       apply((diagram) => {
         const nodes = reorder(diagram.nodes);

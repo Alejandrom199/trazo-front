@@ -28,6 +28,7 @@ import { ARTIFACT_DRAG_MIME } from './dragAndDrop';
 import { FlowEdgeView } from './FlowEdgeView';
 import { useActiveModule } from './useActiveModule';
 import { useContextMenuStore, type ContextMenuTarget } from './contextMenuStore';
+import { adoptLanes, containersFor, magneticContainers, repackLaneFrames } from './laneFrames';
 import { useGridStore } from './gridStore';
 import { useHighlightStore, type Highlight } from './highlightStore';
 import { GuideLines, useGuidesStore } from './GuideLines';
@@ -158,6 +159,7 @@ export function DiagramCanvas() {
         targetId: connection.target,
         guard: null,
         ...DEFAULT_EDGE_SHAPE,
+        routing: module.edgeKinds[edgeType]?.defaultRouting ?? DEFAULT_EDGE_SHAPE.routing,
         waypoints: [],
         ...(module.initialEdge?.(current, edgeType, connection.source, connection.target) ?? { label: '', props: {} }),
       });
@@ -350,7 +352,6 @@ function alignToNeighbors(module: DiagramModule, diagram: Diagram, node: Diagram
 
 function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlowNode>[], zoom: number): void {
   const diagram = store().diagram;
-  const isContainer = (node: DiagramNode) => module.nodeKinds[node.artifactType]?.isContainer ?? false;
   const moves: NodeMove[] = [];
   // Al redimensionar desde la izquierda o arriba también cambia la posición; el imán
   // no debe actuar ahí, o devolvería el borde a su vecino y crecería el lado opuesto.
@@ -366,7 +367,7 @@ function applyNodeChanges(module: DiagramModule, changes: NodeChange<ArtifactFlo
     const requested = kind?.dragAxis === 'x' && node ? { x: change.position.x, y: node.position.y } : change.position;
     const snapsToNeighbors = diagram && node && kind && node.parentId === null && isMagnetic(kind) && !resizing.has(change.id);
     let position = snapsToNeighbors
-      ? snapContainerPosition(diagram, node.id, requested, node.size, isContainer)
+      ? snapContainerPosition(diagram, node.id, requested, node.size, magneticContainers(module))
       : requested;
     if (diagram && node && kind && !snapsToNeighbors && dragged.length === 1 && change.dragging) {
       const snap = alignToNeighbors(module, diagram, node, position, GUIDE_SCREEN_DISTANCE / zoom);
@@ -420,11 +421,17 @@ function placeIntoContainers(module: DiagramModule, draggedIds: string[]): void 
   const candidates = diagram.nodes.filter(
     (node) => dragged.has(node.id) && placeable(node) && !(node.parentId && dragged.has(node.parentId)),
   );
+  const touchedParents: (string | null)[] = [];
   for (const node of candidates) {
-    const container = findContainerAt(diagram, centerOf(diagram, node), isContainer, node.id);
+    const container = findContainerAt(diagram, centerOf(diagram, node), containersFor(module, node.artifactType), node.id);
+    touchedParents.push(node.parentId, container?.id ?? null);
     store().reparentNodes([node.id], container?.id ?? null);
     if (container && module.nodeKinds[node.artifactType]?.centerInContainer) centerInParent(node.id);
   }
+  // Un carril que entra, sale o se mueve dentro de un marco reordena las columnas.
+  repackLaneFrames(module, touchedParents);
+  // Un marco soltado encima de carriles sueltos los adopta.
+  for (const id of draggedIds) adoptLanes(module, id);
 }
 
 function centerOf(diagram: Diagram, node: DiagramNode) {

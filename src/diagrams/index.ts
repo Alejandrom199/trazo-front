@@ -13,6 +13,7 @@ import { compositeModule } from './composite';
 import { communicationModule } from './communication';
 import { interactionOverviewModule } from './interactionOverview';
 import { timingModule } from './timing';
+import { erModule } from './er';
 
 /** Único punto donde se enumeran los tipos de diagrama disponibles. */
 export function registerDiagramModules(registry: DiagramRegistry): void {
@@ -30,4 +31,5 @@ export function registerDiagramModules(registry: DiagramRegistry): void {
   registry.register(communicationModule);
   registry.register(interactionOverviewModule);
   registry.register(timingModule);
+  registry.register(erModule);
 }

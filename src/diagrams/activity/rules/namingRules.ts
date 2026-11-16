@@ -1,6 +1,9 @@
 import { ActivityArtifact as A } from '../artifactTypes';
 import { defineRule } from './defineRule';
-import { nodesOfType } from './flowGraph';
+import { nodesOfType, type FlowGraph } from './flowGraph';
+
+/** Nodos que se nombran como una acción: la acción y la acción de subproceso. */
+const actionsOf = (graph: FlowGraph) => [...nodesOfType(graph, A.action), ...nodesOfType(graph, A.callBehavior)];
 
 /** Regla: toda acción tiene nombre. */
 export const actionUnnamed = defineRule(
@@ -11,7 +14,7 @@ export const actionUnnamed = defineRule(
     explanation: 'Una acción sin nombre no dice qué se hace en ese paso: el diagrama deja de explicar el proceso.',
   },
   (graph) =>
-    nodesOfType(graph, A.action)
+    actionsOf(graph)
       .filter((action) => !action.label.trim())
       .map((action) => ({
         message: 'Hay una acción sin nombre.',
@@ -41,7 +44,7 @@ export const actionNotVerb = defineRule(
       'Una acción es algo que se HACE. Nombrarla con un verbo en infinitivo ("Emitir factura") la distingue de un objeto ("Factura") y se lee como una instrucción.',
   },
   (graph) =>
-    nodesOfType(graph, A.action)
+    actionsOf(graph)
       .filter((action) => action.label.trim() && !startsWithInfinitive(action.label))
       .map((action) => ({
         message: `«${action.label.trim()}» no empieza con un verbo en infinitivo.`,

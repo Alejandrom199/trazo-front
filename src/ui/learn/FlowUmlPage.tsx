@@ -1,9 +1,11 @@
-import { faArrowLeft, faArrowRight, faBookOpen, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faArrowRight, faBookOpen, faCheck, faFolderOpen } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import { umlKindOf, type DiagramType } from '@/core/model';
 import { diagramRegistry } from '@/core/registry';
 import { navigate } from '@/ui/navigation/route';
+import { openSampleProject } from '@/ui/projects/projectActions';
+import { useUiStore } from '@/ui/uiStore';
 import { useGuideActions } from './guideActions';
 
 type ProjectPriority = 'required' | 'optional';
@@ -44,6 +46,7 @@ const PROJECT_DIAGRAMS: { type: DiagramType; templateId: string; priority: Proje
   { type: 'communication', templateId: 'communication.library-loan', priority: 'optional', phase: 'Colaboración', deliverable: 'La misma red, con mensajes numerados' },
   { type: 'interactionOverview', templateId: 'interaction-overview.library-loan', priority: 'optional', phase: 'Recorrido', deliverable: 'Búsqueda, validación, registro o reserva' },
   { type: 'class', templateId: 'class.library', priority: 'required', phase: 'Dominio', deliverable: 'Conceptos y relaciones estables' },
+  { type: 'er', templateId: 'er.library', priority: 'optional', phase: 'Datos', deliverable: 'Socios, libros y préstamos como tablas' },
   { type: 'object', templateId: 'object.library-loan', priority: 'optional', phase: 'Instancias', deliverable: 'Estudiante, ejemplar y préstamo concretos' },
   { type: 'state', templateId: 'state.book-loan', priority: 'optional', phase: 'Reglas', deliverable: 'Ciclo de vida de un préstamo' },
   { type: 'timing', templateId: 'timing.library-loan', priority: 'optional', phase: 'Tiempo', deliverable: 'Quince días de activo hasta el vencimiento' },
@@ -75,10 +78,23 @@ export function FlowUmlPage() {
             <h2 id="library-project-title" className="mt-2 text-xl font-semibold text-ink-900">Biblioteca Digital</h2>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-600">Un estudiante busca un libro, solicita un préstamo y recibe una confirmación. El mismo proyecto evoluciona desde el alcance hasta la infraestructura.</p>
           </div>
+          <div className="flex flex-col items-start gap-3 md:items-end">
+          <button
+            type="button"
+            onClick={() => {
+              if (!openSampleProject()) return;
+              useUiStore.getState().setGalleryOpen(false);
+              navigate({ page: 'editor' });
+            }}
+            className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            <FontAwesomeIcon icon={faFolderOpen} className="text-xs" /> Abrir el proyecto completo
+          </button>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
             <div><dt className="text-xs text-ink-400">Actores</dt><dd className="mt-0.5 font-medium text-ink-900">Estudiante, bibliotecario</dd></div>
             <div><dt className="text-xs text-ink-400">Objetivo</dt><dd className="mt-0.5 font-medium text-ink-900">Gestionar préstamos</dd></div>
           </dl>
+          </div>
         </div>
         <div className="px-5 py-4">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-600">

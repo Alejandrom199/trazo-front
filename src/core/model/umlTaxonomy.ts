@@ -5,9 +5,12 @@ import type { DiagramType } from './diagram';
  * comportamiento, de los cuales 4 son de interacción. Única fuente de esta
  * clasificación: Aprender y «Nuevo diagrama» agrupan con ella. Los que ya tienen
  * módulo en Trazo llevan su `diagramType`.
+ *
+ * Trazo también ofrece diagramas que NO son UML (como el MER): van en su propia
+ * familia, `data`, para no presentarlos como parte del estándar.
  */
 
-export type UmlFamily = 'structure' | 'behavior';
+export type UmlFamily = 'structure' | 'behavior' | 'data';
 
 export interface UmlDiagramKind {
   name: string;
@@ -21,6 +24,7 @@ export interface UmlDiagramKind {
 export const UML_FAMILIES: Record<UmlFamily, { name: string; question: string }> = {
   structure: { name: 'Diagramas de estructura', question: '¿De qué está hecho el sistema? Lo estático: piezas y relaciones.' },
   behavior: { name: 'Diagramas de comportamiento', question: '¿Qué hace el sistema y cómo cambia? Lo dinámico: flujos, estados y mensajes.' },
+  data: { name: 'Modelado de datos (no UML)', question: '¿Cómo se guardan los datos? Entidades, atributos y relaciones de la base de datos.' },
 };
 
 /** Nombre de la subfamilia de interacción (dentro de comportamiento). */
@@ -29,6 +33,7 @@ export const UML_INTERACTION_NAME = 'Diagramas de interacción';
 const structure = (name: string, summary: string, diagramType?: DiagramType): UmlDiagramKind => ({ name, family: 'structure', interaction: false, summary, diagramType });
 const behavior = (name: string, summary: string, diagramType?: DiagramType): UmlDiagramKind => ({ name, family: 'behavior', interaction: false, summary, diagramType });
 const interaction = (name: string, summary: string, diagramType?: DiagramType): UmlDiagramKind => ({ name, family: 'behavior', interaction: true, summary, diagramType });
+const dataModel = (name: string, summary: string, diagramType?: DiagramType): UmlDiagramKind => ({ name, family: 'data', interaction: false, summary, diagramType });
 
 /** En el orden en que se presentan: estructura, comportamiento y, dentro de este, interacción. */
 export const UML_DIAGRAMS: UmlDiagramKind[] = [
@@ -46,6 +51,7 @@ export const UML_DIAGRAMS: UmlDiagramKind[] = [
   interaction('Comunicación', 'Los mismos mensajes, vistos como una red de enlaces numerados.', 'communication'),
   interaction('Descripción general de la interacción', 'Un flujo de actividades cuyos pasos son interacciones.', 'interactionOverview'),
   interaction('Tiempos', 'Cómo cambian los estados a lo largo de un eje de tiempo exacto.', 'timing'),
+  dataModel('Entidad-relación (MER)', 'Entidades, sus atributos y cómo se relacionan: el diseño de la base de datos.', 'er'),
 ];
 
 export function umlKindOf(diagramType: DiagramType): UmlDiagramKind | undefined {

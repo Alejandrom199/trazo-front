@@ -1,7 +1,11 @@
 import { ActivityArtifact as A } from '../artifactTypes';
 import { createTemplateBuilder } from './templateBuilder';
 
-/** Intermedio: tres carriles que muestran quién hace cada paso de un pedido online. */
+/**
+ * Intermedio: un marco de actividad con tres carriles que muestran quién hace
+ * cada paso de un pedido online. El cobro es un subproceso (⋔): su detalle va en
+ * otro diagrama; en el proyecto de ejemplo se enlaza con «Procesar pago».
+ */
 function buildOnlineOrderTemplate() {
   const t = createTemplateBuilder();
   const laneWidth = 260;
@@ -10,6 +14,7 @@ function buildOnlineOrderTemplate() {
   const system = { x: 390 };
   const warehouse = { x: 650 };
 
+  t.frame('Pedido en línea');
   t.lane('Cliente', 0, laneWidth, laneHeight);
   t.lane('Sistema', laneWidth, laneWidth, laneHeight);
   t.lane('Bodega', laneWidth * 2, laneWidth, laneHeight);
@@ -21,7 +26,7 @@ function buildOnlineOrderTemplate() {
   const inStock = t.node(A.decision, '¿Hay stock?', { ...system, y: 350 });
   const noStockNotice = t.node(A.action, 'Ver aviso de falta de stock', { ...customer, y: 350 });
   const cancelled = t.node(A.activityFinal, '', { ...customer, y: 440 });
-  const charge = t.node(A.action, 'Cobrar el pago', { ...system, y: 450 });
+  const charge = t.node(A.callBehavior, 'Procesar pago', { ...system, y: 450 });
   const pack = t.node(A.action, 'Preparar paquete', { ...warehouse, y: 450 });
   const ship = t.node(A.action, 'Despachar pedido', { ...warehouse, y: 550 });
   const receive = t.node(A.action, 'Recibir pedido', { ...customer, y: 550 });
@@ -43,9 +48,9 @@ function buildOnlineOrderTemplate() {
     id: 'activity.online-order',
     name: 'Pedido en línea',
     description:
-      'Un pedido recorre tres responsables: el cliente compra, el sistema verifica y cobra, y la bodega prepara y despacha.',
+      'Un pedido recorre tres responsables dentro del marco de la actividad: el cliente compra, el sistema verifica y cobra (un subproceso) y la bodega prepara y despacha.',
     difficulty: 'intermedio',
-    learningGoals: [A.partition, A.action, A.decision, A.controlFlow, A.activityFinal],
+    learningGoals: [A.activityFrame, A.partition, A.action, A.callBehavior, A.decision, A.controlFlow, A.activityFinal],
   });
 }
 
