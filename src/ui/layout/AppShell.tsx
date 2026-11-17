@@ -17,6 +17,7 @@ import { SubprocessBreadcrumb } from '@/ui/projects/SubprocessBreadcrumb';
 import { DiagramLinkPicker } from '@/ui/projects/DiagramLinkPicker';
 import { ProjectMap } from '@/ui/projects/ProjectMap';
 import { RequirementsScreen } from '@/ui/requirements/RequirementsScreen';
+import { UseCaseSheetDialog } from '@/ui/usecase/UseCaseSheetDialog';
 import { EditorTutorial } from '@/ui/tutorial/EditorTutorial';
 import { useUiStore } from '@/ui/uiStore';
 import { ProjectPanel } from '@/ui/projects/ProjectPanel';
@@ -99,6 +100,7 @@ export function AppShell() {
         <DiagramLinkPicker />
         <ProjectMap />
         <RequirementsScreen />
+        <UseCaseSheetDialog />
         <TooltipLayer />
       </div>
     </ReactFlowProvider>

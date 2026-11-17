@@ -4,6 +4,8 @@ import { createRegistry } from '@/core/registry';
 import { registerDiagramModules } from '.';
 import { projectRules } from './crossDiagram';
 import { buildSampleProject } from './sampleProject';
+import { UseCaseArtifact } from './usecase/artifactTypes';
+import { readSpec, reviewSpec, useCaseContext } from './usecase/spec';
 
 const registry = createRegistry();
 registerDiagramModules(registry);
@@ -45,5 +47,16 @@ describe('proyecto de ejemplo Biblioteca Digital', () => {
   it('Dadas sus fichas, Entonces sirven de modelo: ninguna tiene advertencias del revisor', () => {
     const warnings = project.requirements.map((item) => [item.code, reviewRequirement(item).filter((hint) => hint.level === 'warning').map((hint) => hint.text)]);
     expect(warnings).toEqual(project.requirements.map((item) => [item.code, []]));
+  });
+
+  it('Dados sus casos de uso, Entonces cada uno tiene su ficha CU sin advertencias del revisor', () => {
+    const useCaseDiagram = diagrams.find((diagram) => diagram.name === 'Casos de uso')!;
+    const useCases = useCaseDiagram.nodes.filter((node) => node.artifactType === UseCaseArtifact.useCase);
+    const sheets = useCases.map((node) => {
+      const spec = readSpec(node);
+      const references = project.requirementLinks.filter((link) => link.elementId === node.id).length;
+      return [spec?.code, spec ? reviewSpec(spec, useCaseContext(useCaseDiagram, node.id), references).filter((hint) => hint.level === 'warning') : ['sin ficha']];
+    });
+    expect(sheets).toEqual([['CU01', []], ['CU02', []], ['CU03', []]]);
   });
 });

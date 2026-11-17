@@ -3,6 +3,7 @@ import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramM
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { canReverseEdge, reverseEdge } from '@/canvas/edgeActions';
 import { DiagramLinkField } from '@/ui/projects/DiagramLinkField';
+import { UseCaseSheetField } from '@/ui/usecase/UseCaseSheetField';
 import { FrameLanes } from './FrameLanes';
 import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from './formFields';
 
@@ -88,6 +89,8 @@ export function NodeProperties({ node, diagram, module }: { node: DiagramNode; d
       {kind?.diagramLink && <DiagramLinkField node={node} link={kind.diagramLink} />}
 
       {kind?.laneFrame && <FrameLanes frame={node} diagram={diagram} module={module} />}
+
+      {kind?.specSheet === 'useCase' && <UseCaseSheetField node={node} />}
 
       <Field label="Notas">
         <TextInput value={node.notes} multiline placeholder="Comentario para ti o tu equipo" onCommit={(notes) => update({ notes })} />

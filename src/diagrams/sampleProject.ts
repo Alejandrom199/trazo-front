@@ -20,6 +20,7 @@ import { componentTemplates } from './component/templates';
 import { deploymentTemplates } from './deployment/templates';
 import { erTemplates } from './er/templates';
 import { sequenceTemplates } from './sequence/templates';
+import { withSpec, type UseCaseSpec } from './usecase/spec';
 import { useCaseTemplates } from './usecase/templates';
 
 /**
@@ -85,7 +86,54 @@ function availabilityProcess(): Template {
   return t.build({ id: 'sample.availability', name: 'Validar disponibilidad', description: 'Detalle del subproceso: se consulta el catálogo y se aparta un ejemplar si lo hay.', difficulty: 'básico', learningGoals: [] });
 }
 
-const fromCatalog = (templates: Template[], id: string): Template => {
+/** Fichas de los casos de uso del ejemplo, por nombre del caso. */
+const USE_CASE_SPECS: Record<string, UseCaseSpec> = {
+  'Buscar un libro': {
+    code: 'CU01', purpose: 'Encontrar un libro del catálogo y saber si se puede pedir.', importance: 'primario', level: 'esencial',
+    summary: 'El socio busca por título o autor y el sistema le muestra los libros que coinciden y su disponibilidad.',
+    preconditions: ['El socio está en el portal de la biblioteca.'],
+    postconditions: ['El socio ve los libros que coinciden y cuáles tienen ejemplares libres.'],
+    typicalCourse: [
+      { by: 'actor', text: 'Escribe el título, el autor o un tema.' },
+      { by: 'system', text: 'Busca en el catálogo los libros que coinciden.' },
+      { by: 'system', text: 'Muestra la lista con la disponibilidad de cada libro.' },
+      { by: 'actor', text: 'Elige un libro para ver su detalle.' },
+      { by: 'system', text: 'Muestra el detalle y cuántos ejemplares están libres.' },
+    ],
+    alternateCourses: [{ step: 2, text: 'Si ningún libro coincide, muestra «No hay resultados» y sugiere revisar lo escrito.' }],
+  },
+  'Pedir un préstamo': {
+    code: 'CU02', purpose: 'Llevarse un libro prestado sin hacer trámites en el mostrador.', importance: 'primario', level: 'esencial',
+    summary: 'El socio pide un libro con ejemplares libres; el sistema registra el préstamo y le confirma la fecha de devolución.',
+    preconditions: ['El socio inició sesión en el portal.', 'El socio no tiene préstamos vencidos.'],
+    postconditions: ['El préstamo queda registrado con su fecha de devolución.', 'El ejemplar queda marcado como prestado.'],
+    typicalCourse: [
+      { by: 'actor', text: 'Elige el libro y selecciona «Pedir préstamo».' },
+      { by: 'system', text: 'Comprueba que haya un ejemplar libre y lo aparta.' },
+      { by: 'system', text: 'Muestra el resumen del préstamo con la fecha de devolución.' },
+      { by: 'actor', text: 'Confirma el préstamo.' },
+      { by: 'system', text: 'Registra el préstamo y confirma al socio la fecha de devolución.' },
+    ],
+    alternateCourses: [
+      { step: 2, text: 'Si no hay ejemplares libres, ofrece reservar el libro.' },
+      { step: 4, text: 'Si el socio cancela, libera el ejemplar apartado.' },
+    ],
+  },
+  'Devolver un libro': {
+    code: 'CU03', purpose: 'Cerrar un préstamo y dejar el ejemplar disponible para otros.', importance: 'primario', level: 'esencial',
+    summary: 'El bibliotecario recibe el libro y el sistema cierra el préstamo del socio.',
+    preconditions: ['El socio tiene un préstamo abierto de ese ejemplar.'],
+    postconditions: ['El préstamo queda cerrado.', 'El ejemplar vuelve a estar libre.'],
+    typicalCourse: [
+      { by: 'actor', text: 'Registra el código del ejemplar devuelto.' },
+      { by: 'system', text: 'Busca el préstamo abierto de ese ejemplar.' },
+      { by: 'system', text: 'Cierra el préstamo y marca el ejemplar como libre.' },
+    ],
+    alternateCourses: [{ step: 3, text: 'Si la devolución llega vencida, registra la demora en la cuenta del socio.' }],
+  },
+};
+
+const fromCatalog =(templates: Template[], id: string): Template => {
   const template = templates.find((candidate) => candidate.id === id);
   if (!template) throw new Error(`Proyecto de ejemplo: falta la plantilla «${id}».`);
   return template;
@@ -98,7 +146,15 @@ const fromCatalog = (templates: Template[], id: string): Template => {
 export function buildSampleProject(createId: () => string, now: Date = new Date()): SampleProject {
   const make = (template: Template, name: string): Diagram => ({ ...createDiagramFromTemplate(template, now), id: createId(), name });
 
-  const useCases = make(fromCatalog(useCaseTemplates, 'usecase.library'), 'Casos de uso');
+  const useCasesBase = make(fromCatalog(useCaseTemplates, 'usecase.library'), 'Casos de uso');
+  // Cada caso trae su ficha (CU01…), como en un documento de análisis.
+  const useCases: Diagram = {
+    ...useCasesBase,
+    nodes: useCasesBase.nodes.map((node) => {
+      const spec = USE_CASE_SPECS[nodeName(node, '')];
+      return spec ? { ...node, props: withSpec(node.props, spec) } : node;
+    }),
+  };
   const loanBase = make(loanProcess(), 'Pedir un préstamo');
   const availability = make(availabilityProcess(), 'Validar disponibilidad');
   const sequence = make(fromCatalog(sequenceTemplates, 'sequence.library-loan'), 'Préstamo en el portal');

@@ -68,6 +68,9 @@ interface UiState {
   requirementsOpen: boolean;
   requirementsFocusId: string | null;
   setRequirementsOpen: (open: boolean, requirementId?: string | null) => void;
+  /** Caso de uso cuya ficha está abierta (en el diagrama abierto). */
+  useCaseSheetNodeId: string | null;
+  setUseCaseSheetNodeId: (nodeId: string | null) => void;
   linkPickerNodeId: string | null;
   setLinkPickerNodeId: (nodeId: string | null) => void;
   tutorialStatus: TutorialStatus;
@@ -221,6 +224,8 @@ export const useUiStore = create<UiState>()((set) => ({
   requirementsOpen: false,
   requirementsFocusId: null,
   setRequirementsOpen: (open, requirementId = null) => set({ requirementsOpen: open, requirementsFocusId: requirementId }),
+  useCaseSheetNodeId: null,
+  setUseCaseSheetNodeId: (nodeId) => set({ useCaseSheetNodeId: nodeId }),
   linkPickerNodeId: null,
   setLinkPickerNodeId: (nodeId) => set({ linkPickerNodeId: nodeId }),
   tutorialStatus: readTutorial(),

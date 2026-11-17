@@ -106,7 +106,7 @@ export function RequirementSheetForm({ requirement }: { requirement: Requirement
 }
 
 /** Una fila de la ficha: el nombre del campo a la izquierda, como en una tabla de documento. */
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-x-4 gap-y-1.5 px-4 py-3 sm:grid-cols-[11rem_1fr]">
       <div>
@@ -119,7 +119,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 }
 
 /** Lista editable de textos (detalles, excepciones): cada línea se edita, se quita y se agregan más. */
-function ListEditor({ items, placeholder, addLabel, onChange }: { items: string[]; placeholder: string; addLabel: string; onChange: (items: string[]) => void }) {
+export function ListEditor({ items, placeholder, addLabel, onChange }: { items: string[]; placeholder: string; addLabel: string; onChange: (items: string[]) => void }) {
   const set = (index: number, value: string) => onChange(items.map((item, position) => (position === index ? value : item)).filter((item) => item.trim() !== ''));
   return (
     <div className="space-y-1.5">

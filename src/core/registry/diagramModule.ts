@@ -164,6 +164,8 @@ export interface NodeKind {
    * (p. ej. una acción de subproceso). Propiedades ofrece elegirlo, crearlo y abrirlo.
    */
   diagramLink?: { caption: string; diagramTypes: readonly DiagramType[] };
+  /** Ficha textual del elemento que la interfaz sabe editar (p. ej. la especificación de un caso de uso). */
+  specSheet?: 'useCase';
   /**
    * Cuánto se mete la figura visible dentro de su caja, por lado, para que las
    * flechas lleguen a ella y no al aire (p. ej. la cara frontal de un cubo 3D).
