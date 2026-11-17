@@ -16,9 +16,12 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   coverageSummary,
   impactOf,
+  LESSON_OF_KIND,
+  REQUIREMENT_GUIDES,
   REQUIREMENT_KINDS,
   requirementCoverage,
   requirementMatrix,
+  SPEC_LESSONS,
   type Diagram,
   type DiagramProject,
   type RequirementCoverage,
@@ -29,7 +32,8 @@ import { normalizeName } from '@/diagrams/crossDiagram/names';
 import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { inputClass } from '@/ui/explanation/formFields';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
-import { GuideCard, QualityPanel, RequirementSheetForm, RequirementSheetTable } from './RequirementSheet';
+import { LessonLink } from '@/ui/learn/LessonLink';
+import { QualityPanel, RequirementSheetForm, RequirementSheetTable } from './RequirementSheet';
 import { elementOptions, openTarget, targetLabel } from '@/ui/traceability/elementLabels';
 import { useUiStore } from '@/ui/uiStore';
 
@@ -254,7 +258,12 @@ function Editor({ item, diagrams, onImpact, onOpen }: { item: RequirementCoverag
         </div>
         <aside className="space-y-4">
           <QualityPanel requirement={requirement} />
-          <GuideCard kind={requirement.kind} />
+          <LessonLink
+            lesson={LESSON_OF_KIND[requirement.kind]}
+            label={`Cómo se escribe: ${SPEC_LESSONS.find((lesson) => lesson.id === LESSON_OF_KIND[requirement.kind])!.title.toLowerCase()}`}
+            reminder={REQUIREMENT_GUIDES[requirement.kind].pattern}
+            onLeave={() => useUiStore.getState().setRequirementsOpen(false)}
+          />
         </aside>
       </div>
 

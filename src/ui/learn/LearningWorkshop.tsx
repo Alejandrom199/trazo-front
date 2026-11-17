@@ -77,7 +77,7 @@ function ModeButton({ active, onClick, children }: { active: boolean; onClick: (
   return <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`rounded-md px-3 py-2 text-sm ${active ? 'bg-accent-soft font-medium text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'}`}>{children}</button>;
 }
 
-function QuestionBlock({ question, onCorrect }: { question: LearningQuestion; onCorrect?: () => void }) {
+export function QuestionBlock({ question, onCorrect }: { question: LearningQuestion; onCorrect?: () => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   const pickedOption = useMemo(() => question.options.find((option) => option.id === picked), [picked, question.options]);
   function choose(option: LearningOption) { setPicked(option.id); if (option.correct) onCorrect?.(); }

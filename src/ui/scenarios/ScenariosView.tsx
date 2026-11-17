@@ -25,6 +25,7 @@ import { useProjectStore } from '@/core/store/projectStore';
 import { useHighlightStore } from '@/canvas/highlightStore';
 import { copyTable, escapeHtml } from '@/ui/clipboard';
 import { inputClass } from '@/ui/explanation/formFields';
+import { LessonLink } from '@/ui/learn/LessonLink';
 import { useWalkthroughStore } from '@/ui/narration/walkthroughStore';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 
@@ -161,6 +162,10 @@ export function ScenariosView({ engine, diagram, onWalk }: { engine: Walkthrough
           </ul>
         )}
       </section>
+
+      <div className="shrink-0 border-b border-line px-3 py-3">
+        <LessonLink lesson="casos-de-prueba" label="Cómo se escribe un caso de prueba" />
+      </div>
 
       <section aria-label="Caminos posibles" className="px-3 py-3">
         <h3 className="px-1 text-xs font-semibold text-ink-900">Caminos posibles <span className="font-normal text-ink-400">{scenarios.length}</span></h3>

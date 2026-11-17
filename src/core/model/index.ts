@@ -23,6 +23,7 @@ export * from './walkthrough';
 export * from './walkMemory';
 export * from './scenarios';
 export * from './testCases';
+export * from './specificationLessons';
 export * from './projectMap';
 export * from './requirements';
 export * from './requirementGuide';

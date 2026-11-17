@@ -24,6 +24,8 @@ import { inputClass } from '@/ui/explanation/formFields';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 import { ListEditor, Row } from '@/ui/requirements/RequirementSheet';
 import { copyTable, escapeHtml } from '@/ui/clipboard';
+import { USE_CASE_SHEET_TIPS } from '@/diagrams/usecase/specGuide';
+import { LessonLink } from '@/ui/learn/LessonLink';
 import { useUiStore } from '@/ui/uiStore';
 
 const ui = () => useUiStore.getState();
@@ -167,14 +169,12 @@ function SheetEditor({ diagram, node, spec }: { diagram: Diagram; node: DiagramN
               </ul>
             )}
           </section>
-          <section aria-label="Cómo escribir una ficha de caso de uso" className="space-y-2 rounded-xl border border-line p-4 text-xs leading-relaxed">
-            <h4 className="flex items-center gap-2 font-semibold text-ink-900"><FontAwesomeIcon icon={faLightbulb} className="text-accent" /> Cómo escribir la ficha</h4>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Propósito:</span> para qué lo hace el actor, en una frase.</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Tipo:</span> primario si es la razón de ser del sistema; esencial si cuenta qué pasa sin pantallas ni botones (real, si los nombra).</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Curso típico:</span> el camino feliz, alternando lo que hace el actor y lo que responde el sistema, en presente: «Ingresa los datos», «Valida los datos».</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Curso alterno:</span> qué pasa si algo falla, indicando en qué paso: «4. Si falta un campo obligatorio, muestra "Campo requerido"».</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Postcondición:</span> cómo queda el sistema al terminar bien. Se vuelve un caso de prueba.</p>
-          </section>
+          <LessonLink
+            lesson="caso-de-uso"
+            label="Cómo se escribe una ficha de caso de uso"
+            reminder={USE_CASE_SHEET_TIPS[0]}
+            onLeave={() => ui().setUseCaseSheetNodeId(null)}
+          />
         </aside>
       </div>
     </section>
@@ -335,7 +335,7 @@ function ReferencesEditor({ diagramId, nodeId, linked }: { diagramId: string; no
  * La ficha como documento: la tabla de datos y el curso típico en dos
  * columnas (actor | sistema), numerado, como en una ficha académica.
  */
-function SheetTable({ name, spec, context, references }: { name: string; spec: UseCaseSpec; context: UseCaseContext; references: string[] }) {
+export function SheetTable({ name, spec, context, references }: { name: string; spec: UseCaseSpec; context: UseCaseContext; references: string[] }) {
   const [copied, setCopied] = useState(false);
   const rows: [string, string | string[]][] = [
     ['Caso de Uso', `${name} (${spec.code})`],

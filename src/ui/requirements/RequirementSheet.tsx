@@ -1,4 +1,4 @@
-import { faCheck, faChevronDown, faCircleCheck, faCopy, faLightbulb, faPlus, faTriangleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCircleCheck, faCopy, faLightbulb, faPlus, faTriangleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import {
@@ -209,52 +209,6 @@ export function QualityPanel({ requirement }: { requirement: Requirement }) {
             </li>
           ))}
         </ul>
-      )}
-    </section>
-  );
-}
-
-/** Cómo declarar este tipo: el patrón, consejos y un ejemplo completo. Plegable. */
-export function GuideCard({ kind }: { kind: RequirementKind }) {
-  const [open, setOpen] = useState(true);
-  const guide = REQUIREMENT_GUIDES[kind];
-  return (
-    <section aria-label={`Cómo declarar un requisito ${kindName(kind).toLowerCase()}`} className="rounded-xl border border-line">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center gap-2 px-4 py-3 text-left">
-        <FontAwesomeIcon icon={faLightbulb} className="text-xs text-accent" />
-        <span className="text-xs font-semibold text-ink-900">Cómo declarar un requisito {kindName(kind).toLowerCase()}</span>
-        <FontAwesomeIcon icon={faChevronDown} className={`ml-auto text-[10px] text-ink-400 transition-transform ${open ? '' : '-rotate-90'}`} />
-      </button>
-      {open && (
-        <div className="space-y-3 border-t border-line px-4 py-3 text-xs leading-relaxed">
-          <p className="rounded-lg bg-accent-soft/50 px-3 py-2 font-medium text-ink-900">{guide.pattern}</p>
-          <ul className="space-y-1.5">
-            {guide.tips.map((tip) => <li key={tip} className="flex gap-2 text-ink-600"><span className="mt-1.5 size-1 shrink-0 rounded-full bg-accent" aria-hidden />{tip}</li>)}
-          </ul>
-          <div>
-            <p className="font-semibold text-ink-900">Ejemplo</p>
-            <p className="mt-1 font-medium text-ink-900">{guide.example.title}</p>
-            <p className="mt-0.5 text-ink-600">{guide.example.text}</p>
-            {guide.example.details.length > 0 && (
-              <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-ink-600">
-                {guide.example.details.map((detail) => <li key={detail}>{detail}</li>)}
-              </ul>
-            )}
-            {kind === 'regla de negocio' && (
-              <p className="mt-1.5 text-ink-600"><span className="font-semibold text-ink-900">Dado</span> un socio con 3 préstamos activos, <span className="font-semibold text-ink-900">entonces</span> no puede pedir un cuarto.</p>
-            )}
-          </div>
-          {kind === 'regla de negocio' && (
-            <div>
-              <p className="font-semibold text-ink-900">Tipos de regla</p>
-              <dl className="mt-1 space-y-1">
-                {RULE_TYPES.map((type) => (
-                  <div key={type.id}><dt className="inline font-medium text-ink-900">{type.name}: </dt><dd className="inline text-ink-600">{type.example}</dd></div>
-                ))}
-              </dl>
-            </div>
-          )}
-        </div>
       )}
     </section>
   );
