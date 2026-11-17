@@ -6,6 +6,7 @@ import {
   faFileImport,
   faFolderOpen,
   faFolderPlus,
+  faFileLines,
   faLink,
   faMap,
   faSliders,
@@ -92,6 +93,7 @@ export function ProjectMenu() {
                 aside={coverage && coverage.total > 0 ? `${coverage.covered}/${coverage.total}` : undefined}
                 onClick={() => { close(); ui().setRequirementsOpen(true); }}
               />
+              <MenuItem icon={faFileLines} label="Documento ERS" hint="Requisitos, casos de uso, modelos y pruebas en un documento" onClick={() => { close(); ui().setErsOpen(true); }} />
               <MenuItem icon={faLink} label="Vínculos del diagrama" hint="Vínculos, relaciones y requisitos del diagrama abierto" onClick={() => { close(); ui().setInspectorOpen(true); ui().setInspectorTab('traceability'); }} />
             </MenuSection>
             <MenuSection title="Archivo del proyecto">
