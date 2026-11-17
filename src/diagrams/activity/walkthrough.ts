@@ -1,4 +1,19 @@
-import { linkedTemplateId, readLinkedDiagramId, type Diagram, type DiagramEdge, type DiagramNode, type WalkEntry, type WalkState, type WalkthroughEngine } from '@/core/model';
+import {
+  linkedTemplateId,
+  mergeFacts,
+  readLinkedDiagramId,
+  rememberFact,
+  suggestExit,
+  type Diagram,
+  type DiagramEdge,
+  type DiagramNode,
+  type WalkEntry,
+  type WalkFact,
+  type WalkOutcome,
+  type WalkReturn,
+  type WalkState,
+  type WalkthroughEngine,
+} from '@/core/model';
 import { ActivityArtifact as A } from './artifactTypes';
 import { buildFlowGraph, describeNode, incomingOf, outgoingOf, startNodeIds, type FlowGraph } from './rules/flowGraph';
 
@@ -13,6 +28,9 @@ import { buildFlowGraph, describeNode, incomingOf, outgoingOf, startNodeIds, typ
  * - Final de actividad: termina todo. Final de flujo: termina solo ese camino.
  * - Subproceso (⋔) enlazado a otro diagrama: se detiene y se decide si entrar
  *   a recorrerlo (lo hace la interfaz, en ese diagrama) o seguir sin entrar.
+ * - Memoria (ver core/model/walkMemory): el final con nombre es el resultado del
+ *   diagrama; la decisión que sigue a un subproceso sugiere la salida que
+ *   coincide con su resultado, y una pregunta ya respondida sugiere su respuesta.
  * Lo que el diagrama hace distinto de lo que parece (una acción que espera dos
  * caminos alternativos, dos salidas que no eligen) se avisa en el registro.
  */
@@ -50,6 +68,12 @@ function arrivalText(node: DiagramNode): string {
   }
 }
 
+/** Lo que distingue una salida de una decisión: su guarda o, si no tiene, su texto. */
+const exitText = (edge: DiagramEdge): string => edge.guard?.trim() || edge.label.trim();
+
+/** Nodos por los que el resultado de un subproceso llega hasta la decisión que lo usa. */
+const CARRIES: ReadonlySet<string> = new Set([A.merge, A.decision]);
+
 /** Texto de un camino elegible en una decisión: su guarda y adónde lleva. */
 function optionLabel(graph: FlowGraph, edge: DiagramEdge): string {
   const target = describeNode(graph.nodeById.get(edge.targetId), 'el siguiente nodo');
@@ -65,7 +89,7 @@ class Walk {
     private readonly graph: FlowGraph,
     state: WalkState,
   ) {
-    this.state = { ...state, tokens: [...state.tokens], waiting: { ...state.waiting }, log: [...state.log], visitedNodeIds: [...state.visitedNodeIds], visitedEdgeIds: [...state.visitedEdgeIds] };
+    this.state = { ...state, tokens: [...state.tokens], waiting: { ...state.waiting }, log: [...state.log], visitedNodeIds: [...state.visitedNodeIds], visitedEdgeIds: [...state.visitedEdgeIds], facts: [...state.facts] };
   }
 
   result(): WalkState {
@@ -82,7 +106,7 @@ class Walk {
   }
 
   /** Mueve un token por una flecha y lo hace llegar (o esperar) en su destino. */
-  moveAlong(edge: DiagramEdge) {
+  moveAlong(edge: DiagramEdge, carried: WalkOutcome | null = null) {
     const target = this.graph.nodeById.get(edge.targetId);
     if (!target) return;
     this.visit(target.id, edge.id);
@@ -106,16 +130,17 @@ class Walk {
         return;
       }
     }
-    this.arrive(target, edge);
+    this.arrive(target, edge, carried);
   }
 
-  private arrive(target: DiagramNode, edge: DiagramEdge) {
+  private arrive(target: DiagramNode, edge: DiagramEdge, carried: WalkOutcome | null) {
     if (target.artifactType === A.activityFinal) {
       const others = this.state.tokens.length + Object.keys(this.state.waiting).length;
-      this.say(entry(`el proceso termina en el final de actividad.${others > 0 ? ` Se detienen también los otros ${others} caminos que seguían activos.` : ''}`, 'end', [target.id], [edge.id]));
+      this.say(entry(`el proceso termina en el final de actividad${target.label.trim() ? ` «${target.label.trim()}»` : ''}.${others > 0 ? ` Se detienen también los otros ${others} caminos que seguían activos.` : ''}`, 'end', [target.id], [edge.id]));
       this.state.tokens = [];
       this.state.waiting = {};
       this.state.status = 'finished';
+      this.state.outcome = this.outcomeAt(target);
       return;
     }
     if (target.artifactType === A.flowFinal) {
@@ -126,11 +151,19 @@ class Walk {
     const lane = laneOf(this.diagram, target);
     const text = arrivalText(target);
     this.say(entry(`${guard}${lane ? `${lane}: ` : ''}${text}`, target.artifactType === A.fork ? 'parallel' : 'step', [target.id], [edge.id]));
-    this.addToken(target.id, edge.id);
+    this.addToken(target.id, edge.id, CARRIES.has(target.artifactType) ? carried : null);
   }
 
-  private addToken(nodeId: string, viaEdgeId: string | null) {
-    this.state.tokens.push({ id: this.state.nextTokenId, nodeId, viaEdgeId });
+  /** R1: el nombre del final o, si no tiene, la última respuesta dada en este diagrama. */
+  private outcomeAt(final: DiagramNode): WalkOutcome | null {
+    const diagramName = this.diagram.name.trim() || 'el subproceso';
+    if (final.label.trim()) return { label: final.label.trim(), from: 'final', diagramName };
+    const last = [...this.state.facts].reverse().find((fact) => this.graph.nodeById.has(fact.nodeId));
+    return last ? { label: last.answer, from: 'decision', diagramName } : null;
+  }
+
+  private addToken(nodeId: string, viaEdgeId: string | null, carried: WalkOutcome | null = null) {
+    this.state.tokens.push({ id: this.state.nextTokenId, nodeId, viaEdgeId, carried });
     this.state.nextTokenId += 1;
   }
 
@@ -158,10 +191,20 @@ class Walk {
       return;
     }
     if (node.artifactType === A.decision && outputs.length > 1) {
+      const carried = token.carried ?? null;
+      const suggested = suggestExit(node.label, node.id, outputs.map((edge) => ({ edgeId: edge.id, guard: exitText(edge) })), carried, this.state.facts);
       this.state.tokens.unshift(token);
       this.state.status = 'choice';
-      this.state.choice = { tokenId: token.id, nodeId: node.id, options: outputs.map((edge) => ({ edgeId: edge.id, label: optionLabel(this.graph, edge) })) };
-      this.say(entry(`decisión ${describeNode(node, 'sin pregunta')}: elige por dónde sigue.`, 'choice', [node.id], outputs.map((edge) => edge.id)));
+      this.state.choice = { tokenId: token.id, nodeId: node.id, options: outputs.map((edge) => ({ edgeId: edge.id, label: optionLabel(this.graph, edge) })), suggested };
+      const question = `decisión ${describeNode(node, 'sin pregunta')}`;
+      if (suggested) {
+        const guard = exitText(outputs.find((edge) => edge.id === suggested.edgeId)!);
+        this.say(entry(`${question}: sigue por [${guard}]. ${suggested.reason}`, 'choice', [node.id], [suggested.edgeId]));
+      } else if (carried) {
+        this.say(entry(`«${carried.diagramName}» terminó en «${carried.label}», pero ninguna salida de la ${question} se llama así: elige tú. Para que el recorrido siga solo, nombra el final del subproceso igual que la guarda.`, 'warning', [node.id], outputs.map((edge) => edge.id)));
+      } else {
+        this.say(entry(`${question}: elige por dónde sigue.`, 'choice', [node.id], outputs.map((edge) => edge.id)));
+      }
       return;
     }
     if (outputs.length > 1) {
@@ -169,7 +212,9 @@ class Walk {
         ? entry(`se abren ${outputs.length} caminos en paralelo.`, 'parallel', [node.id], outputs.map((edge) => edge.id))
         : entry(`${describeNode(node, 'este nodo')} tiene ${outputs.length} salidas: sale un token por CADA una, en paralelo. Si querías elegir una, usa una decisión.`, 'warning', [node.id], outputs.map((edge) => edge.id)));
     }
-    for (const edge of outputs) this.moveAlong(edge);
+    // El resultado del subproceso pasa a la decisión que sigue (por fusiones), y a nada más.
+    const carried = (pastCall && isCall) || CARRIES.has(node.artifactType) ? (token.carried ?? null) : null;
+    for (const edge of outputs) this.moveAlong(edge, carried);
   }
 
   /** Sigue por el camino elegido en la decisión pendiente. */
@@ -180,11 +225,18 @@ class Walk {
     this.state.tokens = this.state.tokens.filter((token) => token.id !== choice.tokenId);
     this.state.choice = null;
     this.state.status = 'running';
+    const node = this.graph.nodeById.get(choice.nodeId);
+    const answer = exitText(edge);
+    const expected = choice.suggested && choice.suggested.edgeId !== edgeId ? outgoingOf(this.graph, choice.nodeId).find((candidate) => candidate.id === choice.suggested!.edgeId) : undefined;
+    if (expected) {
+      this.say(entry(`elegiste [${answer || 'sin guarda'}], pero lo decidido indicaba [${exitText(expected)}]. ${choice.suggested!.reason} Si el proceso vuelve a preguntar algo ya resuelto, revisa el diagrama.`, 'warning', [choice.nodeId], [edgeId]));
+    }
+    if (node && answer) this.state.facts = rememberFact(this.state.facts, { question: node.label.trim(), answer, nodeId: node.id, diagramName: this.diagram.name.trim() || 'este diagrama' });
     this.moveAlong(edge);
   }
 
-  /** Sale del subproceso pendiente y sigue por sus salidas. */
-  resume(how: 'skipped' | 'returned') {
+  /** Sale del subproceso pendiente y sigue por sus salidas, con su resultado si se recorrió. */
+  resume(how: 'skipped' | 'returned', result?: WalkReturn) {
     const call = this.state.call;
     if (!call) return;
     const node = this.graph.nodeById.get(call.nodeId);
@@ -193,9 +245,12 @@ class Walk {
     // El token del subproceso pasa al frente para avanzar ya.
     const index = this.state.tokens.findIndex((token) => token.id === call.tokenId);
     if (index > 0) this.state.tokens.unshift(...this.state.tokens.splice(index, 1));
+    const outcome = how === 'returned' ? (result?.outcome ?? null) : null;
+    if (how === 'returned' && result) this.state.facts = mergeFacts(this.state.facts, result.facts);
+    if (this.state.tokens[0]?.id === call.tokenId) this.state.tokens[0] = { ...this.state.tokens[0], carried: outcome };
     const name = describeNode(node, 'el subproceso');
     this.say(how === 'returned'
-      ? entry(`terminó ${name}; el proceso continúa.`, 'step', [call.nodeId])
+      ? entry(outcome ? `terminó ${name} en «${outcome.label}»; el proceso continúa.` : `terminó ${name}; el proceso continúa.`, 'step', [call.nodeId])
       : entry(`se sigue sin entrar en ${name}, como si fuera un solo paso.`, 'step', [call.nodeId]));
     this.advance(true);
   }
@@ -221,10 +276,10 @@ class Walk {
   }
 }
 
-function start(diagram: Diagram): WalkState {
+function start(diagram: Diagram, facts: WalkFact[] = []): WalkState {
   const graph = buildFlowGraph(diagram);
   const starts = startNodeIds(graph);
-  const empty: WalkState = { tokens: [], waiting: {}, choice: null, call: null, status: 'running', log: [], visitedNodeIds: [], visitedEdgeIds: [], nextTokenId: 0 };
+  const empty: WalkState = { tokens: [], waiting: {}, choice: null, call: null, status: 'running', log: [], visitedNodeIds: [], visitedEdgeIds: [], nextTokenId: 0, facts: [...facts], outcome: null };
   if (starts.length === 0) {
     return { ...empty, status: 'stuck', log: [entry('no hay nodo inicial: el recorrido no sabe por dónde empezar.', 'warning', [])] };
   }
@@ -248,10 +303,10 @@ function step(diagram: Diagram, state: WalkState, chosenEdgeId?: string): WalkSt
   return walk.result();
 }
 
-function resumeCall(diagram: Diagram, state: WalkState, how: 'skipped' | 'returned'): WalkState {
+function resumeCall(diagram: Diagram, state: WalkState, how: 'skipped' | 'returned', result?: WalkReturn): WalkState {
   if (state.status !== 'call') return state;
   const walk = new Walk(diagram, buildFlowGraph(diagram), state);
-  walk.resume(how);
+  walk.resume(how, result);
   walk.settle();
   return walk.result();
 }

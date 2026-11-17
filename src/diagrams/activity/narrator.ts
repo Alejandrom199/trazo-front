@@ -189,7 +189,7 @@ class ActivityNarrator {
       case A.objectNode:
         return this.sayStep(depth, `se genera el objeto ${label ? `«${label}»` : 'sin nombre'}.`, node, edge);
       case A.activityFinal:
-        return this.sayStep(depth, 'el proceso termina.', node, edge, 'end');
+        return this.sayStep(depth, node.label.trim() ? `el proceso termina con el resultado «${node.label.trim()}».` : 'el proceso termina.', node, edge, 'end');
       case A.flowFinal:
         return this.sayStep(depth, 'este flujo termina; el resto del proceso sigue su curso.', node, edge, 'end');
       default:

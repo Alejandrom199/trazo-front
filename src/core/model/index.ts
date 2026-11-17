@@ -20,6 +20,7 @@ export * from './nodeName';
 export * from './projectValidation';
 export * from './diagramLink';
 export * from './walkthrough';
+export * from './walkMemory';
 export * from './projectMap';
 export * from './requirements';
 export * from './requirementGuide';

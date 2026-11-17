@@ -1,9 +1,12 @@
 import {
+  answersMatch,
+  isElseGuard,
   isLinkAlive,
   nodeName,
   readLinkedDiagramId,
   requirementCoverage,
   type Diagram,
+  type DiagramEdge,
   type DiagramNode,
   type DiagramType,
   type ProjectIssue,
@@ -269,6 +272,76 @@ export const subprocessUnlinked: ProjectRule = {
   },
 };
 
+/** Decisiones a las que se llega desde `nodeId` sin más pasos que fusiones: las que deciden sobre su resultado. */
+function decisionsAfter(diagram: Diagram, nodeId: string): DiagramNode[] {
+  const byId = new Map(diagram.nodes.map((node) => [node.id, node]));
+  const found: DiagramNode[] = [];
+  const seen = new Set<string>([nodeId]);
+  const pending = [nodeId];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    for (const edge of diagram.edges.filter((candidate) => candidate.sourceId === current)) {
+      const target = byId.get(edge.targetId);
+      if (!target || seen.has(target.id)) continue;
+      seen.add(target.id);
+      if (target.artifactType === ActivityArtifact.merge) pending.push(target.id);
+      else if (target.artifactType === ActivityArtifact.decision && diagram.edges.filter((out) => out.sourceId === target.id).length > 1) found.push(target);
+    }
+  }
+  return found;
+}
+
+const exitGuard = (edge: Pick<DiagramEdge, 'guard' | 'label'>) => edge.guard?.trim() || edge.label.trim();
+
+/**
+ * Resultado del subproceso sin camino. Cuando una decisión sigue a un
+ * subproceso, decide sobre cómo terminó: sus salidas deben llamarse como los
+ * finales del subproceso. Si los finales no tienen nombre, el lector (y el
+ * recorrido) no sabe qué resultado trae; si un final no tiene salida, ese
+ * resultado queda sin camino. Las reglas de coincidencia son las del recorrido.
+ */
+export const subprocessOutcomeUnmatched: ProjectRule = {
+  id: 'project.subprocess-outcome-unmatched',
+  severity: 'info',
+  title: 'Resultado del subproceso sin camino',
+  explanation: 'Un subproceso que puede terminar de varias formas devuelve su resultado con el nombre de cada final («Sin ejemplares»). La decisión que lo sigue debe tener una salida para cada resultado, con la misma palabra en la guarda, o una [else]. Así el proceso no vuelve a preguntar lo que el subproceso ya resolvió.',
+  check(snapshot) {
+    const byId = new Map(snapshot.diagrams.map((diagram) => [diagram.id, diagram]));
+    return ofType(snapshot, 'activity').flatMap((diagram) =>
+      diagram.nodes
+        .filter((node) => node.artifactType === ActivityArtifact.callBehavior)
+        .flatMap((call) => {
+          const sub = byId.get(readLinkedDiagramId(call) ?? '');
+          if (!sub || sub.diagramType !== 'activity') return [];
+          const finals = sub.nodes.filter((node) => node.artifactType === ActivityArtifact.activityFinal);
+          const outcomes = [...new Set(finals.map((node) => node.label.trim()).filter(Boolean))];
+          return decisionsAfter(diagram, call.id).flatMap((decision): ProjectIssue[] => {
+            const guards = diagram.edges.filter((edge) => edge.sourceId === decision.id).map(exitGuard);
+            const question = nodeName(decision, 'sin pregunta');
+            const elements = [nodeEndpoint(diagram, decision), ...finals.map((node) => nodeEndpoint(sub, node))];
+            if (outcomes.length === 0) {
+              return [{
+                ruleId: subprocessOutcomeUnmatched.id,
+                severity: 'info',
+                message: `La decisión «${question}» sigue a «${nodeName(call)}», pero los finales de «${sub.name}» no tienen nombre: no se sabe qué resultado trae.`,
+                suggestion: `Nombra cada final de «${sub.name}» como la guarda que le corresponde${guards.some(Boolean) ? ` (${guards.filter(Boolean).map((guard) => `«${guard}»`).join(', ')})` : ''}.`,
+                elements,
+              }];
+            }
+            if (guards.some(isElseGuard)) return [];
+            const orphan = outcomes.filter((outcome) => !guards.some((guard) => answersMatch(guard, outcome)));
+            return orphan.length === 0 ? [] : [{
+              ruleId: subprocessOutcomeUnmatched.id,
+              severity: 'warning',
+              message: `«${sub.name}» puede terminar en ${orphan.map((outcome) => `«${outcome}»`).join(', ')}, pero la decisión «${question}» no tiene salida para ${orphan.length > 1 ? 'esos resultados' : 'ese resultado'}.`,
+              suggestion: 'Agrega la salida con esa guarda, renombra la guarda o el final para que coincidan, o usa [else].',
+              elements,
+            }];
+          });
+        }));
+  },
+};
+
 /**
  * Requisito sin cubrir: ningún diagrama ni elemento lo cumple. Si ya está
  * aprobado o implementado, es una advertencia; si solo está propuesto, una
@@ -317,5 +390,5 @@ export const brokenRequirementLink: ProjectRule = {
 
 /** Reglas de proyecto, en el orden en que se muestran dentro de cada gravedad. */
 export const projectRules: readonly ProjectRule[] = [
-  brokenTraceLink, brokenDiagramLink, brokenRequirementLink, messageWithoutOperation, inconsistentName, requirementUncovered, lifelineWithoutType, subprocessUnlinked, useCaseNotDetailed,
+  brokenTraceLink, brokenDiagramLink, brokenRequirementLink, messageWithoutOperation, inconsistentName, requirementUncovered, lifelineWithoutType, subprocessUnlinked, subprocessOutcomeUnmatched, useCaseNotDetailed,
 ];

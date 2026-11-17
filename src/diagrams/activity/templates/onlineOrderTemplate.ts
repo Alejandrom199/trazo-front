@@ -5,12 +5,14 @@ import { createTemplateBuilder } from './templateBuilder';
 /**
  * Intermedio: un marco de actividad con tres carriles que muestran quién hace
  * cada paso de un pedido online. El cobro es un subproceso (⋔): su detalle va en
- * otro diagrama; en el proyecto de ejemplo se enlaza con «Procesar pago».
+ * otro diagrama; en el proyecto de ejemplo se enlaza con «Procesar pago». La
+ * decisión que lo sigue usa su resultado: sus guardas se llaman como los finales
+ * del subproceso («pago aprobado», «pago rechazado»).
  */
 function buildOnlineOrderTemplate() {
   const t = createTemplateBuilder();
   const laneWidth = 260;
-  const laneHeight = 710;
+  const laneHeight = 800;
   const customer = { x: 130 };
   const system = { x: 390 };
   const warehouse = { x: 650 };
@@ -29,10 +31,12 @@ function buildOnlineOrderTemplate() {
   const cancelled = t.node(A.activityFinal, '', { ...customer, y: 440 });
   // Su detalle es el ejemplo «Procesar pago»: se crea al pedirlo (Propiedades o recorrido).
   const charge = t.node(A.callBehavior, 'Procesar pago', { ...system, y: 450 }, undefined, { [LINKED_TEMPLATE_ID_KEY]: 'activity.process-payment' });
-  const pack = t.node(A.action, 'Preparar paquete', { ...warehouse, y: 450 });
-  const ship = t.node(A.action, 'Despachar pedido', { ...warehouse, y: 550 });
-  const receive = t.node(A.action, 'Recibir pedido', { ...customer, y: 550 });
-  const end = t.node(A.activityFinal, '', { ...customer, y: 650 });
+  const paid = t.node(A.decision, '¿Pago aprobado?', { ...system, y: 550 });
+  const unpaid = t.node(A.activityFinal, '', { ...system, y: 650 });
+  const pack = t.node(A.action, 'Preparar paquete', { ...warehouse, y: 550 });
+  const ship = t.node(A.action, 'Despachar pedido', { ...warehouse, y: 650 });
+  const receive = t.node(A.action, 'Recibir pedido', { ...customer, y: 650 });
+  const end = t.node(A.activityFinal, '', { ...customer, y: 740 });
 
   t.flow(start, choose);
   t.flow(choose, confirm);
@@ -41,7 +45,9 @@ function buildOnlineOrderTemplate() {
   t.flow(inStock, charge, 'hay stock');
   t.flow(inStock, noStockNotice, 'sin stock');
   t.flow(noStockNotice, cancelled);
-  t.flow(charge, pack);
+  t.flow(charge, paid);
+  t.flow(paid, pack, 'pago aprobado');
+  t.flow(paid, unpaid, 'pago rechazado');
   t.flow(pack, ship);
   t.flow(ship, receive);
   t.flow(receive, end);

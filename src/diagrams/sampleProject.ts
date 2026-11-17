@@ -74,9 +74,10 @@ function availabilityProcess(): Template {
   const query = t.node(A.action, 'Consultar el catálogo', { x: 260, y: 120 });
   const copies = t.node(A.decision, '¿Hay ejemplares libres?', { x: 260, y: 210 });
   const hold = t.node(A.action, 'Apartar un ejemplar', { x: 260, y: 300 });
-  const ok = t.node(A.activityFinal, '', { x: 260, y: 380 });
+  // Los finales con nombre son el resultado que usa «¿Disponible?» en el proceso mayor.
+  const ok = t.node(A.activityFinal, 'disponible', { x: 260, y: 380 });
   const blocked = t.node(A.action, 'Informar que no hay ejemplares', { x: 540, y: 210 });
-  const none = t.node(A.activityFinal, '', { x: 540, y: 300 });
+  const none = t.node(A.activityFinal, 'no disponible', { x: 540, y: 300 });
   t.flow(start, query);
   t.flow(query, copies);
   t.flow(copies, hold, 'sí');
