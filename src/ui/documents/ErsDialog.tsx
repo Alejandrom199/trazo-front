@@ -1,8 +1,8 @@
-import { faCheck, faCopy, faFileWord, faImages, faPrint, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCopy, faFileWord, faImages, faPenToSquare, faPrint, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { DiagramProject } from '@/core/model';
+import { emptyProjectDocument, type DiagramProject } from '@/core/model';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
 import { useDiagramImageExport } from '@/canvas/exportImage';
@@ -11,6 +11,7 @@ import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { openSavedDiagram } from '@/ui/projects/projectActions';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 import { useUiStore } from '@/ui/uiStore';
+import { ErsDataPanel, pendingFields } from './ErsDataPanel';
 import { buildErsHtml, toWordDocument } from './ersDocument';
 
 /** Fotogramas que se esperan, como mucho, a que el lienzo dibuje un diagrama recién abierto. */
@@ -34,6 +35,16 @@ function ErsScreen({ project }: { project: DiagramProject }) {
   const [images, setImages] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(true);
+  const pending = pendingFields(project.document ?? emptyProjectDocument());
+  // Al cambiar un dato, el documento se vuelve a cargar: se queda donde se estaba leyendo.
+  const readingAt = useRef(0);
+  function keepScroll() {
+    const view = frameRef.current?.contentWindow;
+    if (!view) return;
+    view.scrollTo(0, readingAt.current);
+    view.addEventListener('scroll', () => { readingAt.current = view.scrollY; });
+  }
   const html = useMemo(() => buildErsHtml({ project, diagrams, images, date: new Date() }), [project, diagrams, images]);
   const exportImage = useDiagramImageExport();
   const { getNodes } = useReactFlow();
@@ -105,6 +116,10 @@ function ErsScreen({ project }: { project: DiagramProject }) {
           <h2 id="ers-title" className="truncate text-sm font-semibold text-ink-900">Documento ERS · {project.name}</h2>
           <p className="text-[11px] text-ink-400">Se arma con los requisitos, las fichas, los diagramas, los vínculos y los casos de prueba del proyecto</p>
         </div>
+        <button type="button" onClick={() => setEditing(!editing)} aria-pressed={editing} className={`${button} ${editing ? 'bg-accent-soft text-accent' : 'text-ink-600 hover:bg-raised hover:text-ink-900'}`}>
+          <FontAwesomeIcon icon={faPenToSquare} className="text-xs" /> Datos del documento
+          {pending > 0 && <span className="rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold text-warning" title="Campos por completar">{pending}</span>}
+        </button>
         <button type="button" onClick={() => void captureImages()} disabled={busy} title="Abre cada diagrama un momento para capturarlo y vuelve al que tenías abierto" className={`${button} text-ink-600 hover:bg-raised hover:text-ink-900`}>
           <FontAwesomeIcon icon={faImages} className="text-xs" />
           {busy ? `Capturando ${progress.done} de ${progress.total}…` : imageCount > 0 ? `Actualizar imágenes (${imageCount})` : 'Agregar imágenes de los diagramas'}
@@ -122,7 +137,14 @@ function ErsScreen({ project }: { project: DiagramProject }) {
           <FontAwesomeIcon icon={faXmark} />
         </button>
       </header>
-      <iframe ref={frameRef} title={`Documento ERS de ${project.name}`} srcDoc={html} className="min-h-0 flex-1 bg-white" />
+      <div className="flex min-h-0 flex-1 max-lg:flex-col">
+        {editing && (
+          <aside aria-label="Datos del documento" className="w-[26rem] shrink-0 overflow-y-auto border-r border-line bg-surface max-lg:h-1/2 max-lg:w-full max-lg:border-r-0 max-lg:border-b">
+            <ErsDataPanel document={project.document} />
+          </aside>
+        )}
+        <iframe ref={frameRef} title={`Documento ERS de ${project.name}`} srcDoc={html} onLoad={keepScroll} className="min-h-0 min-w-0 flex-1 bg-white" />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addNode, createEmptyDiagram, type DiagramProject } from '@/core/model';
+import { addNode, createEmptyDiagram, emptyProjectDocument, parseProjectDocument, type DiagramProject } from '@/core/model';
 import { projectFromJson, projectToJson } from './projectFormat';
 
 describe('formato de proyecto', () => {
@@ -22,6 +22,13 @@ describe('formato de proyecto', () => {
     };
     const result = projectFromJson(projectToJson(withTests, [diagram]));
     expect(result.ok && result.project.testCases).toEqual([{ ...withTests.testCases[0], requirementIds: [] }]);
+  });
+
+  it('conserva los datos del documento ERS y lee con tolerancia lo que falta', () => {
+    const withDocument: DiagramProject = { ...project, document: { ...emptyProjectDocument(), problem: 'Filas en el mostrador', audience: [{ name: 'Socios', role: 'Usuario', responsibility: '', interests: '', contact: '' }] } };
+    const result = projectFromJson(projectToJson(withDocument, [diagram]));
+    expect(result.ok && result.project.document).toEqual(withDocument.document);
+    expect(parseProjectDocument({ problem: 3, glossary: [{ term: 'Ejemplar' }, 'basura'] })).toEqual({ ...emptyProjectDocument(), glossary: [{ term: 'Ejemplar', definition: '', alias: '', abbreviation: '' }] });
   });
 
   it('rechaza un JSON que no es un proyecto', () => {

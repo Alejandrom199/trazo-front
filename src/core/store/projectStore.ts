@@ -12,6 +12,8 @@ import {
   type RequirementKind,
   type RequirementLink,
   type TestCase,
+  type ProjectDocument,
+  emptyProjectDocument,
   type TraceEndpoint,
   type TraceLink,
   type TraceRelation,
@@ -63,6 +65,8 @@ interface ProjectState {
   addTestCase: (draft: Pick<TestCase, 'diagramId' | 'choices' | 'title' | 'given' | 'when' | 'then'>) => string | null;
   updateTestCase: (testCaseId: string, patch: Partial<Omit<TestCase, 'id' | 'diagramId' | 'createdAt'>>) => void;
   deleteTestCase: (testCaseId: string) => void;
+  /** Cambia datos del documento ERS (problema, audiencia, glosario…). */
+  updateDocument: (patch: Partial<ProjectDocument>) => void;
   /** Crea una carpeta al final y devuelve su id (null sin proyecto abierto). */
   createFolder: (name: string) => string | null;
   renameFolder: (folderId: string, name: string) => void;
@@ -261,6 +265,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     if (Object.entries(next).every(([key, value]) => current[key as keyof TestCase] === value)) return null;
     return { testCases: project.testCases.map((item) => (item.id === testCaseId ? next : item)) };
   })),
+  updateDocument: (patch) => set((state) => changeActive(state, (project) => ({ document: { ...(project.document ?? emptyProjectDocument()), ...patch } }))),
   deleteTestCase: (testCaseId) => set((state) => changeActive(state, (project) =>
     (project.testCases.some((item) => item.id === testCaseId) ? { testCases: project.testCases.filter((item) => item.id !== testCaseId) } : null))),
 }));

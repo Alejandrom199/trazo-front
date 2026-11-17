@@ -1,6 +1,7 @@
 import {
   createDiagramFromTemplate,
   draftTestCase,
+  emptyProjectDocument,
   enumerateScenarios,
   nodeName,
   requirementDefaults,
@@ -10,6 +11,7 @@ import {
   type Requirement,
   type RequirementLink,
   type TestCase,
+  type ProjectDocument,
   type DiagramRelation,
   type Template,
   type TraceEndpoint,
@@ -91,6 +93,48 @@ function availabilityProcess(): Template {
   return t.build({ id: 'sample.availability', name: 'Validar disponibilidad', description: 'Detalle del subproceso: se consulta el catálogo y se aparta un ejemplar si lo hay.', difficulty: 'básico', learningGoals: [] });
 }
 
+/** Descripción de cada actor (sus notas en el diagrama): el ERS la usa en 5.1 Actores. */
+const ACTOR_NOTES: Record<string, string> = {
+  Socio: 'Persona inscrita en la biblioteca que busca, pide y devuelve libros desde el portal.',
+  Bibliotecario: 'Empleado de la biblioteca que entrega los libros prestados y recibe las devoluciones.',
+};
+
+/**
+ * Datos del documento ERS del ejemplo (lo que el modelo no sabe): con ellos el
+ * ERS de «Biblioteca Digital» sale completo.
+ */
+const SAMPLE_DOCUMENT: ProjectDocument = {
+  ...emptyProjectDocument(),
+  client: 'Biblioteca Municipal Central',
+  version: '1.0',
+  problem: 'La biblioteca presta sus libros solo en el mostrador: el socio debe acercarse para saber si hay ejemplares y el bibliotecario registra cada préstamo a mano en fichas de papel.\nAfecta a: socios, bibliotecarios y la dirección de la biblioteca.\nCuyo impacto es:\n- Filas en el mostrador en las horas de más demanda.\n- Préstamos sin registrar o con la fecha de devolución equivocada.\n- No se sabe qué libros están prestados ni a quién sin revisar las fichas.',
+  objective: 'Para la Biblioteca Municipal Central, que necesita prestar sus libros sin filas y con un registro confiable, el producto Biblioteca Digital es un portal web que permite a los socios buscar, pedir y reservar libros, y a los bibliotecarios registrar entregas y devoluciones.',
+  scope: 'La solución permitirá:\n- Módulo de catálogo: buscar libros y ver cuántos ejemplares están libres.\n- Módulo de préstamos: pedir un libro, registrar la entrega y la devolución, con fecha de devolución a 15 días.\n- Módulo de reservas: reservar un libro sin ejemplares libres y avisar cuando se libere.',
+  notIncluded: '- El cobro de multas en línea.\n- Los libros digitales (préstamo de PDF o e-books).',
+  risks: '- Que los socios de más edad no usen el portal: se mantiene la atención en el mostrador.\n- Que el catálogo inicial tenga ejemplares mal registrados: se hará un inventario antes de empezar.',
+  context: 'La biblioteca atiende a unos 3 000 socios, tiene alrededor de 12 000 ejemplares y trabajan 6 bibliotecarios en dos turnos.',
+  future: '- Avisos por correo antes del vencimiento (RF-04).\n- Aplicación móvil para socios.',
+  glossary: [
+    { term: 'Ejemplar', definition: 'Cada copia física de un libro; un libro puede tener varios.', alias: 'Copia', abbreviation: '' },
+    { term: 'Préstamo activo', definition: 'Préstamo entregado al socio y aún no devuelto.', alias: '', abbreviation: '' },
+    { term: 'Reserva', definition: 'Pedido de un libro sin ejemplares libres; caduca a los 3 días de quedar disponible.', alias: '', abbreviation: '' },
+  ],
+  audience: [
+    { name: 'Dirección de la biblioteca', role: 'Patrocinador', responsibility: 'Aprobar el proyecto y su alcance', interests: 'Reducir filas y tener un registro confiable', contact: '' },
+    { name: 'Bibliotecarios', role: 'Usuario directo', responsibility: 'Registrar entregas y devoluciones', interests: 'Menos trabajo manual y menos errores', contact: '' },
+    { name: 'Socios', role: 'Usuario directo', responsibility: 'Buscar, pedir y devolver libros', interests: 'Pedir libros sin ir al mostrador', contact: '' },
+    { name: 'Analista de requerimientos', role: 'Equipo', responsibility: 'Especificar y validar los requerimientos', interests: 'Requerimientos claros y verificables', contact: '' },
+  ],
+  userInterfaces: 'Portal web adaptable a computadora y teléfono, con búsqueda en la parte superior, el detalle de cada libro con su disponibilidad y la lista de préstamos del socio.',
+  hardwareInterfaces: 'No aplica: se usa el lector de código de barras del mostrador como un teclado.',
+  softwareInterfaces: 'Base de datos PostgreSQL gestionada; servicio de correo para los avisos (versión futura).',
+  communicationInterfaces: 'HTTPS entre el portal y la API; la base de datos solo acepta conexiones de la API (TCP 5432).',
+  designConstraints: '- API REST en un contenedor Docker.\n- La base de datos no se expone a internet.',
+  licensing: 'No aplica: se usa software de código abierto.',
+  changeControl: '- Toda solicitud de cambio la aprueba la dirección de la biblioteca.\n- El analista evalúa su impacto con el mapa del proyecto y la matriz de trazabilidad.\n- Se acuerda la prioridad y la versión en que entra.\n- Se actualizan los requerimientos, los diagramas y los casos de prueba afectados.',
+  observations: 'Ninguna.',
+};
+
 /** Fichas de los casos de uso del ejemplo, por nombre del caso. */
 const USE_CASE_SPECS: Record<string, UseCaseSpec> = {
   'Buscar un libro': {
@@ -157,6 +201,8 @@ export function buildSampleProject(createId: () => string, now: Date = new Date(
     ...useCasesBase,
     nodes: useCasesBase.nodes.map((node) => {
       const spec = USE_CASE_SPECS[nodeName(node, '')];
+      const actorNotes = ACTOR_NOTES[nodeName(node, '')];
+      if (actorNotes) return { ...node, notes: actorNotes };
       return spec ? { ...node, props: withSpec(node.props, spec) } : node;
     }),
   };
@@ -296,7 +342,7 @@ export function buildSampleProject(createId: () => string, now: Date = new Date(
   ];
 
   return {
-    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks, testCases },
+    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks, testCases, document: SAMPLE_DOCUMENT },
     diagrams,
   };
 }

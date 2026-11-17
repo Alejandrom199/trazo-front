@@ -1,5 +1,6 @@
 import {
   isTraceRelation,
+  parseProjectDocument,
   PROJECT_FILE_FORMAT,
   PROJECT_SCHEMA_VERSION,
   type Diagram,
@@ -25,6 +26,7 @@ export function projectToJson(project: DiagramProject, diagrams: Diagram[]): str
     requirements: project.requirements,
     requirementLinks: project.requirementLinks,
     testCases: project.testCases,
+    ...(project.document ? { document: project.document } : {}),
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };
@@ -75,6 +77,7 @@ export function projectFromJson(text: string): ProjectParseResult {
       ...parseOrganization(raw, diagramIds),
       ...requirements,
       testCases: parseTestCases(raw, diagramIds, requirements.requirements.map((item) => item.id)),
+      ...(raw.document !== undefined ? { document: parseProjectDocument(raw.document) } : {}),
       createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date(0).toISOString(),
       updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date(0).toISOString(),
     },

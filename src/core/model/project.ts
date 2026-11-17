@@ -1,6 +1,7 @@
 import type { Diagram } from './diagram';
 import type { Requirement, RequirementLink } from './requirements';
 import type { TestCase } from './testCases';
+import type { ProjectDocument } from './projectDocument';
 
 export const PROJECT_FILE_FORMAT = 'trazo-project';
 /** v3: carpetas y relaciones entre diagramas completos. v4: requisitos y su trazabilidad. */
@@ -74,6 +75,8 @@ export interface DiagramProject {
   requirementLinks: RequirementLink[];
   /** Casos de prueba: caminos de los procesos con lo que debe pasar, y los requisitos que verifican. */
   testCases: TestCase[];
+  /** Datos del documento ERS que el modelo no tiene (problema, audiencia, glosario…). Sin valor: vacío. */
+  document?: ProjectDocument;
   createdAt: string;
   updatedAt: string;
 }
@@ -143,6 +146,7 @@ export interface DiagramProjectFile {
   requirements: Requirement[];
   requirementLinks: RequirementLink[];
   testCases: TestCase[];
+  document?: ProjectDocument;
   createdAt: string;
   updatedAt: string;
 }

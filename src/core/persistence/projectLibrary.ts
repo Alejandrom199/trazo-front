@@ -1,4 +1,4 @@
-import { isTraceRelation, type DiagramProject, type TraceEndpoint, type TraceLink } from '@/core/model';
+import { isTraceRelation, parseProjectDocument, type DiagramProject, type TraceEndpoint, type TraceLink } from '@/core/model';
 import { parseOrganization, parseRequirements, parseTestCases } from './projectOrganization';
 import type { KeyValueStorage } from './diagramRepository';
 
@@ -65,6 +65,7 @@ export function parseStoredProject(raw: unknown): DiagramProject | null {
     ...parseOrganization(raw, diagramIds),
     ...requirements,
     testCases: parseTestCases(raw, diagramIds, requirements.requirements.map((item) => item.id)),
+    ...(raw.document !== undefined ? { document: parseProjectDocument(raw.document) } : {}),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
   };
