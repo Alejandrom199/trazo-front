@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMapEdges, coverageSummary, readLinkedDiagramId, requirementCoverage, validateDiagram, validateProject } from '@/core/model';
+import { buildMapEdges, coverageSummary, readLinkedDiagramId, requirementCoverage, reviewRequirement, validateDiagram, validateProject } from '@/core/model';
 import { createRegistry } from '@/core/registry';
 import { registerDiagramModules } from '.';
 import { projectRules } from './crossDiagram';
@@ -40,5 +40,10 @@ describe('proyecto de ejemplo Biblioteca Digital', () => {
     expect(coverage.filter((item) => !item.covered).map((item) => item.requirement.code)).toEqual(['RF-04']);
     expect(coverage.every((item) => item.broken.length === 0)).toBe(true);
     expect(coverageSummary(coverage)).toEqual({ total: 6, covered: 5, percent: 83 });
+  });
+
+  it('Dadas sus fichas, Entonces sirven de modelo: ninguna tiene advertencias del revisor', () => {
+    const warnings = project.requirements.map((item) => [item.code, reviewRequirement(item).filter((hint) => hint.level === 'warning').map((hint) => hint.text)]);
+    expect(warnings).toEqual(project.requirements.map((item) => [item.code, []]));
   });
 });

@@ -17,8 +17,6 @@ import {
   coverageSummary,
   impactOf,
   REQUIREMENT_KINDS,
-  REQUIREMENT_PRIORITIES,
-  REQUIREMENT_STATUSES,
   requirementCoverage,
   requirementMatrix,
   type Diagram,
@@ -31,6 +29,7 @@ import { normalizeName } from '@/diagrams/crossDiagram/names';
 import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { inputClass } from '@/ui/explanation/formFields';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
+import { GuideCard, QualityPanel, RequirementSheetForm, RequirementSheetTable } from './RequirementSheet';
 import { elementOptions, openTarget, targetLabel } from '@/ui/traceability/elementLabels';
 import { useUiStore } from '@/ui/uiStore';
 
@@ -217,13 +216,17 @@ function EmptyState({ onCreate }: { onCreate: (kind: RequirementKind) => void })
   );
 }
 
-/** Editor de un requisito: datos, lo que lo cumple (navegable), vincular, impacto y borrar. */
+/**
+ * Editor de un requisito: su ficha (editable o lista para copiar), el revisor
+ * de calidad y la guía de cómo declararlo; debajo, lo que lo cumple, vincular,
+ * ver el impacto y borrar.
+ */
 function Editor({ item, diagrams, onImpact, onOpen }: { item: RequirementCoverage; diagrams: Diagram[]; onImpact: () => void; onOpen: (diagramId: string, elementId: string | null) => void }) {
   const { requirement } = item;
-  const update = (patch: Parameters<ReturnType<typeof useProjectStore.getState>['updateRequirement']>[1]) => projects().updateRequirement(requirement.id, patch);
   const [diagramId, setDiagramId] = useState(diagrams[0]?.id ?? '');
   const [elementKey, setElementKey] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [sheetView, setSheetView] = useState<'edit' | 'table'>('edit');
   const target = diagrams.find((diagram) => diagram.id === diagramId);
   // Se elige la lista y se filtra aparte: un selector que devuelve un arreglo nuevo en cada render haría renders en bucle.
   const allLinks = useProjectStore((state) => state.project?.requirementLinks);
@@ -231,20 +234,29 @@ function Editor({ item, diagrams, onImpact, onOpen }: { item: RequirementCoverag
 
   return (
     <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6 lg:px-8" aria-label={`Requisito ${requirement.code}`}>
-      <div className="flex flex-wrap items-start gap-3">
-        <input aria-label="Código" defaultValue={requirement.code} onBlur={(event) => update({ code: event.target.value })} className={`w-24 rounded-lg px-2 py-1.5 text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-accent/30 ${KIND_STYLE[requirement.kind]}`} />
-        <input aria-label="Título" defaultValue={requirement.title} onBlur={(event) => update({ title: event.target.value })} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xl font-semibold text-ink-900 outline-none hover:border-line focus:border-accent" />
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`rounded-lg px-2 py-1 text-sm font-semibold tabular-nums ${KIND_STYLE[requirement.kind]}`}>{requirement.code}</span>
+        <h3 className="min-w-0 flex-1 truncate text-xl font-semibold text-ink-900">{requirement.title}</h3>
+        <div role="tablist" aria-label="Vista de la ficha" className="flex rounded-lg bg-canvas p-0.5">
+          {([['edit', 'Editar ficha'], ['table', 'Ver ficha']] as const).map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={sheetView === id} onClick={() => setSheetView(id)} className={`h-8 rounded-md px-3 text-xs font-medium ${sheetView === id ? 'bg-surface text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <Select label="Tipo" value={requirement.kind} options={REQUIREMENT_KINDS.map((kind) => [kind.id, kind.name])} onChange={(kind) => update({ kind: kind as RequirementKind })} />
-        <Select label="Prioridad" value={requirement.priority} options={REQUIREMENT_PRIORITIES.map((priority) => [priority, priority])} onChange={(priority) => update({ priority: priority as typeof requirement.priority })} />
-        <Select label="Estado" value={requirement.status} options={REQUIREMENT_STATUSES.map((status) => [status, status])} onChange={(status) => update({ status: status as typeof requirement.status })} />
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0">
+          {sheetView === 'edit'
+            ? <RequirementSheetForm requirement={requirement} />
+            : <RequirementSheetTable requirement={requirement} fulfilledBy={item.links.map((link) => targetLabel(diagrams, link.diagramId, link.elementId))} />}
+        </div>
+        <aside className="space-y-4">
+          <QualityPanel requirement={requirement} />
+          <GuideCard kind={requirement.kind} />
+        </aside>
       </div>
-      <label className="mt-4 block">
-        <span className="mb-1 block text-[11px] font-medium text-ink-400">Descripción y criterio de aceptación</span>
-        <textarea defaultValue={requirement.description} onBlur={(event) => update({ description: event.target.value })} rows={3} placeholder="Qué debe pasar para darlo por cumplido" className={`${inputClass} resize-y`} />
-      </label>
 
       <section className="mt-6">
         <div className="flex items-center gap-2">
@@ -314,16 +326,6 @@ function Editor({ item, diagrams, onImpact, onOpen }: { item: RequirementCoverag
   );
 }
 
-function Select({ label, value, options, onChange }: { label: string; value: string; options: readonly (readonly [string, string])[]; onChange: (value: string) => void }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[11px] font-medium text-ink-400">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className={`${inputClass} capitalize`}>
-        {options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-      </select>
-    </label>
-  );
-}
 
 /**
  * Matriz requisitos × diagramas. Cada celda dice cuántos elementos de ese

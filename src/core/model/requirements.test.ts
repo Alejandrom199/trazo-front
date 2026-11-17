@@ -6,6 +6,7 @@ import {
   impactOf,
   nextRequirementCode,
   requirementCoverage,
+  requirementDefaults,
   requirementMatrix,
   type Requirement,
   type RequirementLink,
@@ -16,7 +17,7 @@ const node = (id: string, props: Record<string, unknown> = {}): DiagramNode => (
 });
 const diagram = (id: string, nodes: DiagramNode[]): Diagram => ({ ...createEmptyDiagram({ name: id, diagramType: 'activity' }), id, nodes });
 const requirement = (id: string, status: Requirement['status'] = 'aprobado'): Requirement => ({
-  id, code: id, title: id, description: '', kind: 'funcional', priority: 'media', status, createdAt: '',
+  ...requirementDefaults(), id, code: id, title: id, kind: 'funcional', status, createdAt: '',
 });
 const link = (id: string, requirementId: string, diagramId: string, elementId: string | null): RequirementLink => ({ id, requirementId, diagramId, elementId, createdAt: '' });
 

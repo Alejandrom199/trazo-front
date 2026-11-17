@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   moveDiagramInOrder,
   nextRequirementCode,
+  requirementDefaults,
   withoutDiagrams,
   type DiagramProject,
   type DiagramRelation,
@@ -208,7 +209,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     let created = false;
     set((state) => changeActive(state, (project) => {
       created = true;
-      const requirement: Requirement = { id, code: nextRequirementCode(project.requirements, kind), title: title.trim() || 'Requisito nuevo', description: '', kind, priority: 'media', status: 'propuesto', createdAt: new Date().toISOString() };
+      const requirement: Requirement = { ...requirementDefaults(), id, code: nextRequirementCode(project.requirements, kind), title: title.trim() || 'Requisito nuevo', kind, createdAt: new Date().toISOString() };
       return { requirements: [...project.requirements, requirement] };
     }));
     return created ? id : null;

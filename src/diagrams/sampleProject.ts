@@ -1,11 +1,11 @@
 import {
   createDiagramFromTemplate,
   nodeName,
+  requirementDefaults,
   withLinkedDiagram,
   type Diagram,
   type DiagramProject,
   type Requirement,
-  type RequirementKind,
   type RequirementLink,
   type DiagramRelation,
   type Template,
@@ -158,19 +158,57 @@ export function buildSampleProject(createId: () => string, now: Date = new Date(
   // propuesto y sin cubrir a propósito, para que la cobertura muestre lo pendiente.
   const requirements: Requirement[] = [];
   const requirementLinks: RequirementLink[] = [];
-  const require = (code: string, title: string, kind: RequirementKind, priority: Requirement['priority'], status: Requirement['status'], description: string, ...targets: (TraceEndpoint | Diagram)[]) => {
+  // Fichas completas, como se declaran en un documento de requisitos: texto
+  // como obligación, categoría, criterios, versión y revisión. La regla RN-01
+  // trae su fuente, una excepción y sus ejemplos Dado / Entonces.
+  const require = (sheet: Partial<Requirement> & Pick<Requirement, 'code' | 'title' | 'kind' | 'priority' | 'status' | 'description'>, ...targets: (TraceEndpoint | Diagram)[]) => {
     const id = createId();
-    requirements.push({ id, code, title, description, kind, priority, status, createdAt: now.toISOString() });
+    requirements.push({ ...requirementDefaults(), version: '1.1', reviewedAt: '2026-11-10', ...sheet, id, createdAt: now.toISOString() });
     for (const target of targets) {
       requirementLinks.push({ id: createId(), requirementId: id, diagramId: 'elementId' in target ? target.diagramId : target.id, elementId: 'elementId' in target ? target.elementId : null, createdAt: now.toISOString() });
     }
   };
-  require('RF-01', 'Pedir un libro prestado', 'funcional', 'alta', 'aprobado', 'El socio pide un libro desde el portal sin ir al mostrador.', endpoint(useCases, 'Pedir un préstamo'), loan);
-  require('RF-02', 'Validar la disponibilidad antes de prestar', 'funcional', 'alta', 'aprobado', 'Antes de registrar el préstamo se comprueba que haya un ejemplar libre.', endpoint(loan, 'Validar disponibilidad'), availability);
-  require('RF-03', 'Reservar un libro sin ejemplares', 'funcional', 'media', 'aprobado', 'Si no hay ejemplares, el socio puede dejar el libro reservado.', endpoint(loan, 'Reservar el libro'));
-  require('RN-01', 'No se presta un libro sin ejemplares libres', 'regla de negocio', 'alta', 'aprobado', 'La disponibilidad se decide por ejemplar, no por título.', endpoint(availability, '¿Hay ejemplares libres?'));
-  require('RNF-01', 'Los préstamos se guardan en una base gestionada', 'no funcional', 'media', 'aprobado', 'Base de datos relacional con respaldo diario, no expuesta a internet.', database, deployment);
-  require('RF-04', 'Avisar por correo la fecha de devolución', 'funcional', 'baja', 'propuesto', 'Un día antes del vencimiento, el socio recibe un recordatorio.');
+  require({
+    code: 'RF-01', title: 'Pedir un libro prestado', kind: 'funcional', category: 'Préstamos', priority: 'alta', status: 'aprobado',
+    description: 'El sistema permitirá a un socio pedir un libro prestado desde el portal, sin ir al mostrador.',
+    details: [
+      'El sistema deberá mostrar solo los libros con al menos un ejemplar libre como prestables.',
+      'El sistema deberá registrar la fecha del préstamo y la fecha de devolución (15 días después).',
+      'El sistema deberá confirmar el préstamo al socio con la fecha de devolución.',
+    ],
+  }, endpoint(useCases, 'Pedir un préstamo'), loan);
+  require({
+    code: 'RF-02', title: 'Validar la disponibilidad antes de prestar', kind: 'funcional', category: 'Préstamos', priority: 'alta', status: 'aprobado',
+    description: 'El sistema deberá comprobar que haya un ejemplar libre antes de registrar un préstamo.',
+    details: ['El sistema deberá apartar el ejemplar mientras se completa el préstamo.', 'Si no hay ejemplares libres, el sistema deberá ofrecer la reserva.'],
+  }, endpoint(loan, 'Validar disponibilidad'), availability);
+  require({
+    code: 'RF-03', title: 'Reservar un libro sin ejemplares', kind: 'funcional', category: 'Préstamos', priority: 'media', status: 'aprobado',
+    description: 'El sistema permitirá a un socio reservar un libro cuando no haya ejemplares libres.',
+    details: ['El sistema deberá avisar al socio cuando un ejemplar reservado quede libre.', 'Una reserva sin retirar caduca a los 3 días.'],
+  }, endpoint(loan, 'Reservar el libro'));
+  require({
+    code: 'RN-01', title: 'Disponibilidad por ejemplar', kind: 'regla de negocio', priority: 'alta', status: 'aprobado',
+    description: 'Un libro solo puede prestarse si al menos uno de sus ejemplares está libre.',
+    details: ['La disponibilidad se decide por ejemplar, no por título.'],
+    rule: {
+      type: 'restricción', source: 'Reglamento de préstamos de la biblioteca, art. 4', validFrom: '2026-01-01', validTo: '',
+      exceptions: ['Los ejemplares de consulta en sala nunca se prestan, aunque estén libres.'],
+      examples: [
+        { given: 'un libro con 2 ejemplares prestados y 1 libre', then: 'se puede prestar el ejemplar libre' },
+        { given: 'un libro con todos sus ejemplares prestados', then: 'no se puede prestar y se ofrece la reserva' },
+      ],
+    },
+  }, endpoint(availability, '¿Hay ejemplares libres?'));
+  require({
+    code: 'RNF-01', title: 'Resguardo de los datos de préstamos', kind: 'no funcional', category: 'Fiabilidad', priority: 'media', status: 'aprobado',
+    description: 'El sistema deberá guardar los préstamos en una base de datos gestionada con respaldo cada 24 horas.',
+    details: ['La base no deberá aceptar conexiones desde internet: solo desde la API.', 'Un respaldo deberá poder restaurarse en menos de 1 hora.'],
+  }, database, deployment);
+  require({
+    code: 'RF-04', title: 'Avisar la fecha de devolución', kind: 'funcional', category: 'Notificaciones', priority: 'baja', status: 'propuesto', version: '1.0', reviewedAt: '',
+    description: 'El sistema deberá enviar al socio un recordatorio por correo un día antes del vencimiento.',
+  });
 
   return {
     project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks },

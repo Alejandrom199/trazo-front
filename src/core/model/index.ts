@@ -22,3 +22,4 @@ export * from './diagramLink';
 export * from './walkthrough';
 export * from './projectMap';
 export * from './requirements';
+export * from './requirementGuide';

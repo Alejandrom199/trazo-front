@@ -25,16 +25,76 @@ export type RequirementPriority = (typeof REQUIREMENT_PRIORITIES)[number];
 export const REQUIREMENT_STATUSES = ['propuesto', 'aprobado', 'implementado', 'descartado'] as const;
 export type RequirementStatus = (typeof REQUIREMENT_STATUSES)[number];
 
+/**
+ * Tipos de regla de negocio (clasificación clásica de reglas):
+ * restricción: algo prohibido u obligatorio («un socio no puede…»);
+ * cálculo: cómo se obtiene un valor («la multa es 500 por día de atraso»);
+ * inferencia: una conclusión («si debe más de 30 días, es moroso»);
+ * acción: lo que el sistema hace cuando algo pasa («al vencer, se avisa»);
+ * definición: qué significa un término («préstamo activo es…»).
+ */
+export const RULE_TYPES = [
+  { id: 'restricción', name: 'Restricción', hint: 'Algo prohibido u obligatorio', example: 'Un socio no puede tener más de 3 préstamos activos.' },
+  { id: 'cálculo', name: 'Cálculo', hint: 'Cómo se obtiene un valor', example: 'La multa es de $500 por cada día de atraso.' },
+  { id: 'inferencia', name: 'Inferencia', hint: 'Una conclusión a partir de hechos', example: 'Si un socio debe un libro más de 30 días, es moroso.' },
+  { id: 'acción', name: 'Acción', hint: 'Lo que pasa cuando ocurre algo', example: 'Al vencer un préstamo, se avisa al socio por correo.' },
+  { id: 'definición', name: 'Definición', hint: 'Qué significa un término', example: 'Un préstamo activo es uno entregado y aún no devuelto.' },
+] as const;
+export type RuleType = (typeof RULE_TYPES)[number]['id'];
+
+/** Un caso que prueba la regla: dada una situación, entonces el resultado esperado. */
+export interface RuleExample {
+  given: string;
+  then: string;
+}
+
+/** Lo propio de una regla de negocio (solo se usa si el requisito es de ese tipo). */
+export interface BusinessRule {
+  type: RuleType;
+  /** Quién la dicta: una política interna, una ley, un contrato… */
+  source: string;
+  /** Desde y hasta cuándo aplica (AAAA-MM-DD; vacío = sin límite). */
+  validFrom: string;
+  validTo: string;
+  exceptions: string[];
+  examples: RuleExample[];
+}
+
 export interface Requirement {
   id: string;
   /** Código legible y único en el proyecto: «RF-01», «RN-03». */
   code: string;
   title: string;
+  /** El enunciado: «El sistema deberá…» o, en una regla, la regla misma. */
   description: string;
   kind: RequirementKind;
+  /** Subtipo libre: «Administración», «Rendimiento», «Seguridad»… */
+  category: string;
+  /** Detalles, restricciones y criterios de aceptación, uno por línea. */
+  details: string[];
   priority: RequirementPriority;
   status: RequirementStatus;
+  /** Versión del texto («1.1») y fecha de su última revisión (AAAA-MM-DD). */
+  version: string;
+  reviewedAt: string;
+  rule: BusinessRule;
   createdAt: string;
+}
+
+export const isRuleType = (value: unknown): value is RuleType => RULE_TYPES.some((type) => type.id === value);
+
+/** Lo que trae un requisito nuevo, para que todos (store, lectura, ejemplos) partan de lo mismo. */
+export function requirementDefaults(): Omit<Requirement, 'id' | 'code' | 'title' | 'kind' | 'createdAt'> {
+  return {
+    description: '',
+    category: '',
+    details: [],
+    priority: 'media',
+    status: 'propuesto',
+    version: '1.0',
+    reviewedAt: '',
+    rule: { type: 'restricción', source: '', validFrom: '', validTo: '', exceptions: [], examples: [] },
+  };
 }
 
 /**
