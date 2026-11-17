@@ -14,6 +14,8 @@ import {
   type RuleExample,
 } from '@/core/model';
 import { useProjectStore } from '@/core/store/projectStore';
+import { copyTable } from '@/ui/clipboard';
+import { requirementSheetHtml } from '@/ui/documents/sheetHtml';
 import { inputClass } from '@/ui/explanation/formFields';
 
 type Patch = Partial<Omit<Requirement, 'id' | 'createdAt'>>;
@@ -246,7 +248,6 @@ function formatDate(iso: string): string {
   const [year, month, day] = iso.split('-');
   return year && month && day ? `${Number(day)}/${Number(month)}/${year}` : iso;
 }
-const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
  * La ficha como tabla de documento, igual que en un informe. «Copiar» la deja
@@ -258,20 +259,11 @@ export function RequirementSheetTable({ requirement, fulfilledBy }: { requiremen
   const rows = sheetRows(requirement, fulfilledBy);
 
   async function copy() {
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt">${rows
-      .map(([label, value]) => `<tr><td style="background:#d9d9d9;font-weight:bold;width:30%">${escape(label)}:</td><td>${Array.isArray(value) ? `<ul>${value.map((item) => `<li>${escape(item)}</li>`).join('')}</ul>` : escape(value)}</td></tr>`)
-      .join('')}</table>`;
     const text = rows.map(([label, value]) => `${label}: ${Array.isArray(value) ? `\n${value.map((item) => `  • ${item}`).join('\n')}` : value}`).join('\n');
-    try {
-      if ('ClipboardItem' in window) {
-        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
-      } else {
-        await navigator.clipboard.writeText(text);
-      }
+    // Sin permiso de portapapeles: la tabla sigue a la vista para copiarla a mano.
+    if (await copyTable(requirementSheetHtml(rows), text)) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Sin permiso de portapapeles: la tabla sigue a la vista para copiarla a mano.
     }
   }
 

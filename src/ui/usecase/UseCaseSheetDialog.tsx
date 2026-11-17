@@ -10,6 +10,8 @@ import {
   nextUseCaseCode,
   readSpec,
   reviewSpec,
+  typicalCoursePairs,
+  useCaseSheetRows,
   USE_CASE_IMPORTANCE,
   USE_CASE_LEVEL,
   useCaseContext,
@@ -24,12 +26,12 @@ import { inputClass } from '@/ui/explanation/formFields';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 import { ListEditor, Row } from '@/ui/requirements/RequirementSheet';
 import { copyTable, escapeHtml } from '@/ui/clipboard';
+import { useCaseSheetHtml } from '@/ui/documents/sheetHtml';
 import { USE_CASE_SHEET_TIPS } from '@/diagrams/usecase/specGuide';
 import { LessonLink } from '@/ui/learn/LessonLink';
 import { useUiStore } from '@/ui/uiStore';
 
 const ui = () => useUiStore.getState();
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 /**
  * Ficha de los casos de uso del diagrama abierto: a la izquierda el listado
  * del módulo (código, nombre, actor); a la derecha la ficha del elegido,
@@ -337,38 +339,15 @@ function ReferencesEditor({ diagramId, nodeId, linked }: { diagramId: string; no
  */
 export function SheetTable({ name, spec, context, references }: { name: string; spec: UseCaseSpec; context: UseCaseContext; references: string[] }) {
   const [copied, setCopied] = useState(false);
-  const rows: [string, string | string[]][] = [
-    ['Caso de Uso', `${name} (${spec.code})`],
-    ['Actores', context.actors.join(', ') || '—'],
-    ['Propósito', spec.purpose || '—'],
-    ['Tipo', `${capitalize(spec.importance)} y ${capitalize(spec.level)}`],
-    ['Resumen', spec.summary || '—'],
-    ['Precondiciones', spec.preconditions.length > 0 ? spec.preconditions : '—'],
-    ['Postcondiciones', spec.postconditions.length > 0 ? spec.postconditions : '—'],
-    ['Referencias', references.join(', ') || '—'],
-  ];
-  if (context.includes.length > 0) rows.push(['Incluye', context.includes.join(', ')]);
-  if (context.extendedBy.length > 0) rows.push(['Lo extiende', context.extendedBy.join(', ')]);
-  const course = spec.typicalCourse.map((step, index) => ({ ...step, number: index + 1 }));
-  const pairs: { actor?: (typeof course)[number]; system?: (typeof course)[number] }[] = [];
-  for (const step of course) {
-    const last = pairs.at(-1);
-    if (step.by === 'actor' || !last || last.system) pairs.push(step.by === 'actor' ? { actor: step } : { system: step });
-    else last.system = step;
-  }
+  const rows = useCaseSheetRows(name, spec, context, references);
+  const pairs = typicalCoursePairs(spec);
 
   async function copy() {
-    const cell = (value: string | string[]) => (Array.isArray(value) ? `<ul>${value.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : escapeHtml(value));
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt">${rows.map(([label, value]) => `<tr><td style="background:#d9d9d9;font-weight:bold;width:30%">${escapeHtml(label)}</td><td colspan="2">${cell(value)}</td></tr>`).join('')}`
-      + `<tr><td colspan="3" style="background:#d9d9d9;font-weight:bold;text-align:center">Curso típico de eventos</td></tr><tr><td colspan="1" style="font-weight:bold;text-align:center">Acciones de los actores</td><td colspan="2" style="font-weight:bold;text-align:center">Respuesta del sistema</td></tr>`
-      + pairs.map((pair) => `<tr><td>${pair.actor ? `${pair.actor.number}. ${escapeHtml(pair.actor.text)}` : ''}</td><td colspan="2">${pair.system ? `${pair.system.number}. ${escapeHtml(pair.system.text)}` : ''}</td></tr>`).join('')
-      + `<tr><td colspan="3" style="background:#d9d9d9;font-weight:bold;text-align:center">Curso alterno de eventos</td></tr>`
-      + (spec.alternateCourses.length > 0 ? spec.alternateCourses.map((flow) => `<tr><td style="text-align:center;font-weight:bold">${flow.step}.</td><td colspan="2">${escapeHtml(flow.text)}</td></tr>`).join('') : '<tr><td colspan="3">—</td></tr>')
-      + '</table>';
+    const html = useCaseSheetHtml(rows, pairs, spec.alternateCourses);
     const text = [
       ...rows.map(([label, value]) => `${label}: ${Array.isArray(value) ? value.join('; ') : value}`),
       'Curso típico de eventos:',
-      ...course.map((step) => `  ${step.number}. [${step.by === 'actor' ? 'Actor' : 'Sistema'}] ${step.text}`),
+      ...spec.typicalCourse.map((step, index) => `  ${index + 1}. [${step.by === 'actor' ? 'Actor' : 'Sistema'}] ${step.text}`),
       'Curso alterno de eventos:',
       ...spec.alternateCourses.map((flow) => `  ${flow.step}. ${flow.text}`),
     ].join('\n');
