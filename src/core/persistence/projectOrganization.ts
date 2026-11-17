@@ -3,6 +3,7 @@ import {
   isRequirementPriority,
   isRequirementStatus,
   isRuleType,
+  isTestStatus,
   isTraceRelation,
   requirementDefaults,
   type DiagramProject,
@@ -10,6 +11,8 @@ import {
   type ProjectFolder,
   type Requirement,
   type RequirementLink,
+  type TestCase,
+  type WalkChoice,
 } from '@/core/model';
 
 /**
@@ -106,4 +109,34 @@ export function parseRequirements(
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date(0).toISOString(),
     }));
   return { requirements, requirementLinks };
+}
+
+const isChoice = (value: unknown): value is WalkChoice =>
+  isRecord(value) && typeof value.nodeId === 'string' && (typeof value.edgeId === 'string' || typeof value.outcome === 'string' || value.outcome === null);
+
+/**
+ * Lectura tolerante de los casos de prueba. Se descartan los ilegibles y los de
+ * diagramas que no son del proyecto; de los requisitos, solo quedan los que existen.
+ * Las versiones anteriores (sin casos) quedan con la lista vacía.
+ */
+export function parseTestCases(raw: Record<string, unknown>, diagramIds: readonly string[], requirementIds: readonly string[]): TestCase[] {
+  const diagrams = new Set(diagramIds);
+  const requirements = new Set(requirementIds);
+  return (Array.isArray(raw.testCases) ? raw.testCases : [])
+    .filter((item): item is Record<string, unknown> => isRecord(item) && typeof item.id === 'string' && typeof item.code === 'string' && typeof item.diagramId === 'string')
+    .filter((item) => diagrams.has(item.diagramId as string))
+    .map((item) => ({
+      id: item.id as string,
+      code: item.code as string,
+      title: typeof item.title === 'string' ? item.title : '',
+      diagramId: item.diagramId as string,
+      choices: (Array.isArray(item.choices) ? item.choices : []).filter(isChoice)
+        .map((choice) => ('edgeId' in choice && typeof choice.edgeId === 'string' ? { nodeId: choice.nodeId, edgeId: choice.edgeId } : { nodeId: choice.nodeId, outcome: (choice as { outcome: string | null }).outcome })),
+      given: typeof item.given === 'string' ? item.given : '',
+      when: typeof item.when === 'string' ? item.when : '',
+      then: typeof item.then === 'string' ? item.then : '',
+      requirementIds: strings(item.requirementIds).filter((id) => requirements.has(id)),
+      status: isTestStatus(item.status) ? item.status : 'pendiente',
+      createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date(0).toISOString(),
+    }));
 }

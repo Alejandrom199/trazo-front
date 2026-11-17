@@ -4,12 +4,24 @@ import { projectFromJson, projectToJson } from './projectFormat';
 
 describe('formato de proyecto', () => {
   const diagram = createEmptyDiagram({ diagramType: 'activity', name: 'Préstamo' }, new Date(0));
-  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], testCases: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
 
   it('exporta e importa todos los diagramas', () => {
     const result = projectFromJson(projectToJson(project, [diagram]));
     expect(result.ok && result.project.name).toBe('Biblioteca');
     expect(result.ok && result.project.diagrams).toHaveLength(1);
+  });
+
+  it('conserva los casos de prueba y descarta lo que apunta fuera del proyecto', () => {
+    const withTests: DiagramProject = {
+      ...project,
+      testCases: [
+        { id: 't1', code: 'CP-01', title: 'Préstamo', diagramId: diagram.id, choices: [{ nodeId: 'd', edgeId: 'e' }, { nodeId: 'c', outcome: null }], given: 'Dado', when: 'Cuando', then: 'Entonces', requirementIds: ['fantasma'], status: 'pasa', createdAt: new Date(0).toISOString() },
+        { id: 't2', code: 'CP-02', title: 'Ajeno', diagramId: 'fantasma', choices: [], given: '', when: '', then: '', requirementIds: [], status: 'pendiente', createdAt: new Date(0).toISOString() },
+      ],
+    };
+    const result = projectFromJson(projectToJson(withTests, [diagram]));
+    expect(result.ok && result.project.testCases).toEqual([{ ...withTests.testCases[0], requirementIds: [] }]);
   });
 
   it('rechaza un JSON que no es un proyecto', () => {

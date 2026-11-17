@@ -32,6 +32,13 @@ export interface WalkOption {
 }
 
 /**
+ * Lo que se eligió en un punto del recorrido: la salida de una decisión, o cómo
+ * terminó un subproceso (`outcome`: su resultado; null si se siguió sin entrar
+ * o terminó sin resultado). La lista de elecciones identifica un camino.
+ */
+export type WalkChoice = { nodeId: string; edgeId: string } | { nodeId: string; outcome: string | null };
+
+/**
  * running: avanza. choice: espera que se elija un camino. call: un token llegó a
  * un subproceso enlazado y espera que se decida entrar o seguir sin entrar.
  */
@@ -67,6 +74,8 @@ export interface WalkState {
   facts: WalkFact[];
   /** Cómo terminó este diagrama, si terminó en un final de actividad. */
   outcome: WalkOutcome | null;
+  /** Lo elegido en este diagrama, en orden: decisiones y resultados de subprocesos. */
+  choices: WalkChoice[];
 }
 
 /** Lo que un subproceso recorrido le devuelve al proceso que lo invocó. */
@@ -86,4 +95,6 @@ export interface WalkthroughEngine {
    * 'returned' si se recorrió su diagrama y se volvió. El token sale del nodo.
    */
   resumeCall?: (diagram: Diagram, state: WalkState, how: 'skipped' | 'returned', result?: WalkReturn) => WalkState;
+  /** Resultados con los que puede terminar un diagrama (p. ej. los nombres de sus finales). */
+  outcomes?: (diagram: Diagram) => string[];
 }

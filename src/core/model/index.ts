@@ -21,6 +21,8 @@ export * from './projectValidation';
 export * from './diagramLink';
 export * from './walkthrough';
 export * from './walkMemory';
+export * from './scenarios';
+export * from './testCases';
 export * from './projectMap';
 export * from './requirements';
 export * from './requirementGuide';

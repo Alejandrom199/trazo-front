@@ -1,5 +1,5 @@
 import { isTraceRelation, type DiagramProject, type TraceEndpoint, type TraceLink } from '@/core/model';
-import { parseOrganization, parseRequirements } from './projectOrganization';
+import { parseOrganization, parseRequirements, parseTestCases } from './projectOrganization';
 import type { KeyValueStorage } from './diagramRepository';
 
 const PROJECTS_KEY = 'trazo.projects';
@@ -56,13 +56,15 @@ function parseJson(raw: string | null): unknown {
 export function parseStoredProject(raw: unknown): DiagramProject | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string' || !Array.isArray(raw.diagramIds)) return null;
   const diagramIds = raw.diagramIds.filter((id): id is string => typeof id === 'string');
+  const requirements = parseRequirements(raw, diagramIds);
   return {
     id: raw.id,
     name: raw.name,
     diagramIds,
     traceLinks: Array.isArray(raw.traceLinks) ? raw.traceLinks.filter(isTraceLink) : [],
     ...parseOrganization(raw, diagramIds),
-    ...parseRequirements(raw, diagramIds),
+    ...requirements,
+    testCases: parseTestCases(raw, diagramIds, requirements.requirements.map((item) => item.id)),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
   };

@@ -1,5 +1,7 @@
 import {
   createDiagramFromTemplate,
+  draftTestCase,
+  enumerateScenarios,
   nodeName,
   requirementDefaults,
   withLinkedDiagram,
@@ -7,6 +9,7 @@ import {
   type DiagramProject,
   type Requirement,
   type RequirementLink,
+  type TestCase,
   type DiagramRelation,
   type Template,
   type TraceEndpoint,
@@ -14,6 +17,7 @@ import {
   type TraceRelation,
 } from '@/core/model';
 import { ActivityArtifact as A } from './activity/artifactTypes';
+import { activityWalkthrough } from './activity/walkthrough';
 import { createTemplateBuilder } from './activity/templates/templateBuilder';
 import { classTemplates } from './class/templates';
 import { componentTemplates } from './component/templates';
@@ -267,8 +271,32 @@ export function buildSampleProject(createId: () => string, now: Date = new Date(
     description: 'El sistema deberá enviar al socio un recordatorio por correo un día antes del vencimiento.',
   });
 
+  // Casos de prueba: los dos caminos del préstamo, sacados de su propio recorrido
+  // (el subproceso decide cuál), con lo que debe pasar y el requisito que verifican.
+  const { scenarios } = enumerateScenarios(activityWalkthrough, loan, (call) =>
+    (call.diagramId === availability.id ? { diagramName: availability.name, outcomes: activityWalkthrough.outcomes!(availability) } : null));
+  const requirementId = (code: string) => requirements.find((item) => item.code === code)!.id;
+  const testCase = (code: string, outcome: string, sheet: Pick<TestCase, 'title' | 'given' | 'then' | 'status'>, verifies: string[]): TestCase => {
+    const scenario = scenarios.find((candidate) => candidate.choices.some((choice) => 'outcome' in choice && choice.outcome === outcome));
+    if (!scenario) throw new Error(`Proyecto de ejemplo: no hay camino con «${outcome}».`);
+    const draft = draftTestCase(loan, scenario.choices, scenario.final);
+    return { ...draft, ...sheet, id: createId(), code, diagramId: loan.id, choices: scenario.choices, requirementIds: verifies.map(requirementId), createdAt: now.toISOString() };
+  };
+  const testCases = [
+    testCase('CP-01', 'disponible', {
+      title: 'Préstamo de un libro con ejemplar libre', status: 'pasa',
+      given: 'El socio inició sesión y el libro tiene al menos un ejemplar libre.',
+      then: 'El préstamo queda registrado con su fecha de devolución y el bibliotecario entrega el libro.',
+    }, ['RF-01', 'RF-02']),
+    testCase('CP-02', 'no disponible', {
+      title: 'Libro sin ejemplares libres: se ofrece la reserva', status: 'pendiente',
+      given: 'El socio inició sesión y todos los ejemplares del libro están prestados.',
+      then: 'No se registra el préstamo: el sistema informa que no hay ejemplares y el socio puede reservar el libro.',
+    }, ['RF-03', 'RN-01']),
+  ];
+
   return {
-    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks },
+    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks, testCases },
     diagrams,
   };
 }

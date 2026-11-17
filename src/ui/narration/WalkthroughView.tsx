@@ -8,6 +8,7 @@ import { useDiagramStore } from '@/core/store/diagramStore';
 import { useHighlightStore } from '@/canvas/highlightStore';
 import { createFromLinkedTemplate, findTemplate } from '@/ui/projects/diagramLinkActions';
 import { openSavedDiagram } from '@/ui/projects/projectActions';
+import { SaveWalkAsTestCase } from '@/ui/scenarios/ScenariosView';
 import { useWalkthroughStore, type WalkFrame } from './walkthroughStore';
 
 export const WALK_PREFIX = 'walk:';
@@ -235,6 +236,8 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
             </div>
           </li>
         )}
+
+        {live && !inSubprocess && (current.status === 'finished' || current.status === 'stuck') && <SaveWalkAsTestCase diagram={diagram} state={current} />}
 
         {live && inSubprocess && (current.status === 'finished' || current.status === 'stuck') && (
           <li className="rounded-lg border border-success/40 bg-success-soft/40 p-2.5">

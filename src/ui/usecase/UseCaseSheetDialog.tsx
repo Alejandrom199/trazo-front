@@ -23,26 +23,11 @@ import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { inputClass } from '@/ui/explanation/formFields';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 import { ListEditor, Row } from '@/ui/requirements/RequirementSheet';
+import { copyTable, escapeHtml } from '@/ui/clipboard';
 import { useUiStore } from '@/ui/uiStore';
 
 const ui = () => useUiStore.getState();
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-/** Copia una tabla HTML (con su versión en texto) para pegarla en Word o Google Docs. */
-async function copyTable(html: string, text: string): Promise<boolean> {
-  try {
-    if ('ClipboardItem' in window) {
-      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
-    } else {
-      await navigator.clipboard.writeText(text);
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Ficha de los casos de uso del diagrama abierto: a la izquierda el listado
  * del módulo (código, nombre, actor); a la derecha la ficha del elegido,
@@ -74,7 +59,7 @@ function SheetDialog({ diagram, initialId }: { diagram: Diagram; initialId: stri
   const [copied, setCopied] = useState(false);
   async function copyList() {
     const rows = useCases.map((node) => [readSpec(node)?.code ?? '—', nodeName(node), useCaseContext(diagram, node.id).actors.join(', ') || '—']);
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt"><tr><th>Código</th><th>Nombre del Caso de Uso</th><th>Actor</th></tr>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</table>`;
+    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt"><tr><th>Código</th><th>Nombre del Caso de Uso</th><th>Actor</th></tr>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</table>`;
     if (await copyTable(html, rows.map((row) => row.join('\t')).join('\n'))) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
@@ -373,12 +358,12 @@ function SheetTable({ name, spec, context, references }: { name: string; spec: U
   }
 
   async function copy() {
-    const cell = (value: string | string[]) => (Array.isArray(value) ? `<ul>${value.map((item) => `<li>${escape(item)}</li>`).join('')}</ul>` : escape(value));
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt">${rows.map(([label, value]) => `<tr><td style="background:#d9d9d9;font-weight:bold;width:30%">${escape(label)}</td><td colspan="2">${cell(value)}</td></tr>`).join('')}`
+    const cell = (value: string | string[]) => (Array.isArray(value) ? `<ul>${value.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : escapeHtml(value));
+    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt">${rows.map(([label, value]) => `<tr><td style="background:#d9d9d9;font-weight:bold;width:30%">${escapeHtml(label)}</td><td colspan="2">${cell(value)}</td></tr>`).join('')}`
       + `<tr><td colspan="3" style="background:#d9d9d9;font-weight:bold;text-align:center">Curso típico de eventos</td></tr><tr><td colspan="1" style="font-weight:bold;text-align:center">Acciones de los actores</td><td colspan="2" style="font-weight:bold;text-align:center">Respuesta del sistema</td></tr>`
-      + pairs.map((pair) => `<tr><td>${pair.actor ? `${pair.actor.number}. ${escape(pair.actor.text)}` : ''}</td><td colspan="2">${pair.system ? `${pair.system.number}. ${escape(pair.system.text)}` : ''}</td></tr>`).join('')
+      + pairs.map((pair) => `<tr><td>${pair.actor ? `${pair.actor.number}. ${escapeHtml(pair.actor.text)}` : ''}</td><td colspan="2">${pair.system ? `${pair.system.number}. ${escapeHtml(pair.system.text)}` : ''}</td></tr>`).join('')
       + `<tr><td colspan="3" style="background:#d9d9d9;font-weight:bold;text-align:center">Curso alterno de eventos</td></tr>`
-      + (spec.alternateCourses.length > 0 ? spec.alternateCourses.map((flow) => `<tr><td style="text-align:center;font-weight:bold">${flow.step}.</td><td colspan="2">${escape(flow.text)}</td></tr>`).join('') : '<tr><td colspan="3">—</td></tr>')
+      + (spec.alternateCourses.length > 0 ? spec.alternateCourses.map((flow) => `<tr><td style="text-align:center;font-weight:bold">${flow.step}.</td><td colspan="2">${escapeHtml(flow.text)}</td></tr>`).join('') : '<tr><td colspan="3">—</td></tr>')
       + '</table>';
     const text = [
       ...rows.map(([label, value]) => `${label}: ${Array.isArray(value) ? value.join('; ') : value}`),

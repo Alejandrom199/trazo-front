@@ -89,7 +89,7 @@ class Walk {
     private readonly graph: FlowGraph,
     state: WalkState,
   ) {
-    this.state = { ...state, tokens: [...state.tokens], waiting: { ...state.waiting }, log: [...state.log], visitedNodeIds: [...state.visitedNodeIds], visitedEdgeIds: [...state.visitedEdgeIds], facts: [...state.facts] };
+    this.state = { ...state, tokens: [...state.tokens], waiting: { ...state.waiting }, log: [...state.log], visitedNodeIds: [...state.visitedNodeIds], visitedEdgeIds: [...state.visitedEdgeIds], facts: [...state.facts], choices: [...state.choices] };
   }
 
   result(): WalkState {
@@ -225,6 +225,7 @@ class Walk {
     this.state.tokens = this.state.tokens.filter((token) => token.id !== choice.tokenId);
     this.state.choice = null;
     this.state.status = 'running';
+    this.state.choices.push({ nodeId: choice.nodeId, edgeId });
     const node = this.graph.nodeById.get(choice.nodeId);
     const answer = exitText(edge);
     const expected = choice.suggested && choice.suggested.edgeId !== edgeId ? outgoingOf(this.graph, choice.nodeId).find((candidate) => candidate.id === choice.suggested!.edgeId) : undefined;
@@ -246,6 +247,7 @@ class Walk {
     const index = this.state.tokens.findIndex((token) => token.id === call.tokenId);
     if (index > 0) this.state.tokens.unshift(...this.state.tokens.splice(index, 1));
     const outcome = how === 'returned' ? (result?.outcome ?? null) : null;
+    this.state.choices.push({ nodeId: call.nodeId, outcome: outcome?.label ?? null });
     if (how === 'returned' && result) this.state.facts = mergeFacts(this.state.facts, result.facts);
     if (this.state.tokens[0]?.id === call.tokenId) this.state.tokens[0] = { ...this.state.tokens[0], carried: outcome };
     const name = describeNode(node, 'el subproceso');
@@ -279,7 +281,7 @@ class Walk {
 function start(diagram: Diagram, facts: WalkFact[] = []): WalkState {
   const graph = buildFlowGraph(diagram);
   const starts = startNodeIds(graph);
-  const empty: WalkState = { tokens: [], waiting: {}, choice: null, call: null, status: 'running', log: [], visitedNodeIds: [], visitedEdgeIds: [], nextTokenId: 0, facts: [...facts], outcome: null };
+  const empty: WalkState = { tokens: [], waiting: {}, choice: null, call: null, status: 'running', log: [], visitedNodeIds: [], visitedEdgeIds: [], nextTokenId: 0, facts: [...facts], outcome: null, choices: [] };
   if (starts.length === 0) {
     return { ...empty, status: 'stuck', log: [entry('no hay nodo inicial: el recorrido no sabe por dónde empezar.', 'warning', [])] };
   }
@@ -311,4 +313,9 @@ function resumeCall(diagram: Diagram, state: WalkState, how: 'skipped' | 'return
   return walk.result();
 }
 
-export const activityWalkthrough: WalkthroughEngine = { start, step, resumeCall };
+/** Resultados posibles: los nombres de sus finales de actividad, sin repetir. */
+function outcomes(diagram: Diagram): string[] {
+  return [...new Set(diagram.nodes.filter((node) => node.artifactType === A.activityFinal).map((node) => node.label.trim()).filter(Boolean))];
+}
+
+export const activityWalkthrough: WalkthroughEngine = { start, step, resumeCall, outcomes };

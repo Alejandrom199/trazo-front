@@ -7,7 +7,7 @@ import {
   type DiagramProjectFile,
 } from '@/core/model';
 import { parseDiagram } from './diagramFormat';
-import { parseOrganization, parseRequirements } from './projectOrganization';
+import { parseOrganization, parseRequirements, parseTestCases } from './projectOrganization';
 
 export type ProjectParseResult = { ok: true; project: DiagramProjectFile } | { ok: false; error: string };
 
@@ -24,6 +24,7 @@ export function projectToJson(project: DiagramProject, diagrams: Diagram[]): str
     diagramRelations: project.diagramRelations,
     requirements: project.requirements,
     requirementLinks: project.requirementLinks,
+    testCases: project.testCases,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };
@@ -60,6 +61,8 @@ export function projectFromJson(text: string): ProjectParseResult {
   }
   const traceLinks = raw.schemaVersion === 1 ? [] : parseTraceLinks(raw.traceLinks, diagrams);
   if (typeof traceLinks === 'string') return { ok: false, error: traceLinks };
+  const diagramIds = diagrams.map((diagram) => diagram.id);
+  const requirements = parseRequirements(raw, diagramIds);
   return {
     ok: true,
     project: {
@@ -69,8 +72,9 @@ export function projectFromJson(text: string): ProjectParseResult {
       name: raw.name.trim(),
       diagrams,
       traceLinks,
-      ...parseOrganization(raw, diagrams.map((diagram) => diagram.id)),
-      ...parseRequirements(raw, diagrams.map((diagram) => diagram.id)),
+      ...parseOrganization(raw, diagramIds),
+      ...requirements,
+      testCases: parseTestCases(raw, diagramIds, requirements.requirements.map((item) => item.id)),
       createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date(0).toISOString(),
       updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date(0).toISOString(),
     },
