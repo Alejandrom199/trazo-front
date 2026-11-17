@@ -21,3 +21,4 @@ export * from './projectValidation';
 export * from './diagramLink';
 export * from './walkthrough';
 export * from './projectMap';
+export * from './requirements';

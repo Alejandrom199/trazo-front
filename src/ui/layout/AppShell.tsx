@@ -16,6 +16,7 @@ import { LayersControl } from '@/ui/layers/LayersControl';
 import { SubprocessBreadcrumb } from '@/ui/projects/SubprocessBreadcrumb';
 import { DiagramLinkPicker } from '@/ui/projects/DiagramLinkPicker';
 import { ProjectMap } from '@/ui/projects/ProjectMap';
+import { RequirementsScreen } from '@/ui/requirements/RequirementsScreen';
 import { EditorTutorial } from '@/ui/tutorial/EditorTutorial';
 import { useUiStore } from '@/ui/uiStore';
 import { ProjectPanel } from '@/ui/projects/ProjectPanel';
@@ -97,6 +98,7 @@ export function AppShell() {
         <CommandPalette />
         <DiagramLinkPicker />
         <ProjectMap />
+        <RequirementsScreen />
         <TooltipLayer />
       </div>
     </ReactFlowProvider>

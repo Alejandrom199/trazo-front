@@ -58,6 +58,16 @@ interface UiState {
   /** Mapa del proyecto: vista de sus diagramas y cómo se relacionan. */
   projectMapOpen: boolean;
   setProjectMapOpen: (open: boolean) => void;
+  /**
+   * Lo que el mapa debe destacar al abrirse (p. ej. el impacto de un requisito):
+   * los demás diagramas se atenúan. null: el mapa normal.
+   */
+  mapFocus: { label: string; diagramIds: string[] } | null;
+  setMapFocus: (focus: { label: string; diagramIds: string[] } | null) => void;
+  /** Pantalla de requisitos (lista y matriz); `requirementId` lo deja elegido al abrir. */
+  requirementsOpen: boolean;
+  requirementsFocusId: string | null;
+  setRequirementsOpen: (open: boolean, requirementId?: string | null) => void;
   linkPickerNodeId: string | null;
   setLinkPickerNodeId: (nodeId: string | null) => void;
   tutorialStatus: TutorialStatus;
@@ -206,6 +216,11 @@ export const useUiStore = create<UiState>()((set) => ({
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   projectMapOpen: false,
   setProjectMapOpen: (open) => set({ projectMapOpen: open }),
+  mapFocus: null,
+  setMapFocus: (focus) => set({ mapFocus: focus }),
+  requirementsOpen: false,
+  requirementsFocusId: null,
+  setRequirementsOpen: (open, requirementId = null) => set({ requirementsOpen: open, requirementsFocusId: requirementId }),
   linkPickerNodeId: null,
   setLinkPickerNodeId: (nodeId) => set({ linkPickerNodeId: nodeId }),
   tutorialStatus: readTutorial(),

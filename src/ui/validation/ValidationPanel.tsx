@@ -131,7 +131,7 @@ export function ValidationPanel({ embedded = false }: { embedded?: boolean }) {
                   fixHint="Cambia los vínculos del proyecto"
                   active={highlight?.sourceKey === PROJECT_ISSUE_PREFIX + projectIssueKey(issue)}
                   onFocus={() => focusProjectIssue(issue)}
-                  onFix={() => { if (issue.fix) useProjectStore.getState().changeTraceLinks(issue.fix.apply); }}
+                  onFix={() => { if (issue.fix) useProjectStore.getState().applyProjectFix(issue.fix); }}
                 />
               ))}
             </>

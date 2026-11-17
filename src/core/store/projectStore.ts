@@ -1,5 +1,18 @@
 import { create } from 'zustand';
-import { moveDiagramInOrder, withoutDiagrams, type DiagramProject, type DiagramRelation, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
+import {
+  moveDiagramInOrder,
+  nextRequirementCode,
+  withoutDiagrams,
+  type DiagramProject,
+  type DiagramRelation,
+  type ProjectIssueFix,
+  type Requirement,
+  type RequirementKind,
+  type RequirementLink,
+  type TraceEndpoint,
+  type TraceLink,
+  type TraceRelation,
+} from '@/core/model';
 import { browserStorage } from '@/core/persistence/diagramRepository';
 import { readProjectLibrary, writeProjectLibrary, type ProjectLibrary } from '@/core/persistence/projectLibrary';
 import { createId } from '@/core/utils/id';
@@ -33,7 +46,16 @@ interface ProjectState {
   addTraceLink: (source: TraceEndpoint, target: TraceEndpoint, relation: TraceRelation) => void;
   removeTraceLink: (linkId: string) => void;
   /** Reemplaza los vínculos por los que devuelve `change` (p. ej. el arreglo de un problema de proyecto). */
-  changeTraceLinks: (change: (traceLinks: readonly TraceLink[]) => TraceLink[]) => void;
+  /** Aplica el arreglo de un clic de un problema de proyecto. */
+  applyProjectFix: (fix: ProjectIssueFix) => void;
+  /** Crea un requisito con el siguiente código de su tipo y devuelve su id (null sin proyecto). */
+  addRequirement: (kind: RequirementKind, title?: string) => string | null;
+  updateRequirement: (requirementId: string, patch: Partial<Omit<Requirement, 'id' | 'createdAt'>>) => void;
+  /** Borra el requisito y sus vínculos. */
+  deleteRequirement: (requirementId: string) => void;
+  /** Vincula un requisito con un elemento (o con el diagrama completo, con elementId null). No repite. */
+  linkRequirement: (requirementId: string, diagramId: string, elementId: string | null) => void;
+  unlinkRequirement: (linkId: string) => void;
   /** Crea una carpeta al final y devuelve su id (null sin proyecto abierto). */
   createFolder: (name: string) => string | null;
   renameFolder: (folderId: string, name: string) => void;
@@ -93,7 +115,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
 
   createProject: (name, firstDiagramId) => set((state) => {
     const now = new Date().toISOString();
-    const project: DiagramProject = { id: createId(), name: name.trim() || 'Proyecto sin título', diagramIds: firstDiagramId ? [firstDiagramId] : [], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], createdAt: now, updatedAt: now };
+    const project: DiagramProject = { id: createId(), name: name.trim() || 'Proyecto sin título', diagramIds: firstDiagramId ? [firstDiagramId] : [], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], createdAt: now, updatedAt: now };
     return commit([...state.projects, project], project.id);
   }),
   openProject: (project) => set((state) => commit([...state.projects.filter((other) => other.id !== project.id), project], project.id)),
@@ -177,8 +199,40 @@ export const useProjectStore = create<ProjectState>()((set) => ({
   })),
   removeDiagramRelation: (relationId) => set((state) => changeActive(state, (project) =>
     (project.diagramRelations.some((item) => item.id === relationId) ? { diagramRelations: project.diagramRelations.filter((item) => item.id !== relationId) } : null))),
-  changeTraceLinks: (change) => set((state) => changeActive(state, (project) => {
-    const traceLinks = change(project.traceLinks);
-    return traceLinks.length === project.traceLinks.length && traceLinks.every((link, index) => link === project.traceLinks[index]) ? null : { traceLinks };
+  applyProjectFix: (fix) => set((state) => changeActive(state, (project) => {
+    const patch = fix.apply({ traceLinks: project.traceLinks, requirementLinks: project.requirementLinks });
+    return Object.keys(patch).length > 0 ? patch : null;
   })),
+  addRequirement: (kind, title = '') => {
+    const id = createId();
+    let created = false;
+    set((state) => changeActive(state, (project) => {
+      created = true;
+      const requirement: Requirement = { id, code: nextRequirementCode(project.requirements, kind), title: title.trim() || 'Requisito nuevo', description: '', kind, priority: 'media', status: 'propuesto', createdAt: new Date().toISOString() };
+      return { requirements: [...project.requirements, requirement] };
+    }));
+    return created ? id : null;
+  },
+  updateRequirement: (requirementId, patch) => set((state) => changeActive(state, (project) => {
+    const current = project.requirements.find((item) => item.id === requirementId);
+    if (!current) return null;
+    const next = { ...current, ...patch, code: patch.code?.trim() || current.code, title: patch.title !== undefined ? patch.title.trim() || current.title : current.title };
+    if (Object.entries(next).every(([key, value]) => current[key as keyof Requirement] === value)) return null;
+    return { requirements: project.requirements.map((item) => (item.id === requirementId ? next : item)) };
+  })),
+  deleteRequirement: (requirementId) => set((state) => changeActive(state, (project) => {
+    if (!project.requirements.some((item) => item.id === requirementId)) return null;
+    return {
+      requirements: project.requirements.filter((item) => item.id !== requirementId),
+      requirementLinks: project.requirementLinks.filter((link) => link.requirementId !== requirementId),
+    };
+  })),
+  linkRequirement: (requirementId, diagramId, elementId) => set((state) => changeActive(state, (project) => {
+    if (!project.requirements.some((item) => item.id === requirementId) || !project.diagramIds.includes(diagramId)) return null;
+    if (project.requirementLinks.some((link) => link.requirementId === requirementId && link.diagramId === diagramId && link.elementId === elementId)) return null;
+    const link: RequirementLink = { id: createId(), requirementId, diagramId, elementId, createdAt: new Date().toISOString() };
+    return { requirementLinks: [...project.requirementLinks, link] };
+  })),
+  unlinkRequirement: (linkId) => set((state) => changeActive(state, (project) =>
+    (project.requirementLinks.some((link) => link.id === linkId) ? { requirementLinks: project.requirementLinks.filter((link) => link.id !== linkId) } : null))),
 }));

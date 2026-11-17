@@ -1,4 +1,5 @@
 import {
+  faBullseye,
   faChevronDown,
   faChevronLeft,
   faFolder,
@@ -15,7 +16,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { groupByFolder, type ProjectFolder } from '@/core/model';
+import { coverageSummary, groupByFolder, requirementCoverage, type ProjectFolder } from '@/core/model';
+import { useProjectDiagrams } from './useProjectDiagrams';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
@@ -48,7 +50,9 @@ export function ProjectSidebar() {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
 
+  const projectDiagrams = useProjectDiagrams();
   if (!project || !open) return null;
+  const requirementsSummary = coverageSummary(requirementCoverage(project.requirements, project.requirementLinks, projectDiagrams));
   const summaryOf = (id: string) => summaries.find((summary) => summary.id === id);
   const groups = groupByFolder(project).map((group) => ({ ...group, summaries: group.diagramIds.map(summaryOf).filter((summary) => summary !== undefined) }));
   const loose = groups[0]!;
@@ -236,6 +240,15 @@ export function ProjectSidebar() {
         <button type="button" onClick={() => setProjectMapOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 hover:bg-raised hover:text-accent">
           <FontAwesomeIcon icon={faMap} className="text-[11px]" />
           Mapa del proyecto
+        </button>
+        <button type="button" onClick={() => useUiStore.getState().setRequirementsOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 hover:bg-raised hover:text-accent">
+          <FontAwesomeIcon icon={faBullseye} className="text-[11px]" />
+          Requisitos
+          {project.requirements.length > 0 && (
+            <span className={`ml-auto rounded-full px-1.5 py-px text-[10px] font-medium tabular-nums ${requirementsSummary.covered === requirementsSummary.total ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`} title="Requisitos cubiertos">
+              {requirementsSummary.covered}/{requirementsSummary.total}
+            </span>
+          )}
         </button>
         <button type="button" onClick={() => setInspectorTab('traceability')} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-ink-600 hover:bg-raised hover:text-accent">
           <FontAwesomeIcon icon={faLink} className="text-[11px]" />

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
 import { TRACE_RELATIONS, type Diagram, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
 import { DiagramRelations } from './DiagramRelations';
+import { RequirementLinks } from './RequirementLinks';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
@@ -60,6 +61,8 @@ export function TraceabilityPanel() {
 
         <DiagramRelations project={project} current={current} diagrams={diagrams} />
 
+        <RequirementLinks project={project} diagramId={current.id} elementId={null} title="Requisitos que cumple este diagrama" />
+
         <section className="border-t border-line p-4">
           <h3 className="text-xs font-semibold text-ink-900">Elemento seleccionado</h3>
           {!selected ? (
@@ -100,6 +103,8 @@ export function TraceabilityPanel() {
             </>
           )}
         </section>
+
+        {selected && <RequirementLinks project={project} diagramId={current.id} elementId={selected.elementId} title="Requisitos que cumple este elemento" />}
       </div>
     </div>
   );

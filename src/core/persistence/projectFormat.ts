@@ -7,7 +7,7 @@ import {
   type DiagramProjectFile,
 } from '@/core/model';
 import { parseDiagram } from './diagramFormat';
-import { parseOrganization } from './projectOrganization';
+import { parseOrganization, parseRequirements } from './projectOrganization';
 
 export type ProjectParseResult = { ok: true; project: DiagramProjectFile } | { ok: false; error: string };
 
@@ -22,6 +22,8 @@ export function projectToJson(project: DiagramProject, diagrams: Diagram[]): str
     folders: project.folders,
     folderOf: project.folderOf,
     diagramRelations: project.diagramRelations,
+    requirements: project.requirements,
+    requirementLinks: project.requirementLinks,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };
@@ -38,7 +40,7 @@ export function projectFromJson(text: string): ProjectParseResult {
   if (!isRecord(raw) || raw.format !== PROJECT_FILE_FORMAT) {
     return { ok: false, error: 'El archivo no es un proyecto de Trazo.' };
   }
-  if (raw.schemaVersion !== 1 && raw.schemaVersion !== 2 && raw.schemaVersion !== PROJECT_SCHEMA_VERSION) {
+  if (![1, 2, 3, PROJECT_SCHEMA_VERSION].includes(raw.schemaVersion as number)) {
     return { ok: false, error: 'El proyecto usa una versión que esta versión de Trazo no puede abrir.' };
   }
   if (typeof raw.id !== 'string' || typeof raw.name !== 'string' || !raw.name.trim()) {
@@ -68,6 +70,7 @@ export function projectFromJson(text: string): ProjectParseResult {
       diagrams,
       traceLinks,
       ...parseOrganization(raw, diagrams.map((diagram) => diagram.id)),
+      ...parseRequirements(raw, diagrams.map((diagram) => diagram.id)),
       createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date(0).toISOString(),
       updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date(0).toISOString(),
     },

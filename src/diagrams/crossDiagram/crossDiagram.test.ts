@@ -64,7 +64,7 @@ describe('reglas de proyecto', () => {
     const issues = brokenTraceLink.check(snapshot([cases, withoutAction], [broken]));
     expect(issues).toHaveLength(1);
     expect(issues[0]!.elements).toEqual([broken.source]);
-    expect(issues[0]!.fix!.apply([broken])).toEqual([]);
+    expect(issues[0]!.fix!.apply({ traceLinks: [broken], requirementLinks: [] })).toEqual({ traceLinks: [] });
     expect(brokenTraceLink.check(snapshot([cases, activity], [broken]))).toEqual([]);
   });
 

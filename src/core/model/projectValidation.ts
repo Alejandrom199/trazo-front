@@ -1,5 +1,6 @@
 import type { Diagram } from './diagram';
 import type { TraceEndpoint, TraceLink } from './project';
+import type { Requirement, RequirementLink } from './requirements';
 import type { Severity } from './validation';
 
 /**
@@ -12,15 +13,24 @@ import type { Severity } from './validation';
 export interface ProjectSnapshot {
   diagrams: readonly Diagram[];
   traceLinks: readonly TraceLink[];
+  /** Opcionales: las reglas de requisitos no hacen nada sin ellos. */
+  requirements?: readonly Requirement[];
+  requirementLinks?: readonly RequirementLink[];
+}
+
+/** Las partes del proyecto que un arreglo de un clic puede cambiar. */
+export interface ProjectFixableParts {
+  traceLinks: readonly TraceLink[];
+  requirementLinks: readonly RequirementLink[];
 }
 
 /**
- * Corrección de un clic sobre los vínculos del proyecto. Función pura: recibe los
- * vínculos actuales y devuelve los corregidos.
+ * Corrección de un clic sobre los vínculos del proyecto. Función pura: recibe
+ * las partes actuales y devuelve solo las que cambian.
  */
 export interface ProjectIssueFix {
   label: string;
-  apply: (traceLinks: readonly TraceLink[]) => TraceLink[];
+  apply: (parts: ProjectFixableParts) => Partial<{ traceLinks: TraceLink[]; requirementLinks: RequirementLink[] }>;
 }
 
 /** Un problema concreto entre diagramas; `elements` puede tocar varios diagramas. */

@@ -1,6 +1,8 @@
 import {
+  isLinkAlive,
   nodeName,
   readLinkedDiagramId,
+  requirementCoverage,
   type Diagram,
   type DiagramNode,
   type DiagramType,
@@ -72,7 +74,7 @@ export const brokenTraceLink: ProjectRule = {
             : `Un vínculo «${link.relation}» une dos elementos que ya no existen.`,
           suggestion: 'Quita el vínculo o vuelve a crearlo hacia el elemento correcto.',
           elements: alive,
-          fix: { label: 'Quitar el vínculo', apply: (links) => links.filter((candidate) => candidate.id !== link.id) },
+          fix: { label: 'Quitar el vínculo', apply: ({ traceLinks }) => ({ traceLinks: traceLinks.filter((candidate) => candidate.id !== link.id) }) },
         });
       });
   },
@@ -267,7 +269,53 @@ export const subprocessUnlinked: ProjectRule = {
   },
 };
 
+/**
+ * Requisito sin cubrir: ningún diagrama ni elemento lo cumple. Si ya está
+ * aprobado o implementado, es una advertencia; si solo está propuesto, una
+ * sugerencia. Los descartados no se revisan.
+ */
+export const requirementUncovered: ProjectRule = {
+  id: 'project.requirement-uncovered',
+  severity: 'warning',
+  title: 'Requisito sin cubrir',
+  explanation: 'Un requisito que ningún diagrama cumple es una promesa sin diseño: o falta modelarlo, o falta vincularlo con lo que ya lo resuelve.',
+  check(snapshot) {
+    const coverage = requirementCoverage(snapshot.requirements ?? [], snapshot.requirementLinks ?? [], snapshot.diagrams);
+    return coverage
+      .filter((item) => !item.covered && item.requirement.status !== 'descartado')
+      .map((item) => ({
+        ruleId: requirementUncovered.id,
+        severity: item.requirement.status === 'propuesto' ? 'info' : 'warning',
+        message: `${item.requirement.code} «${item.requirement.title}» no lo cumple ningún diagrama.`,
+        suggestion: 'Vincúlalo (Requisitos o pestaña Vínculos) con el diagrama o el elemento que lo resuelve.',
+        elements: [],
+      }));
+  },
+};
+
+/** Vínculo de requisito roto: apunta a un elemento o diagrama que ya no está. */
+export const brokenRequirementLink: ProjectRule = {
+  id: 'project.broken-requirement-link',
+  severity: 'warning',
+  title: 'Vínculo de requisito roto',
+  explanation: 'El requisito dice que lo cumple algo que ya se borró: la cobertura que muestra no es real.',
+  check(snapshot) {
+    const requirements = snapshot.requirements ?? [];
+    return (snapshot.requirementLinks ?? [])
+      .filter((link) => !isLinkAlive(link, snapshot.diagrams))
+      .map((link) => {
+        const requirement = requirements.find((item) => item.id === link.requirementId);
+        return issue(brokenRequirementLink, {
+          message: `${requirement?.code ?? 'Un requisito'} apunta a un elemento que ya no existe.`,
+          suggestion: 'Quita el vínculo o vuelve a vincularlo con lo que hoy lo cumple.',
+          elements: [],
+          fix: { label: 'Quitar el vínculo', apply: ({ requirementLinks }) => ({ requirementLinks: requirementLinks.filter((candidate) => candidate.id !== link.id) }) },
+        });
+      });
+  },
+};
+
 /** Reglas de proyecto, en el orden en que se muestran dentro de cada gravedad. */
 export const projectRules: readonly ProjectRule[] = [
-  brokenTraceLink, brokenDiagramLink, messageWithoutOperation, inconsistentName, lifelineWithoutType, subprocessUnlinked, useCaseNotDetailed,
+  brokenTraceLink, brokenDiagramLink, brokenRequirementLink, messageWithoutOperation, inconsistentName, requirementUncovered, lifelineWithoutType, subprocessUnlinked, useCaseNotDetailed,
 ];

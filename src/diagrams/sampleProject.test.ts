@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMapEdges, readLinkedDiagramId, validateDiagram, validateProject } from '@/core/model';
+import { buildMapEdges, coverageSummary, readLinkedDiagramId, requirementCoverage, validateDiagram, validateProject } from '@/core/model';
 import { createRegistry } from '@/core/registry';
 import { registerDiagramModules } from '.';
 import { projectRules } from './crossDiagram';
@@ -19,7 +19,8 @@ describe('proyecto de ejemplo Biblioteca Digital', () => {
   });
 
   it('Dado el proyecto entero, Entonces no hay problemas serios entre diagramas', () => {
-    const issues = validateProject({ diagrams, traceLinks: project.traceLinks }, projectRules).filter((issue) => issue.severity !== 'info');
+    const issues = validateProject({ diagrams, traceLinks: project.traceLinks, requirements: project.requirements, requirementLinks: project.requirementLinks }, projectRules)
+      .filter((issue) => issue.severity !== 'info');
     expect(issues).toEqual([]);
   });
 
@@ -32,5 +33,12 @@ describe('proyecto de ejemplo Biblioteca Digital', () => {
     expect(project.diagramIds.every((id) => project.folderOf[id])).toBe(true);
     const kinds = new Set(buildMapEdges(diagrams, project).map((edge) => edge.kind));
     expect(kinds).toEqual(new Set(['subprocess', 'trace', 'relation']));
+  });
+
+  it('Dados sus requisitos, Entonces cubre todos los aprobados y deja pendiente solo el propuesto', () => {
+    const coverage = requirementCoverage(project.requirements, project.requirementLinks, diagrams);
+    expect(coverage.filter((item) => !item.covered).map((item) => item.requirement.code)).toEqual(['RF-04']);
+    expect(coverage.every((item) => item.broken.length === 0)).toBe(true);
+    expect(coverageSummary(coverage)).toEqual({ total: 6, covered: 5, percent: 83 });
   });
 });

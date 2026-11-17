@@ -4,6 +4,9 @@ import {
   withLinkedDiagram,
   type Diagram,
   type DiagramProject,
+  type Requirement,
+  type RequirementKind,
+  type RequirementLink,
   type DiagramRelation,
   type Template,
   type TraceEndpoint,
@@ -151,8 +154,26 @@ export function buildSampleProject(createId: () => string, now: Date = new Date(
     link(endpoint(database, 'Socio'), endpoint(domain, 'Socio'), 'implementa'),
   ];
 
+  // Requisitos: qué se pidió y qué parte del modelo lo cumple. RF-04 queda
+  // propuesto y sin cubrir a propósito, para que la cobertura muestre lo pendiente.
+  const requirements: Requirement[] = [];
+  const requirementLinks: RequirementLink[] = [];
+  const require = (code: string, title: string, kind: RequirementKind, priority: Requirement['priority'], status: Requirement['status'], description: string, ...targets: (TraceEndpoint | Diagram)[]) => {
+    const id = createId();
+    requirements.push({ id, code, title, description, kind, priority, status, createdAt: now.toISOString() });
+    for (const target of targets) {
+      requirementLinks.push({ id: createId(), requirementId: id, diagramId: 'elementId' in target ? target.diagramId : target.id, elementId: 'elementId' in target ? target.elementId : null, createdAt: now.toISOString() });
+    }
+  };
+  require('RF-01', 'Pedir un libro prestado', 'funcional', 'alta', 'aprobado', 'El socio pide un libro desde el portal sin ir al mostrador.', endpoint(useCases, 'Pedir un préstamo'), loan);
+  require('RF-02', 'Validar la disponibilidad antes de prestar', 'funcional', 'alta', 'aprobado', 'Antes de registrar el préstamo se comprueba que haya un ejemplar libre.', endpoint(loan, 'Validar disponibilidad'), availability);
+  require('RF-03', 'Reservar un libro sin ejemplares', 'funcional', 'media', 'aprobado', 'Si no hay ejemplares, el socio puede dejar el libro reservado.', endpoint(loan, 'Reservar el libro'));
+  require('RN-01', 'No se presta un libro sin ejemplares libres', 'regla de negocio', 'alta', 'aprobado', 'La disponibilidad se decide por ejemplar, no por título.', endpoint(availability, '¿Hay ejemplares libres?'));
+  require('RNF-01', 'Los préstamos se guardan en una base gestionada', 'no funcional', 'media', 'aprobado', 'Base de datos relacional con respaldo diario, no expuesta a internet.', database, deployment);
+  require('RF-04', 'Avisar por correo la fecha de devolución', 'funcional', 'baja', 'propuesto', 'Un día antes del vencimiento, el socio recibe un recordatorio.');
+
   return {
-    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations },
+    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks },
     diagrams,
   };
 }

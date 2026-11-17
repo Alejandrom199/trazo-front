@@ -6,11 +6,13 @@ import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 
 /** Problemas entre los diagramas del proyecto abierto; vacío sin proyecto. */
 export function useProjectIssues(): { issues: ProjectIssue[]; diagrams: Diagram[] } {
-  const traceLinks = useProjectStore((state) => state.project?.traceLinks);
+  const project = useProjectStore((state) => state.project);
   const diagrams = useProjectDiagrams();
   const issues = useMemo(
-    () => (traceLinks ? validateProject({ diagrams, traceLinks }, projectRules) : []),
-    [diagrams, traceLinks],
+    () => (project
+      ? validateProject({ diagrams, traceLinks: project.traceLinks, requirements: project.requirements, requirementLinks: project.requirementLinks }, projectRules)
+      : []),
+    [diagrams, project],
   );
   return { issues, diagrams };
 }

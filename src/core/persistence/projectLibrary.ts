@@ -1,5 +1,5 @@
 import { isTraceRelation, type DiagramProject, type TraceEndpoint, type TraceLink } from '@/core/model';
-import { parseOrganization } from './projectOrganization';
+import { parseOrganization, parseRequirements } from './projectOrganization';
 import type { KeyValueStorage } from './diagramRepository';
 
 const PROJECTS_KEY = 'trazo.projects';
@@ -62,6 +62,7 @@ export function parseStoredProject(raw: unknown): DiagramProject | null {
     diagramIds,
     traceLinks: Array.isArray(raw.traceLinks) ? raw.traceLinks.filter(isTraceLink) : [],
     ...parseOrganization(raw, diagramIds),
+    ...parseRequirements(raw, diagramIds),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
   };
