@@ -8,6 +8,7 @@ import {
   SelectionMode,
   useKeyPress,
   useStore,
+  useStoreApi,
   useReactFlow,
   type Connection,
   type EdgeChange,
@@ -42,6 +43,7 @@ import { canvasPresentation } from './canvasView';
 import { useCanvasViewStore } from './canvasViewStore';
 import { useCanvasInteractionStore } from './canvasInteractionStore';
 import { chosenEdgeType } from './edgeTypeChoice';
+import { boundingBox, revealViewport, type Margins } from './revealViewport';
 
 // Fuera del componente: React Flow pide que estos objetos no cambien entre renders.
 const nodeTypes = { artifact: ArtifactNodeView };
@@ -53,19 +55,14 @@ const NOTICE_DURATION_MS = 3500;
 const FREE_SNAP_STEP = 10;
 
 /**
- * Margen al encuadrar: deja libres la barra superior, el panel de la derecha y
- * la barra de problemas inferior (44 px de alto, separada 12 px del borde).
+ * Espacio que se deja libre al encuadrar: las barras flotantes de arriba
+ * (artefactos, capas) y de abajo (herramientas, zoom). Los paneles laterales
+ * van al lado del lienzo, no encima, así que a los lados basta un respiro.
  */
-function fitPadding(): { top: `${number}px`; left: `${number}px`; right: `${number}px`; bottom: `${number}px` } {
-  const wide = window.innerWidth >= WIDE_SCREEN;
-  return { top: '76px', left: '24px', right: wide ? '400px' : '24px', bottom: '76px' } as const;
-}
+const CANVAS_MARGINS: Margins = { top: 76, right: 24, bottom: 76, left: 24 };
 
-/** Ancho a partir del cual el panel de la derecha convive con el lienzo. */
-const WIDE_SCREEN = 1024;
-
-/** Al encuadrar un problema, el panel de problemas está desplegado abajo: se reserva su alto. */
-const highlightFitPadding = () => ({ ...fitPadding(), bottom: '45%' }) as const;
+const fitPadding = () =>
+  ({ top: `${CANVAS_MARGINS.top}px`, right: `${CANVAS_MARGINS.right}px`, bottom: `${CANVAS_MARGINS.bottom}px`, left: `${CANVAS_MARGINS.left}px` }) as const;
 
 /**
  * Lienzo basado en React Flow, conectado al store mediante los adaptadores.
@@ -86,7 +83,7 @@ export function DiagramCanvas() {
   useFitViewOnOpen(diagram?.id);
   useResetViewOnOpen(diagram?.id);
   const highlight = useHighlightStore((state) => state.highlight);
-  useFitViewOnHighlight(highlight);
+  useRevealHighlight(highlight);
   const grid = useGridStore();
   const detailMode = useCanvasViewStore((state) => state.detail);
   const focus = useCanvasViewStore((state) => state.focus);
@@ -471,21 +468,38 @@ function useResetViewOnOpen(diagramId: string | undefined) {
 }
 
 /**
- * Al resaltar un problema, encuadra sus elementos (en una conexión, sus dos extremos).
- * Sin elementos concretos (p. ej. "falta el nodo inicial") no mueve la vista.
+ * Al resaltar algo (un problema, el paso del recorrido), lo muestra moviendo la
+ * vista lo menos posible (ver revealViewport): si ya se ve no se mueve, y nunca
+ * se acerca. El mismo resaltado repetido (p. ej. el panel que lo emite se volvió
+ * a montar al cambiar el ancho de la ventana) no mueve la vista.
+ * Sin elementos concretos (p. ej. "falta el nodo inicial") tampoco.
  */
-function useFitViewOnHighlight(highlight: Highlight | null) {
-  const { fitView } = useReactFlow();
+function useRevealHighlight(highlight: Highlight | null) {
+  const { getViewport, setViewport } = useReactFlow();
+  const flowStore = useStoreApi();
+  const lastShown = useRef('');
   useEffect(() => {
     const diagram = store().diagram;
-    if (!highlight || !diagram) return;
+    if (!highlight || !diagram) {
+      lastShown.current = '';
+      return;
+    }
     const edgeEnds = diagram.edges
       .filter((edge) => highlight.edgeIds.includes(edge.id))
       .flatMap((edge) => [edge.sourceId, edge.targetId]);
-    const ids = [...new Set([...highlight.nodeIds, ...edgeEnds])];
-    if (ids.length === 0) return;
-    void fitView({ nodes: ids.map((id) => ({ id })), padding: highlightFitPadding(), maxZoom: 1, duration: 350 });
-  }, [highlight, fitView]);
+    const ids = [...new Set([...highlight.nodeIds, ...edgeEnds])].sort();
+    const key = `${diagram.id}:${ids.join(',')}`;
+    if (ids.length === 0 || key === lastShown.current) return;
+    lastShown.current = key;
+    const box = boundingBox(
+      diagram.nodes
+        .filter((node) => ids.includes(node.id))
+        .map((node) => ({ ...absolutePosition(diagram, node), width: node.size.width, height: node.size.height })),
+    );
+    const { width, height } = flowStore.getState();
+    const next = box && revealViewport(box, getViewport(), { width, height }, CANVAS_MARGINS);
+    if (next) void setViewport(next, { duration: 350 });
+  }, [highlight, getViewport, setViewport, flowStore]);
 }
 
 /** Ctrl+Z deshace; Ctrl+Y o Ctrl+Mayús+Z rehace. No interfiere al escribir texto. */
