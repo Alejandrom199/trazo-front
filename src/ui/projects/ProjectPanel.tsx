@@ -24,7 +24,7 @@ import { useProjectStore } from '@/core/store/projectStore';
 import { SAMPLE_PROJECT_NAME } from '@/diagrams/sampleProject';
 import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { useUiStore } from '@/ui/uiStore';
-import { addCurrentToProject, openSampleProject, openSavedDiagram, openStoredProject, saveCurrentNow } from './projectActions';
+import { openSampleProject, openSavedDiagram, openStoredProject, saveCurrentNow } from './projectActions';
 
 const dateFormat = new Intl.DateTimeFormat('es', { dateStyle: 'medium' });
 
@@ -225,7 +225,6 @@ function NewProjectForm({ onCreated, hasProjects }: { onCreated: () => void; has
 
 /** Detalle de un proyecto: nombre, cifras, cobertura por fase, diagramas por carpeta y acciones. */
 function ProjectDetail({ project, isOpen, summaries, onDone }: { project: DiagramProject; isOpen: boolean; summaries: DiagramSummary[]; onDone: () => void }) {
-  const currentId = useDiagramStore((state) => state.diagram?.id);
   const [name, setName] = useState(project.name);
   const summaryOf = (id: string) => summaries.find((summary) => summary.id === id);
   const diagrams = project.diagramIds.map(summaryOf).filter((summary) => summary !== undefined);
@@ -308,16 +307,6 @@ function ProjectDetail({ project, isOpen, summaries, onDone }: { project: Diagra
       <section className="mt-6">
         <div className="flex flex-wrap items-center gap-2">
           <h4 className="text-xs font-semibold text-ink-900">Diagramas</h4>
-          {isOpen && (
-            <div className="ml-auto flex gap-1">
-              {currentId && !project.diagramIds.includes(currentId) && (
-                <button type="button" onClick={addCurrentToProject} className="rounded-md px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent-soft">Añadir el abierto</button>
-              )}
-              <button type="button" onClick={() => { onDone(); ui().setGalleryOpen(true, { forProject: true }); }} className="flex items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">
-                <FontAwesomeIcon icon={faPlus} className="text-[10px]" /> Nuevo diagrama
-              </button>
-            </div>
-          )}
         </div>
         {diagrams.length === 0 ? (
           <p className="mt-2 rounded-lg border border-dashed border-line p-4 text-sm text-ink-600">Este proyecto todavía no tiene diagramas.</p>

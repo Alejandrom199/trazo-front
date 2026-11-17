@@ -23,6 +23,7 @@ import {
   type DiagramProject,
   type MapEdge,
   type MapEdgeKind,
+  type Requirement,
 } from '@/core/model';
 import { diagramRegistry } from '@/core/registry';
 import { useProjectStore } from '@/core/store/projectStore';
@@ -70,7 +71,12 @@ export function ProjectMap() {
 
 function MapDialog({ project }: { project: DiagramProject }) {
   const allDiagrams = useProjectDiagrams();
-  const close = useCallback(() => useUiStore.getState().setProjectMapOpen(false), []);
+  // Al cerrar, el foco (p. ej. el impacto de un requisito) se olvida.
+  const close = useCallback(() => {
+    useUiStore.getState().setMapFocus(null);
+    useUiStore.getState().setProjectMapOpen(false);
+  }, []);
+  const mapFocus = useUiStore((state) => state.mapFocus);
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogBehavior(true, dialogRef, close);
   const [folderFilter, setFolderFilter] = useState('all');
@@ -88,10 +94,16 @@ function MapDialog({ project }: { project: DiagramProject }) {
   const edges = allEdges.filter((edge) => !hiddenKinds.has(edge.kind));
   const layout = useMemo(() => layoutMap(diagrams), [diagrams]);
   const problems = useMemo(() => problemCounts(allDiagrams, project), [allDiagrams, project]);
+  // Lo que queda a plena luz: lo que coincide con la búsqueda y, si hay foco, lo alcanzado por él.
   const matches = useMemo(() => {
     const wanted = normalizeName(query);
-    return wanted ? new Set(diagrams.filter((diagram) => normalizeName(diagram.name).includes(wanted)).map((diagram) => diagram.id)) : null;
-  }, [diagrams, query]);
+    const focused = mapFocus ? new Set(mapFocus.diagramIds) : null;
+    if (!wanted && !focused) return null;
+    return new Set(diagrams
+      .filter((diagram) => !wanted || normalizeName(diagram.name).includes(wanted))
+      .filter((diagram) => !focused || focused.has(diagram.id))
+      .map((diagram) => diagram.id));
+  }, [diagrams, query, mapFocus]);
   const selected = selectedId ? diagrams.find((diagram) => diagram.id === selectedId) : undefined;
   // Lo enfocado (pasando el ratón o elegido) resalta sus flechas y atenúa el resto.
   const focusId = hovered ?? selected?.id ?? null;
@@ -167,6 +179,13 @@ function MapDialog({ project }: { project: DiagramProject }) {
         </button>
       </header>
 
+      {mapFocus && (
+        <div className="flex shrink-0 items-center gap-3 border-b border-accent/30 bg-accent-soft/50 px-4 py-2 text-xs text-ink-900">
+          <span className="font-semibold text-accent">{mapFocus.label}</span>
+          <span>{mapFocus.diagramIds.length} {mapFocus.diagramIds.length === 1 ? 'diagrama afectado' : 'diagramas afectados'}; el resto se atenúa.</span>
+          <button type="button" onClick={() => useUiStore.getState().setMapFocus(null)} className="ml-auto rounded-md px-2 py-1 font-medium text-accent hover:bg-accent-soft">Quitar el foco</button>
+        </div>
+      )}
       <div className="flex min-h-0 flex-1">
         <MapCanvas
           layout={layout}
@@ -191,6 +210,7 @@ function MapDialog({ project }: { project: DiagramProject }) {
             onSelect={setSelectedId}
             onOpen={openDiagram}
             onClose={() => setSelectedId(null)}
+            requirements={project.requirements.filter((requirement) => project.requirementLinks.some((link) => link.requirementId === requirement.id && link.diagramId === selected.id))}
           />
         )}
       </div>
@@ -315,7 +335,10 @@ function MapCanvas({ layout, edges, problems, project, matches, focusId, selecte
             const to = layout.cards.get(edge.targetId);
             if (!from || !to) return null;
             const involved = focusId !== null && (edge.sourceId === focusId || edge.targetId === focusId);
-            return <MapArrow key={index} edge={edge} from={from} to={to} lane={laneOf(edges, edge)} state={focusId === null ? 'normal' : involved ? 'active' : 'dimmed'} />;
+            // Con búsqueda o foco, una flecha queda encendida solo si sus dos extremos lo están.
+            const outside = matches !== null && !(matches.has(edge.sourceId) && matches.has(edge.targetId));
+            const state = focusId !== null ? (involved ? 'active' : 'dimmed') : outside ? 'dimmed' : 'normal';
+            return <MapArrow key={index} edge={edge} from={from} to={to} lane={laneOf(edges, edge)} state={state} />;
           })}
         </svg>
 
@@ -431,10 +454,12 @@ interface DetailPanelProps {
   onSelect: (id: string) => void;
   onOpen: (id: string) => void;
   onClose: () => void;
+  /** Requisitos que cumple el diagrama (él o alguno de sus elementos). */
+  requirements: Requirement[];
 }
 
 /** Panel del diagrama elegido: su ficha y sus relaciones (salientes y entrantes), navegables. */
-function DetailPanel({ diagram, diagrams, edges, problems, folder, onSelect, onOpen, onClose }: DetailPanelProps) {
+function DetailPanel({ diagram, diagrams, edges, problems, folder, onSelect, onOpen, onClose, requirements }: DetailPanelProps) {
   const nameOf = (id: string) => diagrams.find((item) => item.id === id)?.name ?? 'Diagrama';
   const outgoing = edges.filter((edge) => edge.sourceId === diagram.id);
   const incoming = edges.filter((edge) => edge.targetId === diagram.id);
@@ -476,6 +501,18 @@ function DetailPanel({ diagram, diagrams, edges, problems, folder, onSelect, onO
         <button type="button" onClick={onClose} aria-label="Cerrar el detalle" className="flex size-8 items-center justify-center rounded-lg text-ink-400 hover:bg-raised hover:text-ink-900"><FontAwesomeIcon icon={faXmark} /></button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5">
+        {requirements.length > 0 && (
+          <div className="mt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Cumple · {requirements.length}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {requirements.map((requirement) => (
+                <button key={requirement.id} type="button" title={requirement.title} onClick={() => { useUiStore.getState().setProjectMapOpen(false); useUiStore.getState().setRequirementsOpen(true, requirement.id); }} className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent hover:text-white">
+                  {requirement.code}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <dl className="mt-4 grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-lg bg-canvas px-3 py-2"><dt className="text-ink-400">Fase</dt><dd className="mt-0.5 font-medium text-ink-900">{phase?.name}</dd></div>
           <div className="rounded-lg bg-canvas px-3 py-2"><dt className="text-ink-400">Carpeta</dt><dd className="mt-0.5 truncate font-medium text-ink-900">{folder ?? 'Sin carpeta'}</dd></div>

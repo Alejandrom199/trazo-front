@@ -14,12 +14,16 @@ export function InitialNodeShape({ selected }: ArtifactNodeProps) {
   );
 }
 
-/** Diana: anillo exterior con un círculo relleno dentro. */
-export function ActivityFinalShape({ selected }: ArtifactNodeProps) {
+/** Diana: anillo exterior con un círculo relleno dentro; debajo, su resultado si tiene nombre. */
+export function ActivityFinalShape({ selected, label }: ArtifactNodeProps) {
   const color = strokeFor(selected);
   return (
-    <div className="flex size-full items-center justify-center rounded-full" style={{ border: `2px solid ${color}`, background: SHAPE_FILL }}>
-      <div className="size-[62%] rounded-full" style={{ background: color }} />
+    <div className="relative size-full">
+      <div className="flex size-full items-center justify-center rounded-full" style={{ border: `2px solid ${color}`, background: SHAPE_FILL }}>
+        <div className="size-[62%] rounded-full" style={{ background: color }} />
+      </div>
+      {/* El nombre del final es el resultado del proceso (p. ej. «Sin ejemplares»). */}
+      {label && <div className="absolute top-full left-1/2 mt-1 w-max max-w-48 -translate-x-1/2 text-center text-[12px] leading-snug font-medium text-ink-900">{label}</div>}
     </div>
   );
 }

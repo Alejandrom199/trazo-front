@@ -17,6 +17,7 @@ describe('withoutDiagrams', () => {
     traceLinks: [link('ab', 'a', 'b'), link('bc', 'b', 'c'), link('ca', 'c', 'a')],
     folderOf: { a: 'f1', b: 'f1' },
     diagramRelations: [relation('rb', 'b', 'c'), relation('rc', 'c', 'a')],
+    requirementLinks: [{ id: 'q1', requirementId: 'r', diagramId: 'b', elementId: null, createdAt: '' }, { id: 'q2', requirementId: 'r', diagramId: 'a', elementId: 'x', createdAt: '' }],
   };
 
   it('Dado un diagrama quitado, Entonces se van él, los vínculos y relaciones que lo tocan y su lugar en la carpeta', () => {
@@ -25,6 +26,7 @@ describe('withoutDiagrams', () => {
       traceLinks: [link('ca', 'c', 'a')],
       folderOf: { a: 'f1' },
       diagramRelations: [relation('rc', 'c', 'a')],
+      requirementLinks: [{ id: 'q2', requirementId: 'r', diagramId: 'a', elementId: 'x', createdAt: '' }],
     });
   });
 

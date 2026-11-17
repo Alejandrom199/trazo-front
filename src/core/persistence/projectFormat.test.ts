@@ -4,7 +4,7 @@ import { projectFromJson, projectToJson } from './projectFormat';
 
 describe('formato de proyecto', () => {
   const diagram = createEmptyDiagram({ diagramType: 'activity', name: 'Préstamo' }, new Date(0));
-  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
 
   it('exporta e importa todos los diagramas', () => {
     const result = projectFromJson(projectToJson(project, [diagram]));

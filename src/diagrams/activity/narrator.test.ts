@@ -60,7 +60,7 @@ describe('narrador del diagrama de actividades', () => {
 
     expect(text).toContain('en «Cliente», se ejecuta «Seleccionar productos»');
     expect(text).toContain('en «Sistema», se ejecuta «Verificar stock»');
-    expect(text).toContain('en «Bodega», se ejecuta «Preparar paquete»');
+    expect(text).toContain('En «Bodega», se ejecuta «Preparar paquete»');
     expect(text).toContain('En «Cliente», se ejecuta «Ver aviso de falta de stock»');
   });
 

@@ -101,8 +101,8 @@ export function InspectorDock() {
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === 'properties' && <PropertiesContent />}
         {tab === 'explanation' && <ExplanationPanel embedded alwaysOpen />}
-        {tab === 'problems' && <ValidationPanel embedded />}
-        {tab === 'narration' && <NarrationPanel embedded />}
+        {tab === 'problems' && <ValidationPanel />}
+        {tab === 'narration' && <NarrationPanel />}
         {tab === 'traceability' && <TraceabilityPanel />}
       </div>
     </aside>
@@ -128,7 +128,7 @@ function PropertiesContent() {
   if (!module || !diagram) return null;
   const total = selection.nodeIds.length + selection.edgeIds.length;
   if (total === 0) return <EmptyInspector title="Nada seleccionado" text="Selecciona una figura o una conexión para editar sus propiedades." />;
-  if (total > 1) return <SelectionPanel embedded />;
+  if (total > 1) return <SelectionPanel />;
 
   const node = selection.nodeIds[0] ? diagram.nodes.find((item) => item.id === selection.nodeIds[0]) : undefined;
   const edge = selection.edgeIds[0] ? diagram.edges.find((item) => item.id === selection.edgeIds[0]) : undefined;

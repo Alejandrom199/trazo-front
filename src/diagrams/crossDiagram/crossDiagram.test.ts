@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyDiagram, validateProject, type Diagram, type DiagramType, type ProjectSnapshot, type TraceLink } from '@/core/model';
 import { lifelineTypeName, messageCallName, classifierOperations, normalizeName } from './names';
-import { brokenDiagramLink, subprocessUnlinked, brokenTraceLink, inconsistentName, lifelineWithoutType, messageWithoutOperation, projectRules, useCaseNotDetailed } from './rules';
+import { brokenDiagramLink, subprocessOutcomeUnmatched, subprocessUnlinked, brokenTraceLink, inconsistentName, lifelineWithoutType, messageWithoutOperation, projectRules, useCaseNotDetailed } from './rules';
 
 let counter = 0;
 const id = () => `id${++counter}`;
@@ -64,7 +64,7 @@ describe('reglas de proyecto', () => {
     const issues = brokenTraceLink.check(snapshot([cases, withoutAction], [broken]));
     expect(issues).toHaveLength(1);
     expect(issues[0]!.elements).toEqual([broken.source]);
-    expect(issues[0]!.fix!.apply([broken])).toEqual([]);
+    expect(issues[0]!.fix!.apply({ traceLinks: [broken], requirementLinks: [] })).toEqual({ traceLinks: [] });
     expect(brokenTraceLink.check(snapshot([cases, activity], [broken]))).toEqual([]);
   });
 
@@ -124,6 +124,30 @@ describe('reglas de proyecto', () => {
 
     expect(subprocessUnlinked.check(snapshot([main, payment])).map((issue) => issue.elements[0]!.elementId)).toEqual([main.nodes[2]!.id]);
     expect(brokenDiagramLink.check(snapshot([main, payment])).map((issue) => issue.elements[0]!.elementId)).toEqual([main.nodes[1]!.id]);
+  });
+
+  it('Dada una decisión tras un subproceso, Entonces revisa que cada resultado del subproceso tenga su salida', () => {
+    const outcomes = (labels: [string, string]) => diagram('activity', 'Validar', [['activityFinal', labels[0]], ['activityFinal', labels[1]]]);
+    const caller = (guards: [string, string], sub: Diagram) => {
+      const main = diagram('activity', 'Préstamo', [['callBehavior', 'Validar'], ['merge', ''], ['decision', '¿Disponible?'], ['action', 'Prestar'], ['action', 'Reservar']], [
+        ['controlFlow', 0, 1, ''], ['controlFlow', 1, 2, ''], ['controlFlow', 2, 3, guards[0]], ['controlFlow', 2, 4, guards[1]],
+      ]);
+      main.nodes[0]!.props = { linkedDiagramId: sub.id };
+      return main;
+    };
+    const check = (guards: [string, string], labels: [string, string]) => {
+      const sub = outcomes(labels);
+      return subprocessOutcomeUnmatched.check(snapshot([caller(guards, sub), sub]));
+    };
+
+    expect(check(['Disponible', 'no disponible'], ['disponible', 'No disponible'])).toEqual([]);
+    expect(check(['disponible', 'else'], ['disponible', 'agotado'])).toEqual([]);
+    const unnamed = check(['disponible', 'no disponible'], ['', '']);
+    expect(unnamed.map((issue) => issue.severity)).toEqual(['info']);
+    expect(unnamed[0]!.suggestion).toContain('«disponible», «no disponible»');
+    const orphan = check(['disponible', 'no disponible'], ['disponible', 'agotado']);
+    expect(orphan.map((issue) => issue.severity)).toEqual(['warning']);
+    expect(orphan[0]!.message).toContain('«agotado»');
   });
 
   it('ordena los problemas del proyecto por gravedad', () => {

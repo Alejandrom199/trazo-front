@@ -1,8 +1,9 @@
 import type { Diagram } from './diagram';
+import type { Requirement, RequirementLink } from './requirements';
 
 export const PROJECT_FILE_FORMAT = 'trazo-project';
-/** v3: carpetas y relaciones entre diagramas completos. */
-export const PROJECT_SCHEMA_VERSION = 3;
+/** v3: carpetas y relaciones entre diagramas completos. v4: requisitos y su trazabilidad. */
+export const PROJECT_SCHEMA_VERSION = 4;
 
 /** Relaciones de trazabilidad: entre elementos y entre diagramas completos. Única lista. */
 export const TRACE_RELATIONS = ['detalla', 'implementa', 'verifica', 'depende de', 'relacionado con'] as const;
@@ -55,6 +56,9 @@ export interface DiagramProject {
   /** Carpeta de cada diagrama (por id); el que no aparece está sin carpeta. */
   folderOf: Record<string, string>;
   diagramRelations: DiagramRelation[];
+  /** Requisitos del proyecto (RF, RNF, RN) y lo que los cumple. */
+  requirements: Requirement[];
+  requirementLinks: RequirementLink[];
   createdAt: string;
   updatedAt: string;
 }
@@ -71,7 +75,7 @@ export function moveDiagramInOrder(diagramIds: readonly string[], diagramId: str
   return [...rest.slice(0, to), diagramId, ...rest.slice(to)];
 }
 
-type ProjectContents = Pick<DiagramProject, 'diagramIds' | 'traceLinks' | 'folderOf' | 'diagramRelations'>;
+type ProjectContents = Pick<DiagramProject, 'diagramIds' | 'traceLinks' | 'folderOf' | 'diagramRelations' | 'requirementLinks'>;
 
 /**
  * Lo que queda en el proyecto al quitarle los diagramas `removed`: se van con
@@ -85,6 +89,7 @@ export function withoutDiagrams(project: ProjectContents, removed: ReadonlySet<s
     traceLinks: project.traceLinks.filter((link) => !removed.has(link.source.diagramId) && !removed.has(link.target.diagramId)),
     folderOf: Object.fromEntries(Object.entries(project.folderOf).filter(([id]) => !removed.has(id))),
     diagramRelations: project.diagramRelations.filter((relation) => !removed.has(relation.sourceDiagramId) && !removed.has(relation.targetDiagramId)),
+    requirementLinks: project.requirementLinks.filter((link) => !removed.has(link.diagramId)),
   };
 }
 
@@ -119,6 +124,8 @@ export interface DiagramProjectFile {
   folders: ProjectFolder[];
   folderOf: Record<string, string>;
   diagramRelations: DiagramRelation[];
+  requirements: Requirement[];
+  requirementLinks: RequirementLink[];
   createdAt: string;
   updatedAt: string;
 }

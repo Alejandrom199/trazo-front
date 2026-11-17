@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
 import { TRACE_RELATIONS, type Diagram, type TraceEndpoint, type TraceLink, type TraceRelation } from '@/core/model';
 import { DiagramRelations } from './DiagramRelations';
+import { RequirementLinks } from './RequirementLinks';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
@@ -50,7 +51,7 @@ export function TraceabilityPanel() {
     <div className="flex h-full flex-col overflow-hidden">
       <header className="shrink-0 border-b border-line px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold text-ink-900">Trazabilidad del proyecto</p><p className="text-xs text-ink-400">{project.traceLinks.length} {project.traceLinks.length === 1 ? 'vínculo' : 'vínculos'} · {project.diagramRelations.length} {project.diagramRelations.length === 1 ? 'relación' : 'relaciones'}</p></div>
+          <div><p className="text-sm font-semibold text-ink-900">Vínculos del proyecto</p><p className="text-xs text-ink-400">{project.traceLinks.length} {project.traceLinks.length === 1 ? 'vínculo' : 'vínculos'} · {project.diagramRelations.length} {project.diagramRelations.length === 1 ? 'relación' : 'relaciones'}</p></div>
           <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-xs text-accent"><FontAwesomeIcon icon={faLink} /></span>
         </div>
       </header>
@@ -59,6 +60,8 @@ export function TraceabilityPanel() {
         <Coverage diagrams={diagrams} links={project.traceLinks} />
 
         <DiagramRelations project={project} current={current} diagrams={diagrams} />
+
+        <RequirementLinks project={project} diagramId={current.id} elementId={null} title="Requisitos que cumple este diagrama" />
 
         <section className="border-t border-line p-4">
           <h3 className="text-xs font-semibold text-ink-900">Elemento seleccionado</h3>
@@ -100,6 +103,8 @@ export function TraceabilityPanel() {
             </>
           )}
         </section>
+
+        {selected && <RequirementLinks project={project} diagramId={current.id} elementId={selected.elementId} title="Requisitos que cumple este elemento" />}
       </div>
     </div>
   );

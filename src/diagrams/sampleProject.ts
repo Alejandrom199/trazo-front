@@ -1,9 +1,12 @@
 import {
   createDiagramFromTemplate,
   nodeName,
+  requirementDefaults,
   withLinkedDiagram,
   type Diagram,
   type DiagramProject,
+  type Requirement,
+  type RequirementLink,
   type DiagramRelation,
   type Template,
   type TraceEndpoint,
@@ -17,6 +20,7 @@ import { componentTemplates } from './component/templates';
 import { deploymentTemplates } from './deployment/templates';
 import { erTemplates } from './er/templates';
 import { sequenceTemplates } from './sequence/templates';
+import { withSpec, type UseCaseSpec } from './usecase/spec';
 import { useCaseTemplates } from './usecase/templates';
 
 /**
@@ -70,9 +74,10 @@ function availabilityProcess(): Template {
   const query = t.node(A.action, 'Consultar el catálogo', { x: 260, y: 120 });
   const copies = t.node(A.decision, '¿Hay ejemplares libres?', { x: 260, y: 210 });
   const hold = t.node(A.action, 'Apartar un ejemplar', { x: 260, y: 300 });
-  const ok = t.node(A.activityFinal, '', { x: 260, y: 380 });
+  // Los finales con nombre son el resultado que usa «¿Disponible?» en el proceso mayor.
+  const ok = t.node(A.activityFinal, 'disponible', { x: 260, y: 380 });
   const blocked = t.node(A.action, 'Informar que no hay ejemplares', { x: 540, y: 210 });
-  const none = t.node(A.activityFinal, '', { x: 540, y: 300 });
+  const none = t.node(A.activityFinal, 'no disponible', { x: 540, y: 300 });
   t.flow(start, query);
   t.flow(query, copies);
   t.flow(copies, hold, 'sí');
@@ -82,7 +87,54 @@ function availabilityProcess(): Template {
   return t.build({ id: 'sample.availability', name: 'Validar disponibilidad', description: 'Detalle del subproceso: se consulta el catálogo y se aparta un ejemplar si lo hay.', difficulty: 'básico', learningGoals: [] });
 }
 
-const fromCatalog = (templates: Template[], id: string): Template => {
+/** Fichas de los casos de uso del ejemplo, por nombre del caso. */
+const USE_CASE_SPECS: Record<string, UseCaseSpec> = {
+  'Buscar un libro': {
+    code: 'CU01', purpose: 'Encontrar un libro del catálogo y saber si se puede pedir.', importance: 'primario', level: 'esencial',
+    summary: 'El socio busca por título o autor y el sistema le muestra los libros que coinciden y su disponibilidad.',
+    preconditions: ['El socio está en el portal de la biblioteca.'],
+    postconditions: ['El socio ve los libros que coinciden y cuáles tienen ejemplares libres.'],
+    typicalCourse: [
+      { by: 'actor', text: 'Escribe el título, el autor o un tema.' },
+      { by: 'system', text: 'Busca en el catálogo los libros que coinciden.' },
+      { by: 'system', text: 'Muestra la lista con la disponibilidad de cada libro.' },
+      { by: 'actor', text: 'Elige un libro para ver su detalle.' },
+      { by: 'system', text: 'Muestra el detalle y cuántos ejemplares están libres.' },
+    ],
+    alternateCourses: [{ step: 2, text: 'Si ningún libro coincide, muestra «No hay resultados» y sugiere revisar lo escrito.' }],
+  },
+  'Pedir un préstamo': {
+    code: 'CU02', purpose: 'Llevarse un libro prestado sin hacer trámites en el mostrador.', importance: 'primario', level: 'esencial',
+    summary: 'El socio pide un libro con ejemplares libres; el sistema registra el préstamo y le confirma la fecha de devolución.',
+    preconditions: ['El socio inició sesión en el portal.', 'El socio no tiene préstamos vencidos.'],
+    postconditions: ['El préstamo queda registrado con su fecha de devolución.', 'El ejemplar queda marcado como prestado.'],
+    typicalCourse: [
+      { by: 'actor', text: 'Elige el libro y selecciona «Pedir préstamo».' },
+      { by: 'system', text: 'Comprueba que haya un ejemplar libre y lo aparta.' },
+      { by: 'system', text: 'Muestra el resumen del préstamo con la fecha de devolución.' },
+      { by: 'actor', text: 'Confirma el préstamo.' },
+      { by: 'system', text: 'Registra el préstamo y confirma al socio la fecha de devolución.' },
+    ],
+    alternateCourses: [
+      { step: 2, text: 'Si no hay ejemplares libres, ofrece reservar el libro.' },
+      { step: 4, text: 'Si el socio cancela, libera el ejemplar apartado.' },
+    ],
+  },
+  'Devolver un libro': {
+    code: 'CU03', purpose: 'Cerrar un préstamo y dejar el ejemplar disponible para otros.', importance: 'primario', level: 'esencial',
+    summary: 'El bibliotecario recibe el libro y el sistema cierra el préstamo del socio.',
+    preconditions: ['El socio tiene un préstamo abierto de ese ejemplar.'],
+    postconditions: ['El préstamo queda cerrado.', 'El ejemplar vuelve a estar libre.'],
+    typicalCourse: [
+      { by: 'actor', text: 'Registra el código del ejemplar devuelto.' },
+      { by: 'system', text: 'Busca el préstamo abierto de ese ejemplar.' },
+      { by: 'system', text: 'Cierra el préstamo y marca el ejemplar como libre.' },
+    ],
+    alternateCourses: [{ step: 3, text: 'Si la devolución llega vencida, registra la demora en la cuenta del socio.' }],
+  },
+};
+
+const fromCatalog =(templates: Template[], id: string): Template => {
   const template = templates.find((candidate) => candidate.id === id);
   if (!template) throw new Error(`Proyecto de ejemplo: falta la plantilla «${id}».`);
   return template;
@@ -95,7 +147,15 @@ const fromCatalog = (templates: Template[], id: string): Template => {
 export function buildSampleProject(createId: () => string, now: Date = new Date()): SampleProject {
   const make = (template: Template, name: string): Diagram => ({ ...createDiagramFromTemplate(template, now), id: createId(), name });
 
-  const useCases = make(fromCatalog(useCaseTemplates, 'usecase.library'), 'Casos de uso');
+  const useCasesBase = make(fromCatalog(useCaseTemplates, 'usecase.library'), 'Casos de uso');
+  // Cada caso trae su ficha (CU01…), como en un documento de análisis.
+  const useCases: Diagram = {
+    ...useCasesBase,
+    nodes: useCasesBase.nodes.map((node) => {
+      const spec = USE_CASE_SPECS[nodeName(node, '')];
+      return spec ? { ...node, props: withSpec(node.props, spec) } : node;
+    }),
+  };
   const loanBase = make(loanProcess(), 'Pedir un préstamo');
   const availability = make(availabilityProcess(), 'Validar disponibilidad');
   const sequence = make(fromCatalog(sequenceTemplates, 'sequence.library-loan'), 'Préstamo en el portal');
@@ -151,8 +211,64 @@ export function buildSampleProject(createId: () => string, now: Date = new Date(
     link(endpoint(database, 'Socio'), endpoint(domain, 'Socio'), 'implementa'),
   ];
 
+  // Requisitos: qué se pidió y qué parte del modelo lo cumple. RF-04 queda
+  // propuesto y sin cubrir a propósito, para que la cobertura muestre lo pendiente.
+  const requirements: Requirement[] = [];
+  const requirementLinks: RequirementLink[] = [];
+  // Fichas completas, como se declaran en un documento de requisitos: texto
+  // como obligación, categoría, criterios, versión y revisión. La regla RN-01
+  // trae su fuente, una excepción y sus ejemplos Dado / Entonces.
+  const require = (sheet: Partial<Requirement> & Pick<Requirement, 'code' | 'title' | 'kind' | 'priority' | 'status' | 'description'>, ...targets: (TraceEndpoint | Diagram)[]) => {
+    const id = createId();
+    requirements.push({ ...requirementDefaults(), version: '1.1', reviewedAt: '2026-11-10', ...sheet, id, createdAt: now.toISOString() });
+    for (const target of targets) {
+      requirementLinks.push({ id: createId(), requirementId: id, diagramId: 'elementId' in target ? target.diagramId : target.id, elementId: 'elementId' in target ? target.elementId : null, createdAt: now.toISOString() });
+    }
+  };
+  require({
+    code: 'RF-01', title: 'Pedir un libro prestado', kind: 'funcional', category: 'Préstamos', priority: 'alta', status: 'aprobado',
+    description: 'El sistema permitirá a un socio pedir un libro prestado desde el portal, sin ir al mostrador.',
+    details: [
+      'El sistema deberá mostrar solo los libros con al menos un ejemplar libre como prestables.',
+      'El sistema deberá registrar la fecha del préstamo y la fecha de devolución (15 días después).',
+      'El sistema deberá confirmar el préstamo al socio con la fecha de devolución.',
+    ],
+  }, endpoint(useCases, 'Pedir un préstamo'), loan);
+  require({
+    code: 'RF-02', title: 'Validar la disponibilidad antes de prestar', kind: 'funcional', category: 'Préstamos', priority: 'alta', status: 'aprobado',
+    description: 'El sistema deberá comprobar que haya un ejemplar libre antes de registrar un préstamo.',
+    details: ['El sistema deberá apartar el ejemplar mientras se completa el préstamo.', 'Si no hay ejemplares libres, el sistema deberá ofrecer la reserva.'],
+  }, endpoint(loan, 'Validar disponibilidad'), availability);
+  require({
+    code: 'RF-03', title: 'Reservar un libro sin ejemplares', kind: 'funcional', category: 'Préstamos', priority: 'media', status: 'aprobado',
+    description: 'El sistema permitirá a un socio reservar un libro cuando no haya ejemplares libres.',
+    details: ['El sistema deberá avisar al socio cuando un ejemplar reservado quede libre.', 'Una reserva sin retirar caduca a los 3 días.'],
+  }, endpoint(loan, 'Reservar el libro'));
+  require({
+    code: 'RN-01', title: 'Disponibilidad por ejemplar', kind: 'regla de negocio', priority: 'alta', status: 'aprobado',
+    description: 'Un libro solo puede prestarse si al menos uno de sus ejemplares está libre.',
+    details: ['La disponibilidad se decide por ejemplar, no por título.'],
+    rule: {
+      type: 'restricción', source: 'Reglamento de préstamos de la biblioteca, art. 4', validFrom: '2026-01-01', validTo: '',
+      exceptions: ['Los ejemplares de consulta en sala nunca se prestan, aunque estén libres.'],
+      examples: [
+        { given: 'un libro con 2 ejemplares prestados y 1 libre', then: 'se puede prestar el ejemplar libre' },
+        { given: 'un libro con todos sus ejemplares prestados', then: 'no se puede prestar y se ofrece la reserva' },
+      ],
+    },
+  }, endpoint(availability, '¿Hay ejemplares libres?'));
+  require({
+    code: 'RNF-01', title: 'Resguardo de los datos de préstamos', kind: 'no funcional', category: 'Fiabilidad', priority: 'media', status: 'aprobado',
+    description: 'El sistema deberá guardar los préstamos en una base de datos gestionada con respaldo cada 24 horas.',
+    details: ['La base no deberá aceptar conexiones desde internet: solo desde la API.', 'Un respaldo deberá poder restaurarse en menos de 1 hora.'],
+  }, database, deployment);
+  require({
+    code: 'RF-04', title: 'Avisar la fecha de devolución', kind: 'funcional', category: 'Notificaciones', priority: 'baja', status: 'propuesto', version: '1.0', reviewedAt: '',
+    description: 'El sistema deberá enviar al socio un recordatorio por correo un día antes del vencimiento.',
+  });
+
   return {
-    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations },
+    project: { name: SAMPLE_PROJECT_NAME, diagramIds: diagrams.map((diagram) => diagram.id), traceLinks, folders, folderOf, diagramRelations, requirements, requirementLinks },
     diagrams,
   };
 }

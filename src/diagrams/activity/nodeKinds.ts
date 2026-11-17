@@ -21,7 +21,8 @@ const round = { resizable: true, keepAspectRatio: true };
 
 export const activityNodeKinds: Record<string, NodeKind> = {
   [A.initialNode]: { ...base, ...round, component: InitialNodeShape, defaultSize: { width: 30, height: 30 } },
-  [A.activityFinal]: { ...base, ...round, component: ActivityFinalShape, defaultSize: { width: 32, height: 32 } },
+  // Su nombre (opcional) es el resultado del proceso: lo usa la decisión que sigue a un subproceso.
+  [A.activityFinal]: { ...base, ...round, component: ActivityFinalShape, defaultSize: { width: 32, height: 32 }, hasLabel: true, labelCaption: 'Resultado' },
   [A.flowFinal]: { ...base, ...round, component: FlowFinalShape, defaultSize: { width: 30, height: 30 } },
   [A.action]: {
     ...base,

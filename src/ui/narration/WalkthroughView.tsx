@@ -1,7 +1,7 @@
-import { faArrowTurnUp, faBackwardStep, faChevronRight, faForwardFast, faForwardStep, faRightToBracket, faRotateLeft, faRoute } from '@fortawesome/free-solid-svg-icons';
+import { faArrowTurnUp, faBackwardStep, faChevronRight, faCircleCheck, faForwardFast, faForwardStep, faListCheck, faRightToBracket, faRotateLeft, faRoute, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef } from 'react';
-import { nodeName, type Diagram, type WalkEntry, type WalkState, type WalkthroughEngine } from '@/core/model';
+import { nodeName, type Diagram, type WalkEntry, type WalkFact, type WalkState, type WalkthroughEngine } from '@/core/model';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -40,8 +40,9 @@ const engineFor = (diagram: Diagram) => (diagramRegistry.has(diagram.diagramType
  * El lienzo resalta dónde están los tokens; en cada decisión el usuario elige.
  * En un subproceso enlazado (⋔) decide si entra a recorrer su diagrama —que se
  * abre— o sigue sin entrar; al terminar el subproceso vuelve al proceso que lo
- * invocó y continúa después del ⋔. Si el diagrama se edita, el recorrido queda
- * desactualizado hasta reiniciarlo.
+ * invocó y continúa después del ⋔, llevando su resultado y lo decidido: la
+ * decisión que sigue sugiere la salida coherente (y avisa si se elige otra).
+ * Si el diagrama se edita, el recorrido queda desactualizado hasta reiniciarlo.
  */
 export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine; diagram: Diagram }) {
   const frames = useWalkthroughStore((state) => state.frames);
@@ -69,9 +70,10 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
   }, []);
 
   const restart = () => store().start(diagram, engine.start(diagram));
+  /** Avanza; en una decisión con salida sugerida, «Siguiente» toma esa. */
   const next = (edgeId?: string) => {
     if (!current) return;
-    const following = engine.step(diagram, current, edgeId);
+    const following = engine.step(diagram, current, edgeId ?? current.choice?.suggested?.edgeId);
     if (following !== current) store().push(following);
   };
   function untilDecision() {
@@ -101,17 +103,19 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
     openSavedDiagram(targetId);
     const child = useDiagramStore.getState().diagram;
     const childEngine = child && child.id === targetId ? engineFor(child) : undefined;
-    if (child && childEngine) store().enter(child, childEngine.start(child));
+    // El subproceso empieza sabiendo lo ya decidido.
+    if (child && childEngine) store().enter(child, childEngine.start(child, current?.facts ?? []));
   }
-  /** Vuelve al proceso que invocó este subproceso y continúa después del ⋔. */
+  /** Vuelve al proceso que invocó este subproceso y continúa después del ⋔ con su resultado. */
   function returnToParent() {
     const parent = frames.at(-2);
-    if (!parent) return;
+    if (!parent || !current) return;
+    const result = { outcome: current.outcome, facts: current.facts };
     openSavedDiagram(parent.diagramId);
     const reopened = useDiagramStore.getState().diagram;
     const parentEngine = reopened && reopened.id === parent.diagramId ? engineFor(reopened) : undefined;
     const pending = parent.history.at(-1);
-    if (reopened && parentEngine?.resumeCall && pending) store().returnTo(reopened, parentEngine.resumeCall(reopened, pending, 'returned'));
+    if (reopened && parentEngine?.resumeCall && pending) store().returnTo(reopened, parentEngine.resumeCall(reopened, pending, 'returned', result));
   }
   const focusEntry = (item: WalkEntry, index: number) =>
     setHighlight({ sourceKey: `${WALK_PREFIX}${index}`, tone: item.tone === 'warning' ? 'warning' : 'focus', nodeIds: item.nodeIds, edgeIds: item.edgeIds });
@@ -129,6 +133,7 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
   }
 
   const running = live && current.status === 'running';
+  const suggested = live ? (current.choice?.suggested ?? null) : null;
   const inSubprocess = frames.length > 1;
   const button = 'flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium disabled:opacity-40';
   const callNode = current.call ? diagram.nodes.find((node) => node.id === current.call!.nodeId) : undefined;
@@ -142,7 +147,7 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
         <button type="button" onClick={() => store().back()} disabled={!live || top!.history.length < 2} className={`${button} text-ink-600 hover:bg-canvas`} title="Paso anterior">
           <FontAwesomeIcon icon={faBackwardStep} /> Atrás
         </button>
-        <button type="button" onClick={() => next()} disabled={!running} className={`${button} bg-brand text-white hover:opacity-90`}>
+        <button type="button" onClick={() => next()} disabled={!running && !suggested} className={`${button} bg-brand text-white hover:opacity-90`} title={suggested ? 'Sigue por la salida sugerida' : undefined}>
           <FontAwesomeIcon icon={faForwardStep} /> Siguiente
         </button>
         <button type="button" onClick={untilDecision} disabled={!running} className={`${button} text-ink-600 hover:bg-canvas`} title="Avanza solo hasta la próxima decisión, subproceso o final">
@@ -171,6 +176,8 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
         </p>
       )}
 
+      {current.facts.length > 0 && <DecidedFacts facts={current.facts} />}
+
       <ol className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {current.log.map((item, index) => (
           <li key={index} ref={index === current.log.length - 1 ? logEnd : undefined}>
@@ -185,11 +192,23 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
           <li className="rounded-lg border border-warning/40 bg-warning-soft/40 p-2">
             <p className="mb-1.5 px-1 text-[11px] font-semibold text-warning">¿Por dónde sigue?</p>
             <div className="flex flex-col gap-1">
-              {current.choice.options.map((option) => (
-                <button key={option.edgeId} type="button" onClick={() => next(option.edgeId)} className="rounded-md bg-surface px-2.5 py-1.5 text-left text-sm text-ink-900 hover:bg-accent-soft hover:text-accent">
-                  {option.label}
-                </button>
-              ))}
+              {current.choice.options.map((option) => {
+                const isSuggested = suggested?.edgeId === option.edgeId;
+                const contradicts = suggested !== null && !isSuggested;
+                return (
+                  <button
+                    key={option.edgeId}
+                    type="button"
+                    onClick={() => next(option.edgeId)}
+                    className={`flex items-start gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-accent-soft hover:text-accent ${isSuggested ? 'bg-surface font-medium text-ink-900 ring-1 ring-success/50' : 'bg-surface text-ink-900'}`}
+                  >
+                    <span className="min-w-0 flex-1">{option.label}</span>
+                    {isSuggested && <span className="mt-0.5 flex shrink-0 items-center gap-1 text-[10px] font-semibold text-success"><FontAwesomeIcon icon={faCircleCheck} /> Coherente</span>}
+                    {contradicts && <span className="mt-0.5 flex shrink-0 items-center gap-1 text-[10px] font-semibold text-warning"><FontAwesomeIcon icon={faTriangleExclamation} /> Contradice</span>}
+                  </button>
+                );
+              })}
+              {suggested && <p className="px-1 pt-0.5 text-[11px] leading-snug text-ink-600">{suggested.reason}</p>}
             </div>
           </li>
         )}
@@ -227,6 +246,25 @@ export function WalkthroughView({ engine, diagram }: { engine: WalkthroughEngine
         )}
       </ol>
     </div>
+  );
+}
+
+/** Lo decidido hasta ahora en el recorrido (también dentro de los subprocesos). */
+function DecidedFacts({ facts }: { facts: WalkFact[] }) {
+  return (
+    <details className="shrink-0 border-b border-line px-4 py-1.5 text-xs">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium text-ink-600 hover:text-ink-900">
+        <FontAwesomeIcon icon={faListCheck} className="text-[10px]" /> Lo decidido ({facts.length})
+      </summary>
+      <ul className="mt-1.5 space-y-1 pb-1">
+        {facts.map((fact) => (
+          <li key={fact.nodeId} className="leading-snug text-ink-900">
+            {fact.question || 'Decisión sin pregunta'} → <span className="font-semibold">[{fact.answer}]</span>
+            <span className="text-ink-400"> · {fact.diagramName}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

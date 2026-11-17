@@ -1,4 +1,4 @@
-/** Condición de cada paso del recorrido, independiente de React. */
+/** Condición de cada paso del tutorial, independiente de React. */
 
 export interface TutorialSnapshot {
   nodeCount: number;

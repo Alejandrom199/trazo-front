@@ -9,7 +9,7 @@ function snapshotOf(nodeCount: number, edgeCount: number, labelSignature: string
   return { nodeCount, edgeCount, labelSignature, issueCount, inspectorTab, exportOnStep };
 }
 
-/** Recorrido corto sobre el diagrama abierto. Se puede saltar y volver a empezar. */
+/** Tutorial corto sobre el diagrama abierto. Se puede saltar y volver a empezar. */
 export function EditorTutorial() {
   const status = useUiStore((state) => state.tutorialStatus);
   const step = useUiStore((state) => state.tutorialStep);
@@ -59,7 +59,7 @@ export function EditorTutorial() {
   if (status === 'offer') {
     return (
       <aside className="pointer-events-auto absolute bottom-20 left-3 z-30 w-[min(22rem,calc(100%-1.5rem))] rounded-xl border border-line bg-surface p-4 shadow-panel">
-        <p className="text-sm font-semibold text-ink-900">Recorrido de cinco minutos</p>
+        <p className="text-sm font-semibold text-ink-900">Tutorial de 5 minutos</p>
         <p className="mt-1 text-sm leading-relaxed text-ink-600">Aprende lo básico sobre este diagrama: dibujar, nombrar, conectar, corregir, narrar y exportar.</p>
         <div className="mt-3 flex gap-2">
           <button type="button" onClick={() => useUiStore.getState().startTutorial()} className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90">Empezar</button>
@@ -72,7 +72,7 @@ export function EditorTutorial() {
   if (status === 'done') {
     return (
       <aside className="pointer-events-auto absolute bottom-20 left-3 z-30 rounded-xl border border-line bg-surface px-4 py-3 shadow-panel">
-        <p className="text-sm text-ink-900">Recorrido terminado.</p>
+        <p className="text-sm text-ink-900">Tutorial terminado.</p>
         <button type="button" onClick={() => useUiStore.getState().restartTutorial()} className="mt-1 text-sm font-medium text-accent hover:underline">Reiniciar</button>
       </aside>
     );

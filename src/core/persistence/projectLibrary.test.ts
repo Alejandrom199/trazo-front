@@ -21,6 +21,8 @@ const project = (id: string, name = id): DiagramProject => ({
   folders: [],
   folderOf: {},
   diagramRelations: [],
+  requirements: [],
+  requirementLinks: [],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 });

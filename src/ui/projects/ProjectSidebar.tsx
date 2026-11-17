@@ -4,10 +4,7 @@ import {
   faFolder,
   faFolderOpen,
   faFolderPlus,
-  faGear,
   faGripVertical,
-  faLink,
-  faMap,
   faPen,
   faPlus,
   faTrashCan,
@@ -40,9 +37,6 @@ export function ProjectSidebar() {
   const currentId = useDiagramStore((state) => state.diagram?.id);
   const open = useUiStore((state) => state.projectSidebarOpen);
   const setOpen = useUiStore((state) => state.setProjectSidebarOpen);
-  const setProjectOpen = useUiStore((state) => state.setProjectOpen);
-  const setInspectorTab = useUiStore((state) => state.setInspectorTab);
-  const setProjectMapOpen = useUiStore((state) => state.setProjectMapOpen);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropSpot, setDropSpot] = useState<DropSpot | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
@@ -232,21 +226,6 @@ export function ProjectSidebar() {
         )}
       </div>
 
-      <footer className="border-t border-line p-2">
-        <button type="button" onClick={() => setProjectMapOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 hover:bg-raised hover:text-accent">
-          <FontAwesomeIcon icon={faMap} className="text-[11px]" />
-          Mapa del proyecto
-        </button>
-        <button type="button" onClick={() => setInspectorTab('traceability')} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-ink-600 hover:bg-raised hover:text-accent">
-          <FontAwesomeIcon icon={faLink} className="text-[11px]" />
-          Trazabilidad
-          <span className="ml-auto rounded-full bg-accent-soft px-1.5 py-px text-[10px] font-medium text-accent">{project.traceLinks.length + project.diagramRelations.length}</span>
-        </button>
-        <button type="button" onClick={() => setProjectOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-ink-600 hover:bg-raised hover:text-ink-900">
-          <FontAwesomeIcon icon={faGear} className="text-[11px]" />
-          Administrar proyecto
-        </button>
-      </footer>
     </aside>
   );
 
