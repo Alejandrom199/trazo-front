@@ -8,7 +8,6 @@ import { readNumberProperty, readSelectProperty, readTextProperty, type DiagramM
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { ArtifactFigure } from '@/ui/artifacts/ArtifactFigure';
 import { Field, FieldGroup, inputClass, NumberInput, ROUTING_OPTIONS, Segmented, TextInput } from '@/ui/explanation/formFields';
-import { Panel } from '@/ui/layout/Panel';
 import { EdgeFigure } from '@/ui/artifacts/EdgeFigure';
 import { edgeTypeOptions } from '@/canvas/edgeTypeChoice';
 import { ArrangeTools } from './ArrangeTools';
@@ -24,7 +23,7 @@ const store = () => useDiagramStore.getState();
  * si todos son del mismo tipo, además se editan sus propiedades a la vez (cada
  * cambio es un solo paso de deshacer). Los campos que difieren dicen "Varios".
  */
-export function SelectionPanel({ embedded = false }: { embedded?: boolean }) {
+export function SelectionPanel() {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
   const selection = useDiagramStore((state) => state.selection);
@@ -94,8 +93,7 @@ export function SelectionPanel({ embedded = false }: { embedded?: boolean }) {
       </div>
     </>
   );
-  if (embedded) return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
-  return <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-80">{content}</Panel>;
+  return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
 }
 
 /** Un tipo de artefacto con su figura y cada elemento seleccionado; clic en uno lo deja solo a él. */

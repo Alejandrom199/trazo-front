@@ -1,14 +1,10 @@
 import {
-  faBullseye,
   faChevronDown,
   faChevronLeft,
   faFolder,
   faFolderOpen,
   faFolderPlus,
-  faGear,
   faGripVertical,
-  faLink,
-  faMap,
   faPen,
   faPlus,
   faTrashCan,
@@ -16,8 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { coverageSummary, groupByFolder, requirementCoverage, type ProjectFolder } from '@/core/model';
-import { useProjectDiagrams } from './useProjectDiagrams';
+import { groupByFolder, type ProjectFolder } from '@/core/model';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
 import { useProjectStore } from '@/core/store/projectStore';
@@ -42,17 +37,12 @@ export function ProjectSidebar() {
   const currentId = useDiagramStore((state) => state.diagram?.id);
   const open = useUiStore((state) => state.projectSidebarOpen);
   const setOpen = useUiStore((state) => state.setProjectSidebarOpen);
-  const setProjectOpen = useUiStore((state) => state.setProjectOpen);
-  const setInspectorTab = useUiStore((state) => state.setInspectorTab);
-  const setProjectMapOpen = useUiStore((state) => state.setProjectMapOpen);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropSpot, setDropSpot] = useState<DropSpot | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
 
-  const projectDiagrams = useProjectDiagrams();
   if (!project || !open) return null;
-  const requirementsSummary = coverageSummary(requirementCoverage(project.requirements, project.requirementLinks, projectDiagrams));
   const summaryOf = (id: string) => summaries.find((summary) => summary.id === id);
   const groups = groupByFolder(project).map((group) => ({ ...group, summaries: group.diagramIds.map(summaryOf).filter((summary) => summary !== undefined) }));
   const loose = groups[0]!;
@@ -236,30 +226,6 @@ export function ProjectSidebar() {
         )}
       </div>
 
-      <footer className="border-t border-line p-2">
-        <button type="button" onClick={() => setProjectMapOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 hover:bg-raised hover:text-accent">
-          <FontAwesomeIcon icon={faMap} className="text-[11px]" />
-          Mapa del proyecto
-        </button>
-        <button type="button" onClick={() => useUiStore.getState().setRequirementsOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 hover:bg-raised hover:text-accent">
-          <FontAwesomeIcon icon={faBullseye} className="text-[11px]" />
-          Requisitos
-          {project.requirements.length > 0 && (
-            <span className={`ml-auto rounded-full px-1.5 py-px text-[10px] font-medium tabular-nums ${requirementsSummary.covered === requirementsSummary.total ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`} title="Requisitos cubiertos">
-              {requirementsSummary.covered}/{requirementsSummary.total}
-            </span>
-          )}
-        </button>
-        <button type="button" onClick={() => setInspectorTab('traceability')} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-ink-600 hover:bg-raised hover:text-accent">
-          <FontAwesomeIcon icon={faLink} className="text-[11px]" />
-          Trazabilidad
-          <span className="ml-auto rounded-full bg-accent-soft px-1.5 py-px text-[10px] font-medium text-accent">{project.traceLinks.length + project.diagramRelations.length}</span>
-        </button>
-        <button type="button" onClick={() => setProjectOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-ink-600 hover:bg-raised hover:text-ink-900">
-          <FontAwesomeIcon icon={faGear} className="text-[11px]" />
-          Administrar proyecto
-        </button>
-      </footer>
     </aside>
   );
 

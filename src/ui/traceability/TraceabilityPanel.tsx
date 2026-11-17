@@ -51,7 +51,7 @@ export function TraceabilityPanel() {
     <div className="flex h-full flex-col overflow-hidden">
       <header className="shrink-0 border-b border-line px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold text-ink-900">Trazabilidad del proyecto</p><p className="text-xs text-ink-400">{project.traceLinks.length} {project.traceLinks.length === 1 ? 'vínculo' : 'vínculos'} · {project.diagramRelations.length} {project.diagramRelations.length === 1 ? 'relación' : 'relaciones'}</p></div>
+          <div><p className="text-sm font-semibold text-ink-900">Vínculos del proyecto</p><p className="text-xs text-ink-400">{project.traceLinks.length} {project.traceLinks.length === 1 ? 'vínculo' : 'vínculos'} · {project.diagramRelations.length} {project.diagramRelations.length === 1 ? 'relación' : 'relaciones'}</p></div>
           <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-xs text-accent"><FontAwesomeIcon icon={faLink} /></span>
         </div>
       </header>

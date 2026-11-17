@@ -3,6 +3,7 @@ import { useAddArtifactAtCenter } from '@/canvas/placeArtifact';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { diagramToJson, downloadText, toFileName } from '@/ui/files/fileTransfer';
 import { navigate, useRoute } from '@/ui/navigation/route';
+import { openSampleProject } from '@/ui/projects/projectActions';
 import { usePersistenceStore } from '@/core/persistence/persistenceStore';
 import { diagramRegistry } from '@/core/registry';
 import { useDiagramStore } from '@/core/store/diagramStore';
@@ -114,10 +115,19 @@ export function CommandPalette() {
         }),
       },
       { id: 'learn', group: 'Aprender', label: 'Abrir Aprender', run: go(() => navigate({ page: 'learn' })) },
-      { id: 'flow', group: 'Aprender', label: 'Biblioteca Digital', keywords: 'flow uml recorrido', run: go(() => navigate({ page: 'learn-flow' })) },
+      { id: 'flow', group: 'Aprender', label: 'Flow UML (guía)', keywords: 'flow uml fases biblioteca digital', run: go(() => navigate({ page: 'learn-flow' })) },
+      {
+        id: 'sample-project',
+        group: 'Aprender',
+        label: 'Proyecto de ejemplo',
+        keywords: 'biblioteca digital ejemplo proyecto',
+        run: go(() => {
+          if (openSampleProject()) navigate({ page: 'editor' });
+        }),
+      },
     );
     if (route.page === 'editor') {
-      items.push({ id: 'tutorial', group: 'Acciones', label: 'Reiniciar recorrido', keywords: 'tutorial', run: go(() => useUiStore.getState().restartTutorial()) });
+      items.push({ id: 'tutorial', group: 'Acciones', label: 'Tutorial de 5 minutos', keywords: 'tutorial ayuda empezar', run: go(() => useUiStore.getState().restartTutorial()) });
     }
     for (const entry of diagramRegistry.list()) {
       items.push({

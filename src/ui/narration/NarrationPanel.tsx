@@ -1,6 +1,10 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowRight,
+  faCheck,
+  faCopy,
+  faListUl,
+  faRoute,
   faCodeBranch,
   faCompress,
   faDiamond,
@@ -9,7 +13,6 @@ import {
   faPlay,
   faTriangleExclamation,
   faUsers,
-  faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState } from 'react';
@@ -17,8 +20,6 @@ import type { NarrationKind, NarrationLine } from '@/core/model';
 import { useHighlightStore } from '@/canvas/highlightStore';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
-import { Panel } from '@/ui/layout/Panel';
-import { useUiStore } from '@/ui/uiStore';
 import { WalkthroughView } from './WalkthroughView';
 import { useWalkthroughStore } from './walkthroughStore';
 
@@ -47,10 +48,9 @@ function isNumbered(line: NarrationLine): boolean {
  * "Explicar diagrama": la narración del módulo activo, recalculada en vivo.
  * Clic en una línea = resalta (y el lienzo encuadra) los elementos que describe.
  */
-export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
+export function NarrationPanel() {
   const module = useActiveModule();
   const diagram = useDiagramStore((state) => state.diagram);
-  const setInspectorOpen = useUiStore((state) => state.setInspectorOpen);
   const highlight = useHighlightStore((state) => state.highlight);
   const setHighlight = useHighlightStore((state) => state.setHighlight);
   const [copied, setCopied] = useState(false);
@@ -85,16 +85,13 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
-  function close() {
-    if (highlight?.sourceKey.startsWith(NARRATION_PREFIX)) setHighlight(null);
-    setInspectorOpen(false);
-  }
 
   const content = (
     <>
-      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-4">
+      {/* Cabecera: solo el modo. Las opciones de cada vista van dentro de ella. */}
+      <header className="shrink-0 border-b border-line px-3 py-2">
         {walkthrough ? (
-          <div role="tablist" aria-label="Modo de la narración" className="flex gap-3">
+          <div role="tablist" aria-label="Modo de la narración" className="grid grid-cols-2 gap-1 rounded-lg bg-canvas p-1">
             {(['narration', 'walkthrough'] as const).map((option) => (
               <button
                 key={option}
@@ -102,17 +99,21 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
                 role="tab"
                 aria-selected={mode === option}
                 onClick={() => setMode(option)}
-                className={`text-xs font-semibold uppercase tracking-wider ${mode === option ? 'text-accent' : 'text-ink-400 hover:text-ink-900'}`}
+                className={`flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium ${mode === option ? 'bg-surface text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'}`}
               >
-                {option === 'narration' ? 'Narración' : 'Recorrido'}
+                <FontAwesomeIcon icon={option === 'narration' ? faListUl : faRoute} className="text-[11px]" />
+                {option === 'narration' ? 'Narración' : 'Recorrido paso a paso'}
               </button>
             ))}
           </div>
         ) : (
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Narración</h2>
+          <h2 className="px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-ink-400">Narración</h2>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {!walking && (
+      </header>
+
+      {/* Herramientas de la narración: cómo se muestra y copiarla. */}
+      {!walking && lines.length > 0 && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
           <div role="group" aria-label="Vista de la narración" className="flex rounded-md bg-canvas p-0.5">
             {(['visual', 'text'] as const).map((option) => {
               const active = view === option;
@@ -122,37 +123,26 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
                   type="button"
                   onClick={() => setView(option)}
                   aria-pressed={active}
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                  className={`h-7 rounded px-2.5 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
                     active ? 'bg-surface text-accent shadow-sm' : 'text-ink-400 hover:text-ink-900'
                   }`}
                 >
-                  {option === 'visual' ? 'Visual' : 'Texto'}
+                  {option === 'visual' ? 'Pasos' : 'Texto corrido'}
                 </button>
               );
             })}
           </div>
-          )}
-          {!walking && lines.length > 0 && (
-            <button
-              type="button"
-              onClick={copyText}
-              className="rounded-md px-2 py-1 text-xs text-ink-600 hover:bg-canvas hover:text-ink-900"
-            >
-              {copied ? 'Copiado' : 'Copiar texto'}
-            </button>
-          )}
-          {!embedded && (
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Cerrar narración"
-              className="flex size-11 items-center justify-center rounded-md text-ink-400 hover:bg-canvas hover:text-ink-900"
-            >
-              <FontAwesomeIcon icon={faXmark} className="text-sm" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={copyText}
+            title="Copia la narración como texto"
+            className="ml-auto flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium text-ink-600 hover:bg-canvas hover:text-ink-900"
+          >
+            <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="text-[10px]" />
+            {copied ? 'Copiado' : 'Copiar'}
+          </button>
         </div>
-      </header>
+      )}
 
       {walking ? (
         <WalkthroughView engine={walkthrough} diagram={diagram} />
@@ -241,6 +231,5 @@ export function NarrationPanel({ embedded = false }: { embedded?: boolean }) {
       </footer>
     </>
   );
-  if (embedded) return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
-  return <Panel className="flex max-h-full w-full flex-col overflow-hidden md:w-[420px]">{content}</Panel>;
+  return <div className="flex h-full w-full flex-col overflow-hidden">{content}</div>;
 }

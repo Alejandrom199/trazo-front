@@ -9,7 +9,6 @@ import {
   faLink,
   faMap,
   faSliders,
-  faTableColumns,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useRef, type ChangeEvent } from 'react';
@@ -24,15 +23,14 @@ import { useProjectDiagrams } from './useProjectDiagrams';
 const ui = () => useUiStore.getState();
 
 /**
- * Menú «Proyecto» de la barra superior. Con un proyecto abierto, su botón
- * muestra el nombre y reúne lo del proyecto: mapa, requisitos, trazabilidad,
- * su archivo .trazo-project y la gestión. Sin proyecto, ofrece crear, abrir,
- * importar o probar el de ejemplo.
+ * Menú «Proyecto» de la barra superior: el único lugar de las acciones del
+ * proyecto (mapa, requisitos, vínculos, su archivo .trazo-project y la
+ * gestión). La barra lateral solo navega carpetas y diagramas. Sin proyecto,
+ * ofrece crear, abrir, importar o probar el de ejemplo.
  */
 export function ProjectMenu() {
   const project = useProjectStore((state) => state.project);
   const saved = useProjectStore((state) => state.projects.length);
-  const sidebarOpen = useUiStore((state) => state.projectSidebarOpen);
   const diagrams = useProjectDiagrams();
   const inputRef = useRef<HTMLInputElement>(null);
   const coverage = project ? coverageSummary(requirementCoverage(project.requirements, project.requirementLinks, diagrams)) : null;
@@ -94,8 +92,7 @@ export function ProjectMenu() {
                 aside={coverage && coverage.total > 0 ? `${coverage.covered}/${coverage.total}` : undefined}
                 onClick={() => { close(); ui().setRequirementsOpen(true); }}
               />
-              <MenuItem icon={faLink} label="Trazabilidad del diagrama" hint="Vínculos y relaciones del diagrama abierto" onClick={() => { close(); ui().setInspectorOpen(true); ui().setInspectorTab('traceability'); }} />
-              <MenuItem icon={faTableColumns} label={sidebarOpen ? 'Ocultar la barra del proyecto' : 'Mostrar la barra del proyecto'} hint="Carpetas y diagramas, a la izquierda" onClick={() => { close(); ui().setProjectSidebarOpen(!sidebarOpen); }} />
+              <MenuItem icon={faLink} label="Vínculos del diagrama" hint="Vínculos, relaciones y requisitos del diagrama abierto" onClick={() => { close(); ui().setInspectorOpen(true); ui().setInspectorTab('traceability'); }} />
             </MenuSection>
             <MenuSection title="Archivo del proyecto">
               <MenuItem icon={faFileArrowDown} label="Exportar proyecto (.trazo-project)" hint="Todo: diagramas, carpetas, vínculos y requisitos" onClick={() => { close(); exportFile(); }} />
