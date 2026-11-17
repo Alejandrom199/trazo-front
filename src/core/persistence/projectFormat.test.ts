@@ -1,15 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { addNode, createEmptyDiagram, type DiagramProject } from '@/core/model';
+import { addNode, createEmptyDiagram, emptyProjectDocument, parseProjectDocument, type DiagramProject } from '@/core/model';
 import { projectFromJson, projectToJson } from './projectFormat';
 
 describe('formato de proyecto', () => {
   const diagram = createEmptyDiagram({ diagramType: 'activity', name: 'Préstamo' }, new Date(0));
-  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+  const project: DiagramProject = { id: 'p1', name: 'Biblioteca', diagramIds: [diagram.id], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], testCases: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
 
   it('exporta e importa todos los diagramas', () => {
     const result = projectFromJson(projectToJson(project, [diagram]));
     expect(result.ok && result.project.name).toBe('Biblioteca');
     expect(result.ok && result.project.diagrams).toHaveLength(1);
+  });
+
+  it('conserva los casos de prueba y descarta lo que apunta fuera del proyecto', () => {
+    const withTests: DiagramProject = {
+      ...project,
+      testCases: [
+        { id: 't1', code: 'CP-01', title: 'Préstamo', diagramId: diagram.id, choices: [{ nodeId: 'd', edgeId: 'e' }, { nodeId: 'c', outcome: null }], given: 'Dado', when: 'Cuando', then: 'Entonces', requirementIds: ['fantasma'], status: 'pasa', createdAt: new Date(0).toISOString() },
+        { id: 't2', code: 'CP-02', title: 'Ajeno', diagramId: 'fantasma', choices: [], given: '', when: '', then: '', requirementIds: [], status: 'pendiente', createdAt: new Date(0).toISOString() },
+      ],
+    };
+    const result = projectFromJson(projectToJson(withTests, [diagram]));
+    expect(result.ok && result.project.testCases).toEqual([{ ...withTests.testCases[0], requirementIds: [] }]);
+  });
+
+  it('conserva los datos del documento ERS y lee con tolerancia lo que falta', () => {
+    const withDocument: DiagramProject = { ...project, document: { ...emptyProjectDocument(), problem: 'Filas en el mostrador', audience: [{ name: 'Socios', role: 'Usuario', responsibility: '', interests: '', contact: '' }] } };
+    const result = projectFromJson(projectToJson(withDocument, [diagram]));
+    expect(result.ok && result.project.document).toEqual(withDocument.document);
+    expect(parseProjectDocument({ problem: 3, glossary: [{ term: 'Ejemplar' }, 'basura'] })).toEqual({ ...emptyProjectDocument(), glossary: [{ term: 'Ejemplar', definition: '', alias: '', abbreviation: '' }] });
   });
 
   it('rechaza un JSON que no es un proyecto', () => {

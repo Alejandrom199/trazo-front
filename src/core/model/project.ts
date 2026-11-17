@@ -1,5 +1,7 @@
 import type { Diagram } from './diagram';
 import type { Requirement, RequirementLink } from './requirements';
+import type { TestCase } from './testCases';
+import type { ProjectDocument } from './projectDocument';
 
 export const PROJECT_FILE_FORMAT = 'trazo-project';
 /** v3: carpetas y relaciones entre diagramas completos. v4: requisitos y su trazabilidad. */
@@ -8,6 +10,18 @@ export const PROJECT_SCHEMA_VERSION = 4;
 /** Relaciones de trazabilidad: entre elementos y entre diagramas completos. Única lista. */
 export const TRACE_RELATIONS = ['detalla', 'implementa', 'verifica', 'depende de', 'relacionado con'] as const;
 export type TraceRelation = (typeof TRACE_RELATIONS)[number];
+
+/** Qué significa cada relación, leída como «A <relación> B». */
+export const TRACE_RELATION_HINTS: Record<TraceRelation, string> = {
+  detalla: 'explica con más detalle lo que el otro muestra a grandes rasgos',
+  implementa: 'lleva a la práctica lo que el otro define',
+  verifica: 'comprueba que lo del otro se cumple (por ejemplo, pruebas)',
+  'depende de': 'necesita al otro para tener sentido o funcionar',
+  'relacionado con': 'tiene que ver con el otro, sin un sentido concreto',
+};
+
+/** Verbo con el que se lee la relación en una frase: «A está relacionado con B». */
+export const traceRelationVerb = (relation: TraceRelation): string => (relation === 'relacionado con' ? 'está relacionado con' : relation);
 
 export const isTraceRelation = (value: unknown): value is TraceRelation => TRACE_RELATIONS.includes(value as TraceRelation);
 
@@ -59,6 +73,10 @@ export interface DiagramProject {
   /** Requisitos del proyecto (RF, RNF, RN) y lo que los cumple. */
   requirements: Requirement[];
   requirementLinks: RequirementLink[];
+  /** Casos de prueba: caminos de los procesos con lo que debe pasar, y los requisitos que verifican. */
+  testCases: TestCase[];
+  /** Datos del documento ERS que el modelo no tiene (problema, audiencia, glosario…). Sin valor: vacío. */
+  document?: ProjectDocument;
   createdAt: string;
   updatedAt: string;
 }
@@ -75,7 +93,7 @@ export function moveDiagramInOrder(diagramIds: readonly string[], diagramId: str
   return [...rest.slice(0, to), diagramId, ...rest.slice(to)];
 }
 
-type ProjectContents = Pick<DiagramProject, 'diagramIds' | 'traceLinks' | 'folderOf' | 'diagramRelations' | 'requirementLinks'>;
+type ProjectContents = Pick<DiagramProject, 'diagramIds' | 'traceLinks' | 'folderOf' | 'diagramRelations' | 'requirementLinks' | 'testCases'>;
 
 /**
  * Lo que queda en el proyecto al quitarle los diagramas `removed`: se van con
@@ -90,6 +108,7 @@ export function withoutDiagrams(project: ProjectContents, removed: ReadonlySet<s
     folderOf: Object.fromEntries(Object.entries(project.folderOf).filter(([id]) => !removed.has(id))),
     diagramRelations: project.diagramRelations.filter((relation) => !removed.has(relation.sourceDiagramId) && !removed.has(relation.targetDiagramId)),
     requirementLinks: project.requirementLinks.filter((link) => !removed.has(link.diagramId)),
+    testCases: project.testCases.filter((item) => !removed.has(item.diagramId)),
   };
 }
 
@@ -126,6 +145,8 @@ export interface DiagramProjectFile {
   diagramRelations: DiagramRelation[];
   requirements: Requirement[];
   requirementLinks: RequirementLink[];
+  testCases: TestCase[];
+  document?: ProjectDocument;
   createdAt: string;
   updatedAt: string;
 }

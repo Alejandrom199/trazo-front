@@ -1,4 +1,4 @@
-import { faArrowRight, faDiagramProject, faRoute } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faDiagramProject, faFileLines, faRoute } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { groupByUmlFamily, UML_DIAGRAMS, UML_FAMILIES, umlKindOf } from '@/core/model';
 import { diagramRegistry, type DiagramModule } from '@/core/registry';
@@ -37,6 +37,25 @@ export function LearnHome() {
         </span>
         <span className="hidden items-center gap-1.5 text-sm font-medium text-accent sm:flex">
           Ver recorrido <FontAwesomeIcon icon={faArrowRight} className="text-xs transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate({ page: 'learn-spec', section: null })}
+        className="group mt-4 flex w-full items-center gap-5 overflow-hidden rounded-xl border border-line bg-surface p-5 text-left hover:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+          <FontAwesomeIcon icon={faFileLines} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-semibold text-ink-900">Requisitos y casos de uso</span>
+          <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-ink-600">
+            Cómo escribir requisitos funcionales, no funcionales y reglas de negocio, la ficha de un caso de uso y sus casos de prueba, con ejemplos y ejercicios.
+          </span>
+        </span>
+        <span className="hidden items-center gap-1.5 text-sm font-medium text-accent sm:flex">
+          Ver lección <FontAwesomeIcon icon={faArrowRight} className="text-xs transition-transform group-hover:translate-x-0.5" />
         </span>
       </button>
 

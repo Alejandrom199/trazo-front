@@ -10,6 +10,8 @@ import {
   nextUseCaseCode,
   readSpec,
   reviewSpec,
+  typicalCoursePairs,
+  useCaseSheetRows,
   USE_CASE_IMPORTANCE,
   USE_CASE_LEVEL,
   useCaseContext,
@@ -23,26 +25,13 @@ import { useDialogBehavior } from '@/ui/dialogs/useDialogBehavior';
 import { inputClass } from '@/ui/explanation/formFields';
 import { useProjectDiagrams } from '@/ui/projects/useProjectDiagrams';
 import { ListEditor, Row } from '@/ui/requirements/RequirementSheet';
+import { copyTable, escapeHtml } from '@/ui/clipboard';
+import { useCaseSheetHtml } from '@/ui/documents/sheetHtml';
+import { USE_CASE_SHEET_TIPS } from '@/diagrams/usecase/specGuide';
+import { LessonLink } from '@/ui/learn/LessonLink';
 import { useUiStore } from '@/ui/uiStore';
 
 const ui = () => useUiStore.getState();
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-/** Copia una tabla HTML (con su versión en texto) para pegarla en Word o Google Docs. */
-async function copyTable(html: string, text: string): Promise<boolean> {
-  try {
-    if ('ClipboardItem' in window) {
-      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
-    } else {
-      await navigator.clipboard.writeText(text);
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Ficha de los casos de uso del diagrama abierto: a la izquierda el listado
  * del módulo (código, nombre, actor); a la derecha la ficha del elegido,
@@ -74,7 +63,7 @@ function SheetDialog({ diagram, initialId }: { diagram: Diagram; initialId: stri
   const [copied, setCopied] = useState(false);
   async function copyList() {
     const rows = useCases.map((node) => [readSpec(node)?.code ?? '—', nodeName(node), useCaseContext(diagram, node.id).actors.join(', ') || '—']);
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt"><tr><th>Código</th><th>Nombre del Caso de Uso</th><th>Actor</th></tr>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</table>`;
+    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt"><tr><th>Código</th><th>Nombre del Caso de Uso</th><th>Actor</th></tr>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</table>`;
     if (await copyTable(html, rows.map((row) => row.join('\t')).join('\n'))) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
@@ -182,14 +171,12 @@ function SheetEditor({ diagram, node, spec }: { diagram: Diagram; node: DiagramN
               </ul>
             )}
           </section>
-          <section aria-label="Cómo escribir una ficha de caso de uso" className="space-y-2 rounded-xl border border-line p-4 text-xs leading-relaxed">
-            <h4 className="flex items-center gap-2 font-semibold text-ink-900"><FontAwesomeIcon icon={faLightbulb} className="text-accent" /> Cómo escribir la ficha</h4>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Propósito:</span> para qué lo hace el actor, en una frase.</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Tipo:</span> primario si es la razón de ser del sistema; esencial si cuenta qué pasa sin pantallas ni botones (real, si los nombra).</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Curso típico:</span> el camino feliz, alternando lo que hace el actor y lo que responde el sistema, en presente: «Ingresa los datos», «Valida los datos».</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Curso alterno:</span> qué pasa si algo falla, indicando en qué paso: «4. Si falta un campo obligatorio, muestra "Campo requerido"».</p>
-            <p className="text-ink-600"><span className="font-medium text-ink-900">Postcondición:</span> cómo queda el sistema al terminar bien. Se vuelve un caso de prueba.</p>
-          </section>
+          <LessonLink
+            lesson="caso-de-uso"
+            label="Cómo se escribe una ficha de caso de uso"
+            reminder={USE_CASE_SHEET_TIPS[0]}
+            onLeave={() => ui().setUseCaseSheetNodeId(null)}
+          />
         </aside>
       </div>
     </section>
@@ -350,40 +337,17 @@ function ReferencesEditor({ diagramId, nodeId, linked }: { diagramId: string; no
  * La ficha como documento: la tabla de datos y el curso típico en dos
  * columnas (actor | sistema), numerado, como en una ficha académica.
  */
-function SheetTable({ name, spec, context, references }: { name: string; spec: UseCaseSpec; context: UseCaseContext; references: string[] }) {
+export function SheetTable({ name, spec, context, references }: { name: string; spec: UseCaseSpec; context: UseCaseContext; references: string[] }) {
   const [copied, setCopied] = useState(false);
-  const rows: [string, string | string[]][] = [
-    ['Caso de Uso', `${name} (${spec.code})`],
-    ['Actores', context.actors.join(', ') || '—'],
-    ['Propósito', spec.purpose || '—'],
-    ['Tipo', `${capitalize(spec.importance)} y ${capitalize(spec.level)}`],
-    ['Resumen', spec.summary || '—'],
-    ['Precondiciones', spec.preconditions.length > 0 ? spec.preconditions : '—'],
-    ['Postcondiciones', spec.postconditions.length > 0 ? spec.postconditions : '—'],
-    ['Referencias', references.join(', ') || '—'],
-  ];
-  if (context.includes.length > 0) rows.push(['Incluye', context.includes.join(', ')]);
-  if (context.extendedBy.length > 0) rows.push(['Lo extiende', context.extendedBy.join(', ')]);
-  const course = spec.typicalCourse.map((step, index) => ({ ...step, number: index + 1 }));
-  const pairs: { actor?: (typeof course)[number]; system?: (typeof course)[number] }[] = [];
-  for (const step of course) {
-    const last = pairs.at(-1);
-    if (step.by === 'actor' || !last || last.system) pairs.push(step.by === 'actor' ? { actor: step } : { system: step });
-    else last.system = step;
-  }
+  const rows = useCaseSheetRows(name, spec, context, references);
+  const pairs = typicalCoursePairs(spec);
 
   async function copy() {
-    const cell = (value: string | string[]) => (Array.isArray(value) ? `<ul>${value.map((item) => `<li>${escape(item)}</li>`).join('')}</ul>` : escape(value));
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt">${rows.map(([label, value]) => `<tr><td style="background:#d9d9d9;font-weight:bold;width:30%">${escape(label)}</td><td colspan="2">${cell(value)}</td></tr>`).join('')}`
-      + `<tr><td colspan="3" style="background:#d9d9d9;font-weight:bold;text-align:center">Curso típico de eventos</td></tr><tr><td colspan="1" style="font-weight:bold;text-align:center">Acciones de los actores</td><td colspan="2" style="font-weight:bold;text-align:center">Respuesta del sistema</td></tr>`
-      + pairs.map((pair) => `<tr><td>${pair.actor ? `${pair.actor.number}. ${escape(pair.actor.text)}` : ''}</td><td colspan="2">${pair.system ? `${pair.system.number}. ${escape(pair.system.text)}` : ''}</td></tr>`).join('')
-      + `<tr><td colspan="3" style="background:#d9d9d9;font-weight:bold;text-align:center">Curso alterno de eventos</td></tr>`
-      + (spec.alternateCourses.length > 0 ? spec.alternateCourses.map((flow) => `<tr><td style="text-align:center;font-weight:bold">${flow.step}.</td><td colspan="2">${escape(flow.text)}</td></tr>`).join('') : '<tr><td colspan="3">—</td></tr>')
-      + '</table>';
+    const html = useCaseSheetHtml(rows, pairs, spec.alternateCourses);
     const text = [
       ...rows.map(([label, value]) => `${label}: ${Array.isArray(value) ? value.join('; ') : value}`),
       'Curso típico de eventos:',
-      ...course.map((step) => `  ${step.number}. [${step.by === 'actor' ? 'Actor' : 'Sistema'}] ${step.text}`),
+      ...spec.typicalCourse.map((step, index) => `  ${index + 1}. [${step.by === 'actor' ? 'Actor' : 'Sistema'}] ${step.text}`),
       'Curso alterno de eventos:',
       ...spec.alternateCourses.map((flow) => `  ${flow.step}. ${flow.text}`),
     ].join('\n');

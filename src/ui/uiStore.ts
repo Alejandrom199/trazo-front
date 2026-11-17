@@ -68,6 +68,9 @@ interface UiState {
   requirementsOpen: boolean;
   requirementsFocusId: string | null;
   setRequirementsOpen: (open: boolean, requirementId?: string | null) => void;
+  /** Documento ERS del proyecto (vista previa y salidas). */
+  ersOpen: boolean;
+  setErsOpen: (open: boolean) => void;
   /** Caso de uso cuya ficha está abierta (en el diagrama abierto). */
   useCaseSheetNodeId: string | null;
   setUseCaseSheetNodeId: (nodeId: string | null) => void;
@@ -224,6 +227,8 @@ export const useUiStore = create<UiState>()((set) => ({
   requirementsOpen: false,
   requirementsFocusId: null,
   setRequirementsOpen: (open, requirementId = null) => set({ requirementsOpen: open, requirementsFocusId: requirementId }),
+  ersOpen: false,
+  setErsOpen: (open) => set({ ersOpen: open }),
   useCaseSheetNodeId: null,
   setUseCaseSheetNodeId: (nodeId) => set({ useCaseSheetNodeId: nodeId }),
   linkPickerNodeId: null,

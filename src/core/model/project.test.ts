@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { groupByFolder, moveDiagramInOrder, withoutDiagrams, type DiagramRelation, type TraceLink } from './project';
+import type { TestCase } from './testCases';
 
 const link = (id: string, from: string, to: string): TraceLink => ({
   id,
@@ -11,6 +12,10 @@ const link = (id: string, from: string, to: string): TraceLink => ({
 
 const relation = (id: string, from: string, to: string): DiagramRelation => ({ id, sourceDiagramId: from, targetDiagramId: to, relation: 'implementa', createdAt: '2026-01-01T00:00:00.000Z' });
 
+const testCase = (id: string, diagramId: string): TestCase => ({
+  id, code: id, title: '', diagramId, choices: [], given: '', when: '', then: '', requirementIds: [], status: 'pendiente', createdAt: '',
+});
+
 describe('withoutDiagrams', () => {
   const project = {
     diagramIds: ['a', 'b', 'c'],
@@ -18,15 +23,17 @@ describe('withoutDiagrams', () => {
     folderOf: { a: 'f1', b: 'f1' },
     diagramRelations: [relation('rb', 'b', 'c'), relation('rc', 'c', 'a')],
     requirementLinks: [{ id: 'q1', requirementId: 'r', diagramId: 'b', elementId: null, createdAt: '' }, { id: 'q2', requirementId: 'r', diagramId: 'a', elementId: 'x', createdAt: '' }],
+    testCases: [testCase('t1', 'b'), testCase('t2', 'a')],
   };
 
-  it('Dado un diagrama quitado, Entonces se van él, los vínculos y relaciones que lo tocan y su lugar en la carpeta', () => {
+  it('Dado un diagrama quitado, Entonces se van él, los vínculos, relaciones y casos de prueba que lo tocan y su lugar en la carpeta', () => {
     expect(withoutDiagrams(project, new Set(['b']))).toEqual({
       diagramIds: ['a', 'c'],
       traceLinks: [link('ca', 'c', 'a')],
       folderOf: { a: 'f1' },
       diagramRelations: [relation('rc', 'c', 'a')],
       requirementLinks: [{ id: 'q2', requirementId: 'r', diagramId: 'a', elementId: 'x', createdAt: '' }],
+      testCases: [testCase('t2', 'a')],
     });
   });
 

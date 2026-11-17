@@ -1,4 +1,4 @@
-import { faCheck, faChevronDown, faCircleCheck, faCopy, faLightbulb, faPlus, faTriangleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCircleCheck, faCopy, faLightbulb, faPlus, faTriangleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import {
@@ -14,6 +14,8 @@ import {
   type RuleExample,
 } from '@/core/model';
 import { useProjectStore } from '@/core/store/projectStore';
+import { copyTable } from '@/ui/clipboard';
+import { requirementSheetHtml } from '@/ui/documents/sheetHtml';
 import { inputClass } from '@/ui/explanation/formFields';
 
 type Patch = Partial<Omit<Requirement, 'id' | 'createdAt'>>;
@@ -214,52 +216,6 @@ export function QualityPanel({ requirement }: { requirement: Requirement }) {
   );
 }
 
-/** Cómo declarar este tipo: el patrón, consejos y un ejemplo completo. Plegable. */
-export function GuideCard({ kind }: { kind: RequirementKind }) {
-  const [open, setOpen] = useState(true);
-  const guide = REQUIREMENT_GUIDES[kind];
-  return (
-    <section aria-label={`Cómo declarar un requisito ${kindName(kind).toLowerCase()}`} className="rounded-xl border border-line">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center gap-2 px-4 py-3 text-left">
-        <FontAwesomeIcon icon={faLightbulb} className="text-xs text-accent" />
-        <span className="text-xs font-semibold text-ink-900">Cómo declarar un requisito {kindName(kind).toLowerCase()}</span>
-        <FontAwesomeIcon icon={faChevronDown} className={`ml-auto text-[10px] text-ink-400 transition-transform ${open ? '' : '-rotate-90'}`} />
-      </button>
-      {open && (
-        <div className="space-y-3 border-t border-line px-4 py-3 text-xs leading-relaxed">
-          <p className="rounded-lg bg-accent-soft/50 px-3 py-2 font-medium text-ink-900">{guide.pattern}</p>
-          <ul className="space-y-1.5">
-            {guide.tips.map((tip) => <li key={tip} className="flex gap-2 text-ink-600"><span className="mt-1.5 size-1 shrink-0 rounded-full bg-accent" aria-hidden />{tip}</li>)}
-          </ul>
-          <div>
-            <p className="font-semibold text-ink-900">Ejemplo</p>
-            <p className="mt-1 font-medium text-ink-900">{guide.example.title}</p>
-            <p className="mt-0.5 text-ink-600">{guide.example.text}</p>
-            {guide.example.details.length > 0 && (
-              <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-ink-600">
-                {guide.example.details.map((detail) => <li key={detail}>{detail}</li>)}
-              </ul>
-            )}
-            {kind === 'regla de negocio' && (
-              <p className="mt-1.5 text-ink-600"><span className="font-semibold text-ink-900">Dado</span> un socio con 3 préstamos activos, <span className="font-semibold text-ink-900">entonces</span> no puede pedir un cuarto.</p>
-            )}
-          </div>
-          {kind === 'regla de negocio' && (
-            <div>
-              <p className="font-semibold text-ink-900">Tipos de regla</p>
-              <dl className="mt-1 space-y-1">
-                {RULE_TYPES.map((type) => (
-                  <div key={type.id}><dt className="inline font-medium text-ink-900">{type.name}: </dt><dd className="inline text-ink-600">{type.example}</dd></div>
-                ))}
-              </dl>
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
 /** Filas de la ficha en tabla, en el orden de un documento. Es la misma fuente para verla y para copiarla. */
 export function sheetRows(requirement: Requirement, fulfilledBy: string[]): [string, string | string[]][] {
   const isRule = requirement.kind === 'regla de negocio';
@@ -292,7 +248,6 @@ function formatDate(iso: string): string {
   const [year, month, day] = iso.split('-');
   return year && month && day ? `${Number(day)}/${Number(month)}/${year}` : iso;
 }
-const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
  * La ficha como tabla de documento, igual que en un informe. «Copiar» la deja
@@ -304,20 +259,11 @@ export function RequirementSheetTable({ requirement, fulfilledBy }: { requiremen
   const rows = sheetRows(requirement, fulfilledBy);
 
   async function copy() {
-    const html = `<table border="1" cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt">${rows
-      .map(([label, value]) => `<tr><td style="background:#d9d9d9;font-weight:bold;width:30%">${escape(label)}:</td><td>${Array.isArray(value) ? `<ul>${value.map((item) => `<li>${escape(item)}</li>`).join('')}</ul>` : escape(value)}</td></tr>`)
-      .join('')}</table>`;
     const text = rows.map(([label, value]) => `${label}: ${Array.isArray(value) ? `\n${value.map((item) => `  • ${item}`).join('\n')}` : value}`).join('\n');
-    try {
-      if ('ClipboardItem' in window) {
-        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
-      } else {
-        await navigator.clipboard.writeText(text);
-      }
+    // Sin permiso de portapapeles: la tabla sigue a la vista para copiarla a mano.
+    if (await copyTable(requirementSheetHtml(rows), text)) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Sin permiso de portapapeles: la tabla sigue a la vista para copiarla a mano.
     }
   }
 

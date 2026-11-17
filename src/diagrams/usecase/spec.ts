@@ -131,3 +131,42 @@ export function reviewSpec(spec: UseCaseSpec, context: UseCaseContext, reference
   if (!spec.summary.trim()) tip('Agrega un resumen de una o dos frases.');
   return hints;
 }
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** Filas de la ficha como documento, en su orden: una sola fuente para verla, copiarla y el ERS. */
+export function useCaseSheetRows(name: string, spec: UseCaseSpec, context: UseCaseContext, references: readonly string[]): [string, string | string[]][] {
+  const rows: [string, string | string[]][] = [
+    ['Caso de Uso', `${name} (${spec.code})`],
+    ['Actores', context.actors.join(', ') || '—'],
+    ['Propósito', spec.purpose || '—'],
+    ['Tipo', `${capitalize(spec.importance)} y ${capitalize(spec.level)}`],
+    ['Resumen', spec.summary || '—'],
+    ['Precondiciones', spec.preconditions.length > 0 ? spec.preconditions : '—'],
+    ['Postcondiciones', spec.postconditions.length > 0 ? spec.postconditions : '—'],
+    ['Referencias', references.join(', ') || '—'],
+  ];
+  if (context.includes.length > 0) rows.push(['Incluye', context.includes.join(', ')]);
+  if (context.extendedBy.length > 0) rows.push(['Lo extiende', context.extendedBy.join(', ')]);
+  return rows;
+}
+
+export interface NumberedStep extends UseCaseStep {
+  number: number;
+}
+
+/**
+ * El curso típico en dos columnas (actor | sistema): cada acción del actor en
+ * su fila, con la respuesta del sistema que la sigue; una segunda respuesta
+ * seguida va en una fila propia.
+ */
+export function typicalCoursePairs(spec: UseCaseSpec): { actor?: NumberedStep; system?: NumberedStep }[] {
+  const pairs: { actor?: NumberedStep; system?: NumberedStep }[] = [];
+  spec.typicalCourse.forEach((step, index) => {
+    const numbered = { ...step, number: index + 1 };
+    const last = pairs.at(-1);
+    if (step.by === 'actor' || !last || last.system) pairs.push(step.by === 'actor' ? { actor: numbered } : { system: numbered });
+    else last.system = numbered;
+  });
+  return pairs;
+}

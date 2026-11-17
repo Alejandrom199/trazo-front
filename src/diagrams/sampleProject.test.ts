@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { enumerateScenarios, replayScenario, uncoveredBranches, type CallOutcomes } from '@/core/model';
 import { buildMapEdges, coverageSummary, readLinkedDiagramId, requirementCoverage, reviewRequirement, validateDiagram, validateProject } from '@/core/model';
 import { createRegistry } from '@/core/registry';
 import { registerDiagramModules } from '.';
 import { projectRules } from './crossDiagram';
+import { activityWalkthrough } from './activity/walkthrough';
 import { buildSampleProject } from './sampleProject';
 import { UseCaseArtifact } from './usecase/artifactTypes';
 import { readSpec, reviewSpec, useCaseContext } from './usecase/spec';
@@ -47,6 +49,15 @@ describe('proyecto de ejemplo Biblioteca Digital', () => {
   it('Dadas sus fichas, Entonces sirven de modelo: ninguna tiene advertencias del revisor', () => {
     const warnings = project.requirements.map((item) => [item.code, reviewRequirement(item).filter((hint) => hint.level === 'warning').map((hint) => hint.text)]);
     expect(warnings).toEqual(project.requirements.map((item) => [item.code, []]));
+  });
+
+  it('Dados sus casos de prueba, Entonces se pueden recorrer y cubren todas las ramas del préstamo', () => {
+    const loan = diagrams.find((diagram) => diagram.name === 'Pedir un préstamo')!;
+    const availability = diagrams.find((diagram) => diagram.name === 'Validar disponibilidad')!;
+    const outcomesOf: CallOutcomes = (call) => (call.diagramId === availability.id ? { diagramName: availability.name, outcomes: activityWalkthrough.outcomes!(availability) } : null);
+    expect(project.testCases.map((item) => [item.code, replayScenario(activityWalkthrough, loan, item.choices, outcomesOf).valid])).toEqual([['CP-01', true], ['CP-02', true]]);
+    const { branches } = enumerateScenarios(activityWalkthrough, loan, outcomesOf);
+    expect(uncoveredBranches(branches, project.testCases.map((item) => item.choices))).toEqual([]);
   });
 
   it('Dados sus casos de uso, Entonces cada uno tiene su ficha CU sin advertencias del revisor', () => {

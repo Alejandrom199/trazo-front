@@ -18,6 +18,7 @@ import { DiagramLinkPicker } from '@/ui/projects/DiagramLinkPicker';
 import { ProjectMap } from '@/ui/projects/ProjectMap';
 import { RequirementsScreen } from '@/ui/requirements/RequirementsScreen';
 import { UseCaseSheetDialog } from '@/ui/usecase/UseCaseSheetDialog';
+import { ErsDialog } from '@/ui/documents/ErsDialog';
 import { EditorTutorial } from '@/ui/tutorial/EditorTutorial';
 import { useUiStore } from '@/ui/uiStore';
 import { ProjectPanel } from '@/ui/projects/ProjectPanel';
@@ -101,6 +102,7 @@ export function AppShell() {
         <ProjectMap />
         <RequirementsScreen />
         <UseCaseSheetDialog />
+        <ErsDialog />
         <TooltipLayer />
       </div>
     </ReactFlowProvider>

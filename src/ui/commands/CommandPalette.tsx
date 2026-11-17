@@ -116,6 +116,7 @@ export function CommandPalette() {
       },
       { id: 'learn', group: 'Aprender', label: 'Abrir Aprender', run: go(() => navigate({ page: 'learn' })) },
       { id: 'flow', group: 'Aprender', label: 'Flow UML (guía)', keywords: 'flow uml fases biblioteca digital', run: go(() => navigate({ page: 'learn-flow' })) },
+      { id: 'learn-spec', group: 'Aprender', label: 'Requisitos y casos de uso (guía)', keywords: 'requisitos funcional no funcional regla negocio caso de uso ficha casos de prueba', run: go(() => navigate({ page: 'learn-spec', section: null })) },
       {
         id: 'sample-project',
         group: 'Aprender',

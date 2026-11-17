@@ -3,6 +3,7 @@ import {
   faArrowRight,
   faCheck,
   faCopy,
+  faListCheck,
   faListUl,
   faRoute,
   faCodeBranch,
@@ -20,13 +21,20 @@ import type { NarrationKind, NarrationLine } from '@/core/model';
 import { useHighlightStore } from '@/canvas/highlightStore';
 import { useActiveModule } from '@/canvas/useActiveModule';
 import { useDiagramStore } from '@/core/store/diagramStore';
+import { ScenariosView } from '@/ui/scenarios/ScenariosView';
 import { WalkthroughView } from './WalkthroughView';
 import { useWalkthroughStore } from './walkthroughStore';
 
 const NARRATION_PREFIX = 'narration:';
 type NarrationView = 'visual' | 'text';
-/** Qué muestra el panel: la narración completa o el recorrido paso a paso. */
-type NarrationMode = 'narration' | 'walkthrough';
+/** Qué muestra el panel: la narración completa, el recorrido paso a paso o los escenarios (caminos y casos de prueba). */
+type NarrationMode = 'narration' | 'walkthrough' | 'scenarios';
+
+const MODES: { id: NarrationMode; label: string; icon: IconDefinition; title: string }[] = [
+  { id: 'narration', label: 'Narración', icon: faListUl, title: 'El proceso contado en texto' },
+  { id: 'walkthrough', label: 'Recorrido', icon: faRoute, title: 'Recorrido paso a paso, eligiendo en cada decisión' },
+  { id: 'scenarios', label: 'Escenarios', icon: faListCheck, title: 'Caminos posibles y casos de prueba' },
+];
 
 const KIND_PRESENTATION: Record<NarrationKind, { label: string; icon: IconDefinition; marker: string }> = {
   start: { label: 'Inicio', icon: faPlay, marker: 'border-accent/40 bg-accent-soft text-accent' },
@@ -66,6 +74,7 @@ export function NarrationPanel() {
   if (!diagram || !module) return null;
   const walkthrough = module.walkthrough;
   const walking = mode === 'walkthrough' && walkthrough !== undefined;
+  const testing = mode === 'scenarios' && walkthrough !== undefined;
 
   function focusLine(line: NarrationLine, index: number) {
     if (line.nodeIds.length + line.edgeIds.length === 0) return;
@@ -91,18 +100,19 @@ export function NarrationPanel() {
       {/* Cabecera: solo el modo. Las opciones de cada vista van dentro de ella. */}
       <header className="shrink-0 border-b border-line px-3 py-2">
         {walkthrough ? (
-          <div role="tablist" aria-label="Modo de la narración" className="grid grid-cols-2 gap-1 rounded-lg bg-canvas p-1">
-            {(['narration', 'walkthrough'] as const).map((option) => (
+          <div role="tablist" aria-label="Modo de la narración" className="grid grid-cols-3 gap-1 rounded-lg bg-canvas p-1">
+            {MODES.map((option) => (
               <button
-                key={option}
+                key={option.id}
                 type="button"
                 role="tab"
-                aria-selected={mode === option}
-                onClick={() => setMode(option)}
-                className={`flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium ${mode === option ? 'bg-surface text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'}`}
+                aria-selected={mode === option.id}
+                onClick={() => setMode(option.id)}
+                title={option.title}
+                className={`flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium ${mode === option.id ? 'bg-surface text-accent shadow-sm' : 'text-ink-600 hover:text-ink-900'}`}
               >
-                <FontAwesomeIcon icon={option === 'narration' ? faListUl : faRoute} className="text-[11px]" />
-                {option === 'narration' ? 'Narración' : 'Recorrido paso a paso'}
+                <FontAwesomeIcon icon={option.icon} className="text-[11px]" />
+                {option.label}
               </button>
             ))}
           </div>
@@ -112,7 +122,7 @@ export function NarrationPanel() {
       </header>
 
       {/* Herramientas de la narración: cómo se muestra y copiarla. */}
-      {!walking && lines.length > 0 && (
+      {!walking && !testing && lines.length > 0 && (
         <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
           <div role="group" aria-label="Vista de la narración" className="flex rounded-md bg-canvas p-0.5">
             {(['visual', 'text'] as const).map((option) => {
@@ -146,6 +156,8 @@ export function NarrationPanel() {
 
       {walking ? (
         <WalkthroughView engine={walkthrough} diagram={diagram} />
+      ) : testing ? (
+        <ScenariosView engine={walkthrough} diagram={diagram} onWalk={() => setMode('walkthrough')} />
       ) : (
       <div className="flex-1 overflow-y-auto px-3 py-2">
         {lines.length === 0 ? (

@@ -76,6 +76,8 @@ export function importProjectText(text: string, fileName: string): string {
     })),
     requirements: parsed.project.requirements,
     requirementLinks: parsed.project.requirementLinks.map((link) => ({ ...link, id: createId(), diagramId: newId(link.diagramId) })),
+    testCases: parsed.project.testCases.map((item) => ({ ...item, id: createId(), diagramId: newId(item.diagramId) })),
+    ...(parsed.project.document ? { document: parsed.project.document } : {}),
     createdAt: now,
     updatedAt: now,
   });

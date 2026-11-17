@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   moveDiagramInOrder,
   nextRequirementCode,
+  nextTestCaseCode,
   requirementDefaults,
   withoutDiagrams,
   type DiagramProject,
@@ -10,6 +11,9 @@ import {
   type Requirement,
   type RequirementKind,
   type RequirementLink,
+  type TestCase,
+  type ProjectDocument,
+  emptyProjectDocument,
   type TraceEndpoint,
   type TraceLink,
   type TraceRelation,
@@ -57,6 +61,12 @@ interface ProjectState {
   /** Vincula un requisito con un elemento (o con el diagrama completo, con elementId null). No repite. */
   linkRequirement: (requirementId: string, diagramId: string, elementId: string | null) => void;
   unlinkRequirement: (linkId: string) => void;
+  /** Guarda un camino como caso de prueba con el siguiente código (CP-01…) y devuelve su id (null si el diagrama no es del proyecto). */
+  addTestCase: (draft: Pick<TestCase, 'diagramId' | 'choices' | 'title' | 'given' | 'when' | 'then'>) => string | null;
+  updateTestCase: (testCaseId: string, patch: Partial<Omit<TestCase, 'id' | 'diagramId' | 'createdAt'>>) => void;
+  deleteTestCase: (testCaseId: string) => void;
+  /** Cambia datos del documento ERS (problema, audiencia, glosario…). */
+  updateDocument: (patch: Partial<ProjectDocument>) => void;
   /** Crea una carpeta al final y devuelve su id (null sin proyecto abierto). */
   createFolder: (name: string) => string | null;
   renameFolder: (folderId: string, name: string) => void;
@@ -116,7 +126,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
 
   createProject: (name, firstDiagramId) => set((state) => {
     const now = new Date().toISOString();
-    const project: DiagramProject = { id: createId(), name: name.trim() || 'Proyecto sin título', diagramIds: firstDiagramId ? [firstDiagramId] : [], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], createdAt: now, updatedAt: now };
+    const project: DiagramProject = { id: createId(), name: name.trim() || 'Proyecto sin título', diagramIds: firstDiagramId ? [firstDiagramId] : [], traceLinks: [], folders: [], folderOf: {}, diagramRelations: [], requirements: [], requirementLinks: [], testCases: [], createdAt: now, updatedAt: now };
     return commit([...state.projects, project], project.id);
   }),
   openProject: (project) => set((state) => commit([...state.projects.filter((other) => other.id !== project.id), project], project.id)),
@@ -226,6 +236,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     return {
       requirements: project.requirements.filter((item) => item.id !== requirementId),
       requirementLinks: project.requirementLinks.filter((link) => link.requirementId !== requirementId),
+      testCases: project.testCases.map((item) => (item.requirementIds.includes(requirementId) ? { ...item, requirementIds: item.requirementIds.filter((id) => id !== requirementId) } : item)),
     };
   })),
   linkRequirement: (requirementId, diagramId, elementId) => set((state) => changeActive(state, (project) => {
@@ -236,4 +247,25 @@ export const useProjectStore = create<ProjectState>()((set) => ({
   })),
   unlinkRequirement: (linkId) => set((state) => changeActive(state, (project) =>
     (project.requirementLinks.some((link) => link.id === linkId) ? { requirementLinks: project.requirementLinks.filter((link) => link.id !== linkId) } : null))),
+  addTestCase: (draft) => {
+    const id = createId();
+    let created = false;
+    set((state) => changeActive(state, (project) => {
+      if (!project.diagramIds.includes(draft.diagramId)) return null;
+      created = true;
+      const testCase: TestCase = { ...draft, id, code: nextTestCaseCode(project.testCases), requirementIds: [], status: 'pendiente', createdAt: new Date().toISOString() };
+      return { testCases: [...project.testCases, testCase] };
+    }));
+    return created ? id : null;
+  },
+  updateTestCase: (testCaseId, patch) => set((state) => changeActive(state, (project) => {
+    const current = project.testCases.find((item) => item.id === testCaseId);
+    if (!current) return null;
+    const next = { ...current, ...patch, code: patch.code?.trim() || current.code };
+    if (Object.entries(next).every(([key, value]) => current[key as keyof TestCase] === value)) return null;
+    return { testCases: project.testCases.map((item) => (item.id === testCaseId ? next : item)) };
+  })),
+  updateDocument: (patch) => set((state) => changeActive(state, (project) => ({ document: { ...(project.document ?? emptyProjectDocument()), ...patch } }))),
+  deleteTestCase: (testCaseId) => set((state) => changeActive(state, (project) =>
+    (project.testCases.some((item) => item.id === testCaseId) ? { testCases: project.testCases.filter((item) => item.id !== testCaseId) } : null))),
 }));
