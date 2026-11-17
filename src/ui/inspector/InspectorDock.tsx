@@ -154,12 +154,12 @@ function PropertiesContent() {
                 {edgeTypeOptions(module, edge.artifactType).length === 0 && (
                   <p className="mt-1 text-sm font-semibold text-ink-900">{definition.name}</p>
                 )}
-                <p className="mt-0.5 truncate text-xs text-ink-400">{definition.umlName}</p>
               </>
             ) : (
               <>
+                {/* El nombre UML en inglés va en Explicación, con su rótulo; aquí confundía. */}
                 <p className="text-sm font-semibold text-ink-900">{definition.name}</p>
-                <p className="truncate text-xs text-ink-400">{element.label.trim() || definition.umlName}</p>
+                {element.label.trim() && <p className="truncate text-xs text-ink-400">{element.label.trim()}</p>}
               </>
             )}
           </div>
